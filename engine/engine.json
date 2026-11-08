@@ -1,0 +1,33 @@
+{
+  "engine": "cef",
+  "cefVersion": "156.0.26+g8ea0c73+chromium-156.0.8078.88",
+  "chromiumVersion": "156.0.8078.88",
+  "channel": "stable",
+  "source": "https://cef-builds.spotifycdn.com",
+  "packages": {
+    "windows64": {
+      "file": "cef_binary_156.0.26+g8ea0c73+chromium-156.0.8078.88_windows64.tar.bz2",
+      "size": 367334877,
+      "sha1": "83c3145b1030e9a41e1e3fdf4c80f49d076c75d7",
+      "sha256": "5cf7f7f8580ed9e58b6e324ecbcb3f19d583a66c7fd6e5bdba5d10e7a3d4018b"
+    },
+    "macosarm64": {
+      "file": "cef_binary_156.0.26+g8ea0c73+chromium-156.0.8078.88_macosarm64.tar.bz2",
+      "size": 312254165,
+      "sha1": "6989ef3226be063ae164d1d9f0764a2f203d4cb1",
+      "sha256": "fb2b22354267e932c375cdb746355741669acf374fd7bb8e60e176b266d95d42"
+    },
+    "macosx64": {
+      "file": "cef_binary_156.0.26+g8ea0c73+chromium-156.0.8078.88_macosx64.tar.bz2",
+      "size": 360684107,
+      "sha1": "6288140b3d9af26d4d816abf6a758ca1d33236a4",
+      "sha256": "efdfc9258d7b235e9dd3b35789e3f86b8f26d49abf28881ad875a5cae916952e"
+    },
+    "linux64": {
+      "file": "cef_binary_156.0.26+g8ea0c73+chromium-156.0.8078.88_linux64.tar.bz2",
+      "size": 697401908,
+      "sha1": "21708af1a1eb4d673f40b1174ae5e0932230da07",
+      "sha256": "009215c934fb5471f270a75f3c35013700322d4ab4280c19b83d19d63129ddcf"
+    }
+  }
+}

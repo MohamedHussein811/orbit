@@ -1,0 +1,17 @@
+{
+  "name": "orbit-browser",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Orbit, a privacy-focused desktop browser by NovaTech",
+  "license": "MPL-2.0",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "engine:fetch": "node tools/engine.mjs fetch",
+    "engine:check": "node tools/engine.mjs check",
+    "build": "node tools/build-host.mjs",
+    "test:host": "node --test --test-concurrency=1 --test-reporter=spec tests/host/host.test.mjs"
+  }
+}

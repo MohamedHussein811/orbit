@@ -1,0 +1,71 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  host:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: Windows x64, os: windows-2022, platform: windows64 }
+          - { name: Linux x64, os: ubuntu-24.04, platform: linux64 }
+          - { name: macOS arm64, os: macos-15, platform: macosarm64 }
+          - { name: macOS x64, os: macos-15-intel, platform: macosx64 }
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+
+      - name: Cache the pinned engine
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .cache/engine/downloads
+          key: cef-${{ matrix.platform }}-${{ hashFiles('engine/engine.json') }}
+
+      - name: Install Linux packages
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build libx11-dev xvfb libnss3 libatk1.0-0t64 libatk-bridge2.0-0t64 libcups2t64 libdrm2 libgbm1 libxkbcommon0 libxcomposite1 libxdamage1 libxfixes3 libxrandr2 libasound2t64 libpango-1.0-0 libcairo2 libgtk-3-0t64
+
+      - name: Install macOS tools
+        if: runner.os == 'macOS'
+        run: brew install ninja
+
+      - name: Build
+        run: node tools/build-host.mjs
+
+      - name: Set Linux sandbox permissions
+        if: runner.os == 'Linux'
+        run: |
+          for variant in orbit orbit_test; do
+            sudo chown root:root "out/host/$variant/chrome-sandbox"
+            sudo chmod 4755 "out/host/$variant/chrome-sandbox"
+          done
+
+      - name: Test on Linux
+        if: runner.os == 'Linux'
+        run: xvfb-run -a node --test --test-concurrency=1 --test-reporter=spec tests/host/host.test.mjs
+
+      - name: Test
+        if: runner.os != 'Linux'
+        run: node --test --test-concurrency=1 --test-reporter=spec tests/host/host.test.mjs
