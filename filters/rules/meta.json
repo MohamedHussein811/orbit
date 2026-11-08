@@ -1,5 +1,5 @@
 {
-  "generated": "2026-11-08T23:16:27.935Z",
+  "generated": "2026-11-08T23:40:08.262Z",
   "lists": {
     "easylist": {
       "name": "EasyList",
@@ -7,8 +7,8 @@
       "attribution": "The EasyList authors (https://easylist.to/)",
       "homepage": "https://easylist.to/",
       "url": "https://easylist.to/easylist/easylist.txt",
-      "sha256": "9e118989a49879bd13c726f27b981aeaf09f5b83ea1400ddbaf6079eb2c450c0",
-      "bytes": 2087487
+      "sha256": "1befde7e46dc4a5261294afe9436d139cf7af5eddcbdc5215f651846de2439e5",
+      "bytes": 2087682
     },
     "easyprivacy": {
       "name": "EasyPrivacy",
@@ -16,8 +16,8 @@
       "attribution": "The EasyList authors (https://easylist.to/)",
       "homepage": "https://easylist.to/",
       "url": "https://easylist.to/easylist/easyprivacy.txt",
-      "sha256": "59ba9b5287c7f534ca90c88c87c9c213ac5fe8f9b7ba53a5b5a6e64efba328de",
-      "bytes": 1514501
+      "sha256": "d2e4abfaf4ff3a1c66a71ecd420853ed911aa44324de3cfaee66e44f51778480",
+      "bytes": 1514520
     },
     "urlhaus": {
       "name": "Malicious URL Blocklist (online entries)",
@@ -41,8 +41,8 @@
   "rulesets": {
     "ads": {
       "rules": 3757,
-      "lines": 78905,
-      "compiled": 50969,
+      "lines": 78913,
+      "compiled": 50977,
       "skipped": {
         "pattern": 9,
         "option": 3137,
@@ -51,9 +51,9 @@
       }
     },
     "trackers": {
-      "rules": 9164,
-      "lines": 56542,
-      "compiled": 56461,
+      "rules": 9165,
+      "lines": 56543,
+      "compiled": 56462,
       "skipped": {
         "too-broad": 1,
         "option": 34,
@@ -70,5 +70,13 @@
         "path": 114878
       }
     }
+  },
+  "cosmetic": {
+    "generic": 13442,
+    "sites": 7969,
+    "hide": 23592,
+    "unhide": 338,
+    "genericSkipped": 195,
+    "skipped": 389
   }
 }

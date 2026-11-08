@@ -25,7 +25,7 @@ These come from official CEF binaries, and also apply to unbranded Chromium.
 ## Orbit limits
 
 - **Blocking**
-  - Leftover ad placeholders are not hidden yet, because cosmetic filters are skipped.
+  - Leftover ad space is hidden by CSS only. Filters that need a script to evaluate them are skipped, and generic filters are limited to simple selectors. Site-specific hiding applies to the top page, not to frames inside it.
   - 3,137 EasyList filters use options with no exact equivalent in the rule engine, such as popup-only and content security policy filters, and are skipped.
   - Filters in regular expression form are skipped.
   - New rules only arrive with Orbit updates.
@@ -35,7 +35,7 @@ These come from official CEF binaries, and also apply to unbranded Chromium.
 - **Session restore** brings back the most recent window only, even if several were open.
 - **Crash detection** needs preferences on disk, which happens about 10 seconds after start. A crash sooner than that on a first run restores nothing.
 - **Clearing data at startup** starts at the same moment as session restore, so a restored page might load first.
-- **Settings pages** still show Chromium's "You and Google" and "AI innovations" sections, and a "Get help" link that goes to Google's support site. No AI feature in them runs by default.
+- **Settings pages** still mention Google services in some rows, such as sync, and those rows do not work because browser sign-in is off.
 - **Address bar and settings icons** still use Chromium's swirl in a few places, because they are compiled into the engine.
 - **Sign-in to the browser** is off. Google sites can still be used normally in a tab, though real Google login has not been tested.
 - **macOS:** the menu bar comes from a small template, and browser keyboard shortcuts have not been checked on a real Mac.

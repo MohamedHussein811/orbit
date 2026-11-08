@@ -13,7 +13,7 @@ No browser is fully secure, and no browser makes a person impossible to track. T
 | Adversary | Defence | Limit |
 | --- | --- | --- |
 | Advertising and tracking networks | Rule-based blocking, third-party cookies blocked by default | Lists miss new domains. First-party tracking is not blocked |
-| Fingerprinting scripts | Per-site values for canvas, audio and graphics, rounded hardware details | Fonts, screen and many other signals remain at the standard level. Canvases in workers are not covered |
+| Fingerprinting scripts | Per-site values for canvas, audio and graphics, rounded hardware details | Fonts, screen size and many other signals remain at the standard level. Canvases in workers are not covered |
 | Malicious websites | Chromium's sandbox and site isolation, HTTPS-only mode | Depends on prompt engine updates |
 | Network attackers | HTTPS-only mode, DNS over HTTPS, certificate checks, CRLSet | Certificate Transparency is reported but enforcement is unproven. Key pinning is off in this engine build |
 | Phishing and malware sites | Threat lists with a warning page | Lists update with Orbit, so they lag. Google Safe Browsing is not available, and this is weaker |

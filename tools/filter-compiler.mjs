@@ -157,6 +157,76 @@ function actionFor(parsed) {
   return parsed.allow ? "allow" : "block";
 }
 
+const SHARD_COUNT = 64;
+// Syntax that only ad blocker engines understand. CSS alone cannot express these.
+const PROCEDURAL = /:(-abp-|has-text|xpath|style|remove|upward|matches-|min-text|contains|if|nth-ancestor|watch-attr|others)|^\+js|^script:|\{|\}/;
+const SIMPLE_SELECTOR = /^[.#][\w-]+$|^[\w-]*\[[\w-]+([\^$*|~]?=(".*?"|[\w-]+))?\]$/;
+
+/** Shard of a hostname. The extension uses the same function to find a site's file. */
+export function cosmeticShard(host) {
+  let value = 0x811c9dc5;
+  for (let i = 0; i < host.length; i++) {
+    value ^= host.charCodeAt(i);
+    value = Math.imul(value, 0x01000193);
+  }
+  return (value >>> 0) % SHARD_COUNT;
+}
+
+/**
+ * Compiles element hiding filters. Generic filters with a simple selector become one stylesheet,
+ * since browsers look those up by class or ID. Site-specific filters go in shards by hostname.
+ */
+export function compileCosmetic(texts) {
+  const generic = new Set();
+  const sites = new Map();
+  const stats = { hide: 0, unhide: 0, genericSkipped: 0, skipped: 0 };
+  const site = (host) => {
+    if (!sites.has(host)) sites.set(host, { hide: new Set(), show: new Set() });
+    return sites.get(host);
+  };
+  for (const text of texts) {
+    for (const raw of text.split(/\r?\n/)) {
+      const line = raw.trim();
+      const match = /^([^#]*)#(@?)#(.+)$/.exec(line);
+      if (!match || line.startsWith("!")) continue;
+      const [, domainList, exception, selector] = match;
+      if (PROCEDURAL.test(selector) || selector.length > 400) {
+        stats.skipped++;
+        continue;
+      }
+      const domains = domainList ? domainList.split(",").map((d) => d.trim().toLowerCase()) : [];
+      const included = domains.filter((d) => !d.startsWith("~")).map(normalizeDomain);
+      const excluded = domains.filter((d) => d.startsWith("~")).map((d) => normalizeDomain(d.slice(1)));
+      if (included.includes(null) || excluded.includes(null)) {
+        stats.skipped++;
+        continue;
+      }
+      if (exception) {
+        for (const host of included) site(host).show.add(selector);
+        stats.unhide++;
+      } else if (included.length > 0) {
+        for (const host of included) site(host).hide.add(selector);
+        for (const host of excluded) site(host).show.add(selector);
+        stats.hide++;
+      } else if (SIMPLE_SELECTOR.test(selector)) {
+        generic.add(selector);
+        for (const host of excluded) site(host).show.add(selector);
+        stats.hide++;
+      } else {
+        stats.genericSkipped++;
+      }
+    }
+  }
+  const shards = Array.from({ length: SHARD_COUNT }, () => ({}));
+  for (const [host, { hide, show }] of [...sites].sort(([a], [b]) => a.localeCompare(b))) {
+    const entry = {};
+    if (hide.size) entry.hide = [...hide].sort();
+    if (show.size) entry.show = [...show].sort();
+    shards[cosmeticShard(host)][host] = entry;
+  }
+  return { generic: [...generic].sort(), shards, stats };
+}
+
 /**
  * Compiles plain lists of dangerous hostnames. Page loads go to Orbit's warning page, which offers
  * a way back, and everything else from those hosts is blocked. Entries with a path are left out:

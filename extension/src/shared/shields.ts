@@ -45,6 +45,38 @@ export function allowRule(id: number, hosts: readonly string[]): chrome.declarat
   };
 }
 
+const SHARD_COUNT = 64;
+
+/** Must match cosmeticShard in tools/filter-compiler.mjs. */
+export function cosmeticShard(host: string): number {
+  let value = 0x811c9dc5;
+  for (let i = 0; i < host.length; i++) {
+    value ^= host.charCodeAt(i);
+    value = Math.imul(value, 0x01000193);
+  }
+  return (value >>> 0) % SHARD_COUNT;
+}
+
+/** A site's rules also apply to its subdomains: a.b.example gets rules for b.example and example. */
+export function hostSuffixes(host: string): string[] {
+  const parts = host.split(".");
+  const out: string[] = [];
+  for (let i = 0; i < parts.length - 1; i++) out.push(parts.slice(i).join("."));
+  return out;
+}
+
+export interface SiteCosmetic {
+  hide?: string[];
+  show?: string[];
+}
+
+/** Stylesheet for one site. Selectors stay in separate rules so a rejected one affects nothing else. */
+export function cosmeticCss(entries: readonly SiteCosmetic[]): string {
+  const show = new Set(entries.flatMap((entry) => entry.show ?? []));
+  const hide = entries.flatMap((entry) => entry.hide ?? []).filter((selector) => !show.has(selector));
+  return [...hide.map((selector) => `${selector}{display:none!important}`), ...[...show].map((selector) => `${selector}{display:revert!important}`)].join("\n");
+}
+
 export type Message =
   | { type: "tab-state"; tabId: number }
   | { type: "set-shields"; host: string; enabled: boolean; incognito: boolean }

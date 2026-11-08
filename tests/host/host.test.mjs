@@ -217,6 +217,31 @@ describe("branding", () => {
     assert.ok(!/About Chromium/.test(title));
   });
 
+  test("removes the AI section and the Google help link from Settings", async () => {
+    const seen = await evalOn(session, "chrome://settings/help", `(async () => {
+      await new Promise((r) => setTimeout(r, 500));
+      const all = (root, out = []) => {
+        for (const e of root.querySelectorAll("*")) {
+          out.push(e);
+          if (e.shadowRoot) all(e.shadowRoot, out);
+        }
+        return out;
+      };
+      const everything = all(document);
+      const visible = (e) => e && !e.hidden && e.getClientRects().length > 0;
+      return {
+        menuHasPrivacy: visible(everything.find((e) => e.localName === "a" && e.id === "privacy")),
+        menuHasAi: visible(everything.find((e) => e.localName === "a" && e.id === "ai")),
+        helpRow: !!everything.find((e) => e.localName === "cr-link-row" && e.id === "help"),
+        people: everything.find((e) => e.localName === "a" && e.id === "people")?.textContent.trim(),
+      };
+    })()`);
+    assert.equal(seen.menuHasPrivacy, true, "the check did not find the Settings menu");
+    assert.ok(!seen.menuHasAi);
+    assert.equal(seen.helpRow, false);
+    assert.equal(seen.people, "Your profile");
+  });
+
   test("keeps the attribution to the Chromium project", async () => {
     const version = await evalOn(session, "chrome://version/", "document.body.innerText");
     assert.ok(/Chromium Authors/.test(version), version.slice(0, 400));
@@ -289,7 +314,7 @@ describe("web behaviour", () => {
     assert.ok(!fixture.log.some((e) => e.path === "/ping"), "ping was sent");
   });
 
-  test("sends a typed search to DuckDuckGo", windowsOnly, async () => {
+  test("sends a typed search to DuckDuckGo", windowsOnly, async (t) => {
     const page = await session.cdp.newPage("about:blank");
     await sleep(800);
     const searched = (urls) => urls.some((u) => u.startsWith("https://duckduckgo.com/?q=orbit+test+search"));
@@ -297,7 +322,11 @@ describe("web behaviour", () => {
     // Posted shortcuts can be dropped while another application holds the foreground.
     for (let attempt = 1; attempt <= 3 && !searched(urls); attempt++) {
       await page.send("Page.bringToFront");
-      session.input("focus");
+      if (session.input("focus").startsWith("focus=False")) {
+        await page.close();
+        t.skip("another application holds the foreground, so typed keys cannot reach the window");
+        return;
+      }
       await sleep(500);
       session.input("ctrl+l");
       await sleep(500);

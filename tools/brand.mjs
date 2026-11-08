@@ -5,6 +5,7 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import zlib from "node:zlib";
 import { ENCODING_UTF8, readPak, writePak } from "./lib-pak.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -16,11 +17,69 @@ const KEEP_STRINGS = ["IDS_ABOUT_VERSION_COMPANY_NAME", "IDS_ABOUT_VERSION_COPYR
 // In this string only the name of the linked project stays.
 const LINKED_ATTRIBUTION = "IDS_VERSION_UI_LICENSE";
 
+// Exact text in Chromium's Settings code, and what replaces it. A change in the engine makes the
+// build stop here rather than silently bring these items back.
+const SETTINGS_PATCHES = [
+  {
+    // The "AI innovations" section: its menu item and its route both read this flag.
+    find: 'loadTimeData.getBoolean("showAiPage")',
+    replace: "false",
+  },
+  {
+    // "Get help" leads to Google's support site for Chrome.
+    find: /<cr-link-row class="hr" id="help"[^>]*><\/cr-link-row>/g,
+    replace: "",
+  },
+];
+const SETTINGS_MARKER = 'id="ai" href="/ai"';
+
+// English names that describe Google rather than Orbit.
+const ENGLISH_STRINGS = { IDS_SETTINGS_PEOPLE: "Your profile" };
+
+function unpack(raw) {
+  if (raw[0] === 0x1f && raw[1] === 0x8b) return { data: zlib.gunzipSync(raw), kind: "gzip" };
+  if (raw[0] === 0x1e && raw[1] === 0x9b) return { data: zlib.brotliDecompressSync(raw.subarray(8)), kind: "brotli" };
+  return { data: raw, kind: "plain" };
+}
+
+function pack(data, kind) {
+  if (kind === "gzip") return zlib.gzipSync(data, { level: 9 });
+  if (kind === "plain") return data;
+  const header = Buffer.alloc(8);
+  header[0] = 0x1e;
+  header[1] = 0x9b;
+  header.writeUIntLE(data.length, 2, 6);
+  return Buffer.concat([header, zlib.brotliCompressSync(data)]);
+}
+
+function patchSettings(file) {
+  const pak = readPak(file);
+  for (const [id, raw] of pak.resources) {
+    let unpacked;
+    try {
+      unpacked = unpack(raw);
+    } catch {
+      continue;
+    }
+    if (!unpacked.data.includes(SETTINGS_MARKER)) continue;
+    let text = unpacked.data.toString("utf8");
+    for (const { find, replace } of SETTINGS_PATCHES) {
+      const found = typeof find === "string" ? text.includes(find) : text.search(find) !== -1;
+      if (!found) throw new Error(`Settings no longer contains: ${find}`);
+      text = text.replaceAll(find, replace);
+    }
+    pak.resources.set(id, pack(Buffer.from(text, "utf8"), unpacked.kind));
+    writePak(file, pak);
+    return;
+  }
+  throw new Error(`no resource in ${file} holds the Settings page`);
+}
+
 function stringIds(includeDir) {
   const header = fs.readFileSync(path.join(includeDir, "cef_pack_strings.h"), "utf8");
   const ids = new Map();
   for (const m of header.matchAll(/^#define (IDS_\w+) (\d+)$/gm)) ids.set(m[1], Number(m[2]));
-  for (const name of [...KEEP_STRINGS, LINKED_ATTRIBUTION]) {
+  for (const name of [...KEEP_STRINGS, LINKED_ATTRIBUTION, ...Object.keys(ENGLISH_STRINGS)]) {
     if (!ids.has(name)) throw new Error(`${name} is missing from the engine's string list`);
   }
   return ids;
@@ -36,9 +95,15 @@ function rebrandText(text, keepLinkedName) {
   return text.replaceAll("Chromium", PRODUCT);
 }
 
+/** English packs are named en-US.pak or en-GB.pak on Windows and Linux, and en.lproj on macOS. */
+const isEnglish = (file) => /(^|[\\/])en[-_](US|GB)\.pak$|[\\/]en(_GB)?\.lproj[\\/]/.test(file);
+
 function brandLocale(file, ids) {
   const pak = readPak(file);
   if (pak.encoding !== ENCODING_UTF8) throw new Error(`${file}: expected UTF-8 strings`);
+  if (isEnglish(file)) {
+    for (const [name, text] of Object.entries(ENGLISH_STRINGS)) pak.resources.set(ids.get(name), Buffer.from(text, "utf8"));
+  }
   const keep = new Set(KEEP_STRINGS.map((name) => ids.get(name)));
   const linked = ids.get(LINKED_ATTRIBUTION);
   let changed = 0;
@@ -93,6 +158,7 @@ export function brand(dir, includeDir) {
     if (fs.existsSync(file)) images += brandLogos(file, logos);
   }
   if (images === 0) throw new Error("no engine logo matched. Update branding/engine-logos.json for this engine");
+  patchSettings(path.join(dir, "resources.pak"));
   console.log(`branded ${locales.length} locales (${strings} strings) and ${images} logos in ${dir}`);
 }
 

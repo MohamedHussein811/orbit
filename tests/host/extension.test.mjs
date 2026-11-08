@@ -544,6 +544,62 @@ describe("privacy controls", () => {
   });
 });
 
+describe("hiding leftover ad space", () => {
+  let fixture;
+  let session;
+  const genericSelector = () => fs.readFileSync(path.join(extensionDir(), "rules", "cosmetic-generic.css"), "utf8").split("\n").map((line) => /^\.([\w-]+)\{/.exec(line)?.[1]).find(Boolean);
+  const SITE = "cosmetic-test.example";
+
+  before(async () => {
+    fixture = await startFixture();
+    session = await launchHost({ args: [`--host-resolver-rules=MAP ${SITE} 127.0.0.1`] });
+    await worker(session);
+    await sleep(800);
+  });
+
+  after(async () => {
+    await session.kill();
+    removeProfile(session.profile);
+    await fixture.close();
+  });
+
+  test("hides elements that match a generic rule", async () => {
+    const className = genericSelector();
+    assert.ok(className, "no generic class rule found");
+    const page = await session.cdp.newPage(`http://localhost:${fixture.port}/`);
+    await sleep(800);
+    const seen = await page.eval(`(() => {
+      const ad = document.createElement("div");
+      ad.className = ${JSON.stringify(className)};
+      ad.textContent = "advert";
+      const normal = document.createElement("div");
+      normal.className = "orbit-ordinary-content";
+      normal.textContent = "article";
+      document.body.append(ad, normal);
+      return { ad: getComputedStyle(ad).display, normal: getComputedStyle(normal).display };
+    })()`);
+    await page.close();
+    assert.deepEqual(seen, { ad: "none", normal: "block" });
+  });
+
+  test("leaves a site alone when its Shields are off", async () => {
+    const className = genericSelector();
+    const dashboardPage = await dashboard(session);
+    await dashboardPage.eval(`chrome.runtime.sendMessage({ type: "set-shields", host: "localhost", enabled: false, incognito: false })`);
+    const page = await session.cdp.newPage(`http://localhost:${fixture.port}/`);
+    await sleep(800);
+    const display = await page.eval(`(() => {
+      const ad = document.createElement("div");
+      ad.className = ${JSON.stringify(className)};
+      document.body.append(ad);
+      return getComputedStyle(ad).display;
+    })()`);
+    await page.close();
+    await dashboardPage.eval(`chrome.runtime.sendMessage({ type: "set-shields", host: "localhost", enabled: true, incognito: false })`);
+    assert.equal(display, "block");
+  });
+});
+
 describe("host link", () => {
   let fixture;
   let session;

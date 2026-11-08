@@ -3,6 +3,7 @@
 import { excludeMatches, historyCutoff, removalOptions, sanitizePrivacy, type PrivacySettings } from "../shared/privacy.ts";
 
 const SCRIPT_ID = "orbit-fingerprint";
+const COSMETIC_ID = "orbit-cosmetic";
 
 export async function readPrivacy(): Promise<PrivacySettings> {
   const { privacy } = await chrome.storage.local.get("privacy");
@@ -27,6 +28,21 @@ export async function applyFingerprinting(settings: PrivacySettings, hostsOff: r
       matchOriginAsFallback: true,
       runAt: "document_start",
       world: "MAIN",
+    },
+  ]);
+}
+
+/** Hides common ad elements everywhere except on sites with Shields off. */
+export async function applyGenericHiding(hostsOff: readonly string[]): Promise<void> {
+  await chrome.scripting.unregisterContentScripts({ ids: [COSMETIC_ID] }).catch(() => {});
+  await chrome.scripting.registerContentScripts([
+    {
+      id: COSMETIC_ID,
+      css: ["rules/cosmetic-generic.css"],
+      matches: ["http://*/*", "https://*/*"],
+      excludeMatches: excludeMatches(hostsOff),
+      allFrames: true,
+      runAt: "document_start",
     },
   ]);
 }

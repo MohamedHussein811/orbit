@@ -2,7 +2,7 @@
 //   node tools/engine.mjs pin [cef_version]   Pin the newest stable build, or a named one
 //   node tools/engine.mjs fetch [platform]    Download, verify and unpack, then print CEF_ROOT
 //   node tools/engine.mjs check               Report whether a newer stable build exists
-import { execFileSync } from "node:child_process";
+import { execFileSync, execSync } from "node:child_process";
 import crypto from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
@@ -16,6 +16,7 @@ const LOCK = path.join(ROOT, "engine", "engine.json");
 const CACHE = path.join(ROOT, ".cache", "engine");
 const BASE = "https://cef-builds.spotifycdn.com";
 const PLATFORMS = ["windows64", "windowsarm64", "macosarm64", "macosx64", "linux64", "linuxarm64"];
+const UNPACK_TIMEOUT_MS = 20 * 60 * 1000;
 
 export function currentPlatform() {
   const arm = os.arch() === "arm64";
@@ -89,6 +90,26 @@ async function pin(version, platforms) {
   fs.writeFileSync(LOCK, `${JSON.stringify(lock, null, 2)}\n`);
 }
 
+function findSevenZip() {
+  const candidates = [process.env.ProgramFiles && path.join(process.env.ProgramFiles, "7-Zip", "7z.exe")];
+  return candidates.find((candidate) => candidate && fs.existsSync(candidate));
+}
+
+function unpack(archive, dir) {
+  const options = { stdio: ["ignore", "ignore", "inherit"], timeout: UNPACK_TIMEOUT_MS };
+  if (process.platform !== "win32") {
+    execFileSync("tar", ["-xf", archive, "-C", dir], options);
+    return;
+  }
+  // Windows' own tar can stall on this archive for an hour on CI machines, so 7-Zip goes first.
+  const sevenZip = findSevenZip();
+  if (sevenZip) {
+    execSync(`"${sevenZip}" x "${archive}" -so | "${sevenZip}" x -si -ttar -aoa -bd "-o${dir}"`, options);
+  } else {
+    execFileSync(path.join(process.env.WINDIR, "System32", "tar.exe"), ["-xf", archive, "-C", dir], options);
+  }
+}
+
 export async function fetchEngine(platform = currentPlatform()) {
   const lock = readLock();
   const entry = lock.packages[platform];
@@ -100,8 +121,7 @@ export async function fetchEngine(platform = currentPlatform()) {
     fs.rmSync(unpackDir, { recursive: true, force: true });
     fs.mkdirSync(unpackDir, { recursive: true });
     console.error(`unpacking ${entry.file}`);
-    const tar = process.platform === "win32" ? path.join(process.env.WINDIR, "System32", "tar.exe") : "tar";
-    execFileSync(tar, ["-xf", archive, "-C", unpackDir], { stdio: "inherit" });
+    unpack(archive, unpackDir);
   }
   return root;
 }

@@ -5,7 +5,7 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { compileFilters, compileHosts } from "./filter-compiler.mjs";
+import { compileCosmetic, compileFilters, compileHosts } from "./filter-compiler.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const SOURCES = path.join(ROOT, "filters", "sources.json");
@@ -54,6 +54,19 @@ async function update() {
     meta.rulesets[name] = { rules: rules.length, ...stats };
     console.error(`compiled ${name}: ${rules.length} rules`, JSON.stringify(stats));
   }
+  const cosmeticInputs = sources.cosmetic.map((id) => texts[id]);
+  const cosmetic = compileCosmetic(cosmeticInputs);
+  // One rule per selector, so one selector the browser rejects cannot cancel the others.
+  fs.writeFileSync(path.join(RULES_DIR, "cosmetic-generic.css"), cosmetic.generic.map((selector) => `${selector}{display:none!important}\n`).join(""));
+  const shardDir = path.join(RULES_DIR, "cosmetic");
+  fs.rmSync(shardDir, { recursive: true, force: true });
+  fs.mkdirSync(shardDir, { recursive: true });
+  cosmetic.shards.forEach((shard, index) => {
+    const lines = Object.entries(shard).map(([host, entry]) => `${JSON.stringify(host)}:${JSON.stringify(entry)}`);
+    fs.writeFileSync(path.join(shardDir, `${index}.json`), `{\n${lines.join(",\n")}\n}\n`);
+  });
+  meta.cosmetic = { generic: cosmetic.generic.length, sites: cosmetic.shards.reduce((total, shard) => total + Object.keys(shard).length, 0), ...cosmetic.stats };
+  console.error("compiled cosmetic:", JSON.stringify(meta.cosmetic));
   fs.writeFileSync(path.join(RULES_DIR, "meta.json"), `${JSON.stringify(meta, null, 2)}\n`);
 }
 

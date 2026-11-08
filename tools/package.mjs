@@ -9,6 +9,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { buildDir } from "./build-host.mjs";
 import { currentPlatform, fetchEngine } from "./engine.mjs";
+import { createSbom } from "./sbom.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const OUT = path.join(ROOT, "out", "package");
@@ -174,6 +175,7 @@ async function main() {
   else if (process.platform === "darwin") await packageMac();
   else await packageLinux();
   fs.rmSync(path.join(OUT, "stage"), { recursive: true, force: true });
+  fs.writeFileSync(path.join(OUT, `orbit-${version}-sbom.cdx.json`), `${JSON.stringify(createSbom(), null, 2)}\n`);
   writeChecksums();
 }
 

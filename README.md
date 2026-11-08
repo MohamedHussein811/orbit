@@ -12,6 +12,8 @@ Orbit is a free, privacy-focused desktop browser by NovaTech, built on the Chrom
 - Session restore after a clean exit and after a crash, with a guard against crash loops.
 - A pinned engine with SHA-256 checks, and a daily job that proposes an update when CEF ships a newer stable build.
 - A built-in extension with the dashboard (search, bookmarks, protection counts, weather, notes, themes and layout) and Shields, which blocks ads, trackers and listed threats with Chromium's own rule engine.
+- A privacy page for fingerprinting protection levels, WebRTC handling, clearing data at startup and history cleanup.
+- Installers and archives for each system, tested by installing them on CI. They are unsigned, so there are no public downloads yet.
 
 The automated tests in [`tests/host`](tests/host) define what counts as working. CI runs them on each system listed in [`.github/workflows/ci.yml`](.github/workflows/ci.yml).
 
@@ -19,8 +21,8 @@ The automated tests in [`tests/host`](tests/host) define what counts as working.
 
 - **Video:** official CEF binaries have no H.264, AAC or HEVC. Sites that need those formats fail. YouTube plays through VP9. This is an open release blocker.
 - **Safe Browsing:** not available in this engine build. A replacement threat feed is planned and not built.
-- **Blocking:** Shields does not hide leftover ad placeholders yet, and it has no fingerprinting protection yet. Guest windows have no extensions, so no Shields.
-- **Not built yet:** updater, installers and signed packages.
+- **Blocking:** guest windows have no extensions, so no Shields. Details are in [docs/KNOWN_LIMITS.md](docs/KNOWN_LIMITS.md).
+- **Not built yet:** updater and signed packages.
 
 ## Build
 

@@ -46,9 +46,7 @@ export function buildExtension(out) {
 
   const ruleDir = path.join(out, "rules");
   fs.mkdirSync(ruleDir, { recursive: true });
-  for (const file of fs.readdirSync(RULES_DIR)) {
-    fs.copyFileSync(path.join(RULES_DIR, file), path.join(ruleDir, file));
-  }
+  fs.cpSync(RULES_DIR, ruleDir, { recursive: true });
 
   console.log(`built extension ${version} at ${out}`);
 }

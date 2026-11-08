@@ -4,7 +4,7 @@ import { defaultLayout, moveWidget, sanitizeLayout, updateWidget } from "../src/
 import { createNote, patchNote, sanitizeNotes, sortNotes } from "../src/shared/notes.ts";
 import { excludeMatches, historyCutoff, removalOptions, sanitizePrivacy } from "../src/shared/privacy.ts";
 import { DEFAULT_ACCENT, resolveTheme, sanitizeSettings } from "../src/shared/settings.ts";
-import { allowRule, ALLOW_ID_BASE, categoryOfMatch, normalizeHosts, siteOf } from "../src/shared/shields.ts";
+import { allowRule, ALLOW_ID_BASE, categoryOfMatch, cosmeticCss, cosmeticShard, hostSuffixes, normalizeHosts, siteOf } from "../src/shared/shields.ts";
 import { addCount, dayKey, emptyStats, pruneStats, sanitizeStats, summarize } from "../src/shared/stats.ts";
 import { describeWeather, forecastUrl, isFresh, parseForecast, parsePlaces, roundCoordinate, WEATHER_CACHE_MS } from "../src/shared/weather.ts";
 
@@ -142,6 +142,26 @@ test("history cleanup only runs when chosen", () => {
 
 test("sites with Shields off keep real values, subdomains included", () => {
   assert.deepEqual(excludeMatches(["a.example"]), ["*://a.example/*", "*://*.a.example/*"]);
+});
+
+test("site hiding rules cover subdomains, and never a bare top-level domain", () => {
+  assert.deepEqual(hostSuffixes("a.b.example.com"), ["a.b.example.com", "b.example.com", "example.com"]);
+  assert.deepEqual(hostSuffixes("localhost"), []);
+});
+
+test("the extension and the rule compiler pick the same shard", async () => {
+  const compiler = await import(String(new URL("../../tools/filter-compiler.mjs", import.meta.url)));
+  for (const host of ["example.com", "news.example.org", "xn--e1afmkfd.xn--p1ai", "a.b.c.d"]) {
+    assert.equal(cosmeticShard(host), compiler.cosmeticShard(host));
+  }
+});
+
+test("a site's exception beats its hiding rule", () => {
+  const css = cosmeticCss([{ hide: [".a", ".b"] }, { show: [".b", ".c"] }]);
+  assert.match(css, /^\.a\{display:none!important\}$/m);
+  assert.doesNotMatch(css, /\.b\{display:none/);
+  assert.match(css, /\.b\{display:revert!important\}/);
+  assert.match(css, /\.c\{display:revert!important\}/);
 });
 
 test("weather requests round the location", () => {

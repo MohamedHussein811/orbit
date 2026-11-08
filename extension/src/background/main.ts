@@ -3,8 +3,8 @@
 
 import { addCount, emptyCounts, emptyStats, pruneStats, sanitizeStats, type Category, type Counts } from "../shared/stats.ts";
 import { sanitizePrivacy } from "../shared/privacy.ts";
-import { allowRule, categoryOfMatch, normalizeHosts, type Message, type TabState } from "../shared/shields.ts";
-import { applyFingerprinting, applyWebRtc, readPrivacy, runStartupCleanup } from "./privacy.ts";
+import { allowRule, categoryOfMatch, cosmeticCss, cosmeticShard, hostSuffixes, normalizeHosts, siteOf, type Message, type SiteCosmetic, type TabState } from "../shared/shields.ts";
+import { applyFingerprinting, applyGenericHiding, applyWebRtc, readPrivacy, runStartupCleanup } from "./privacy.ts";
 
 const FLUSH_DELAY_MS = 500;
 const DYNAMIC_ALLOW_RULE = 1;
@@ -83,8 +83,36 @@ function clearTab(tabId: number): Promise<void> {
 chrome.tabs.onUpdated.addListener((tabId, change) => {
   if (change.status === "loading" && change.url) {
     void clearTab(tabId).then(() => showBadge(tabId, emptyCounts()));
+    void hideOnSite(tabId, change.url);
   }
 });
+
+// Hiding leftover ad space on sites that have their own hiding rules
+const shardCache = new Map<number, Record<string, SiteCosmetic>>();
+
+async function readShard(index: number): Promise<Record<string, SiteCosmetic>> {
+  let shard = shardCache.get(index);
+  if (!shard) {
+    const response = await fetch(chrome.runtime.getURL(`rules/cosmetic/${index}.json`));
+    shard = (await response.json()) as Record<string, SiteCosmetic>;
+    shardCache.set(index, shard);
+  }
+  return shard;
+}
+
+async function hideOnSite(tabId: number, url: string): Promise<void> {
+  const host = siteOf(url);
+  if (!host) return;
+  const off = [...(await hostsOff()), ...(await privateHostsOff())];
+  if (hostSuffixes(host).some((suffix) => off.includes(suffix))) return;
+  const entries: SiteCosmetic[] = [];
+  for (const suffix of hostSuffixes(host)) {
+    const entry = (await readShard(cosmeticShard(suffix)))[suffix];
+    if (entry) entries.push(entry);
+  }
+  if (entries.length === 0) return;
+  await chrome.scripting.insertCSS({ target: { tabId }, css: cosmeticCss(entries), origin: "USER" }).catch(() => {});
+}
 
 chrome.tabs.onRemoved.addListener((tabId) => {
   void clearTab(tabId);
@@ -127,6 +155,7 @@ async function setShields(host: string, enabled: boolean, incognito: boolean): P
     await chrome.storage.local.set({ sitesOff });
     await applyPersistentRules(sitesOff);
     await applyFingerprinting(await readPrivacy(), sitesOff);
+    await applyGenericHiding(sitesOff);
   }
 }
 
@@ -175,8 +204,10 @@ async function handle(message: Message): Promise<unknown> {
 
 async function applyAll(): Promise<void> {
   const privacy = await readPrivacy();
+  const sitesOff = await hostsOff();
   await applyWebRtc(privacy);
-  await applyFingerprinting(privacy, await hostsOff());
+  await applyFingerprinting(privacy, sitesOff);
+  await applyGenericHiding(sitesOff);
 }
 
 chrome.runtime.onInstalled.addListener(() => {

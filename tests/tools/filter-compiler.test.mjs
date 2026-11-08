@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { ALLOW_ID_BASE, compileFilters, parseFilter } from "../../tools/filter-compiler.mjs";
+import { ALLOW_ID_BASE, compileCosmetic, compileFilters, compileHosts, cosmeticShard, parseFilter } from "../../tools/filter-compiler.mjs";
 
 const one = (line) => {
   const { rules } = compileFilters([line]);
@@ -111,6 +111,50 @@ test("duplicates compile to one rule", () => {
 test("IDs are unique", () => {
   const { rules } = compileFilters(["||a.example/x", "||b.example/x", "@@||c.example/x", "@@||d.example/x", "||e.example^"]);
   assert.equal(new Set(rules.map((r) => r.id)).size, rules.length);
+});
+
+test("threat lists send page loads to the warning page and block the rest", () => {
+  const { rules, stats } = compileHosts(["! comment\nbad.example\nBAD2.example\nhacked.example/path/file.exe\n"], { redirect: "chrome-extension://x/blocked.html" });
+  assert.equal(stats.compiled, 2);
+  assert.equal(stats.skipped.path, 1);
+  assert.equal(rules.length, 2);
+  assert.deepEqual(rules[0].condition.requestDomains, ["bad.example", "bad2.example"]);
+  assert.equal(rules[0].action.redirect.regexSubstitution, "chrome-extension://x/blocked.html#\\0");
+  assert.deepEqual(rules[0].condition.resourceTypes, ["main_frame"]);
+  assert.deepEqual(rules[1].action, { type: "block" });
+  assert.deepEqual(rules[1].condition.excludedResourceTypes, ["main_frame"]);
+});
+
+test("generic hiding keeps simple selectors only", () => {
+  const { generic, stats } = compileCosmetic(["##.ad-banner\n###top-ad\n##div[data-ad]\n##div > .x .y\n"]);
+  assert.deepEqual(generic, ["#top-ad", ".ad-banner", "div[data-ad]"]);
+  assert.equal(stats.genericSkipped, 1);
+});
+
+test("site hiding goes to the site's shard", () => {
+  const { shards } = compileCosmetic(["a.example,b.example##.x > .y\n"]);
+  assert.deepEqual(shards[cosmeticShard("a.example")]["a.example"], { hide: [".x > .y"] });
+  assert.deepEqual(shards[cosmeticShard("b.example")]["b.example"], { hide: [".x > .y"] });
+});
+
+test("exceptions and excluded sites show the element again", () => {
+  const { shards, generic } = compileCosmetic(["~c.example##.ad\nd.example#@#.ad\n"]);
+  assert.deepEqual(generic, [".ad"]);
+  assert.deepEqual(shards[cosmeticShard("c.example")]["c.example"], { show: [".ad"] });
+  assert.deepEqual(shards[cosmeticShard("d.example")]["d.example"], { show: [".ad"] });
+});
+
+test("syntax CSS cannot express is skipped", () => {
+  const { generic, shards, stats } = compileCosmetic(["##.a:has-text(x)\nb.example##+js(nowebrtc)\nc.example##.d:style(color:red)\ne.example##.f{}\n"]);
+  assert.deepEqual(generic, []);
+  assert.deepEqual(shards.flatMap((s) => Object.keys(s)), []);
+  assert.equal(stats.skipped, 4);
+});
+
+test("network filters are not read as hiding filters", () => {
+  const { generic, shards } = compileCosmetic(["||ads.example^\n! ##.comment\n"]);
+  assert.deepEqual(generic, []);
+  assert.deepEqual(shards.flatMap((s) => Object.keys(s)), []);
 });
 
 test("a dollar sign inside a URL is not read as options", () => {
