@@ -477,6 +477,28 @@ describe("single instance", () => {
     assert.equal(pages.length, before + 1);
   });
 
+  test("a second launch with a file path opens that file", async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "orbit-host-file-"));
+    const file = path.join(dir, "a page & more.html");
+    fs.writeFileSync(file, "<!doctype html><title>Local</title><h1>Local page</h1>");
+    const second = await launchHost({ profile: first.profile, connect: false, urls: [file] });
+    assert.equal((await waitForExit(second, 15000)).code, PROCESS_NOTIFIED_EXIT);
+    await sleep(1500);
+    const urls = (await first.pages()).map((t) => t.url);
+    fs.rmSync(dir, { recursive: true, force: true });
+    assert.ok(urls.some((u) => u.startsWith("file:") && u.endsWith("/a%20page%20%26%20more.html")), JSON.stringify(urls));
+  });
+
+  test("a second launch ignores a script URL and a missing file", async () => {
+    const before = (await first.pages()).map((t) => t.url);
+    const second = await launchHost({ profile: first.profile, connect: false, urls: ["javascript:alert(1)"] });
+    assert.equal((await waitForExit(second, 15000)).code, PROCESS_NOTIFIED_EXIT);
+    await sleep(1500);
+    const urls = (await first.pages()).map((t) => t.url);
+    assert.ok(!urls.some((u) => u.startsWith("javascript:")), JSON.stringify(urls));
+    assert.ok(urls.length >= before.length);
+  });
+
   test("a second launch without a URL opens a new page", async () => {
     const before = (await first.pages()).length;
     const second = await launchHost({ profile: first.profile, connect: false });

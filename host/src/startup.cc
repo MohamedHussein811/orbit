@@ -116,6 +116,24 @@ int SavedStartupSetting(const fs::path& root) {
   return kStartupNewTab;
 }
 
+// Percent-encodes a local path into a file: URL.
+std::string FileUrlFromPath(const fs::path& path) {
+  std::string generic = path.generic_u8string().empty() ? std::string() : std::string(reinterpret_cast<const char*>(path.generic_u8string().c_str()));
+  std::string url = generic.rfind("/", 0) == 0 ? "file://" : "file:///";
+  static const char kHex[] = "0123456789ABCDEF";
+  for (unsigned char c : generic) {
+    const bool keep = (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '/' || c == ':' || c == '-' || c == '_' || c == '.' || c == '~';
+    if (keep) {
+      url.push_back(static_cast<char>(c));
+    } else {
+      url.push_back('%');
+      url.push_back(kHex[c >> 4]);
+      url.push_back(kHex[c & 15]);
+    }
+  }
+  return url;
+}
+
 bool IsOpenableUrl(const std::string& value) {
   for (const char* scheme : {"http://", "https://", "file://"}) {
     if (value.rfind(scheme, 0) == 0) {
@@ -138,6 +156,11 @@ std::string UrlFromArguments(CefRefPtr<CefCommandLine> command_line) {
     const std::string value = argument.ToString();
     if (IsOpenableUrl(value)) {
       return value;
+    }
+    std::error_code ignored;
+    const fs::path path(argument.ToWString());
+    if (path.is_absolute() && fs::is_regular_file(path, ignored)) {
+      return FileUrlFromPath(path);
     }
   }
   return std::string();

@@ -1,5 +1,6 @@
 // Shared facts about blocking, used by the background worker and its tests.
 
+import type { PrivacySettings } from "./privacy.ts";
 import type { Category } from "./stats.ts";
 
 /** Compiled allow rules start at this ID (see tools/filter-compiler.mjs). They do not count as blocks. */
@@ -48,7 +49,8 @@ export type Message =
   | { type: "tab-state"; tabId: number }
   | { type: "set-shields"; host: string; enabled: boolean; incognito: boolean }
   | { type: "continue-to-site"; host: string }
-  | { type: "reset-stats" };
+  | { type: "reset-stats" }
+  | { type: "set-privacy"; settings: PrivacySettings };
 
 export interface TabState {
   counts: Record<Category, number>;

@@ -59,6 +59,19 @@ const storedStats = async (page) => {
   return total;
 };
 
+/** Counts arrive shortly after the block, and later on slow machines. Any miscount still fails. */
+async function waitForStats(page, expected, timeoutMs = 20000) {
+  const started = Date.now();
+  let actual = await storedStats(page);
+  while (Date.now() - started < timeoutMs && JSON.stringify(actual) !== JSON.stringify(expected)) {
+    await sleep(250);
+    actual = await storedStats(page);
+  }
+  assert.deepEqual(actual, expected);
+  await sleep(1000);
+  assert.deepEqual(await storedStats(page), expected, "the count kept growing past the real number");
+}
+
 const allPrefs = (profile) => {
   const regular = path.join(profile, "Default", "Preferences");
   const secure = path.join(profile, "Default", "Secure Preferences");
@@ -84,9 +97,9 @@ describe("rule files", () => {
     assert.ok(regex < 1000, `${regex} regex rules`);
   });
 
-  test("the manifest asks for no permission that reads browsing history", () => {
+  test("the manifest asks for no permission that watches browsing", () => {
     const manifest = JSON.parse(fs.readFileSync(path.join(extensionDir(), "manifest.json"), "utf8"));
-    for (const permission of ["history", "webNavigation", "webRequest", "tabs", "cookies", "topSites"]) {
+    for (const permission of ["webNavigation", "webRequest", "tabs", "cookies", "topSites", "management", "nativeMessaging"]) {
       assert.ok(!manifest.permissions.includes(permission), permission);
     }
   });
@@ -272,11 +285,10 @@ describe("Shields", () => {
   });
 
   test("counts exactly what was blocked", async () => {
-    const before = await storedStats(page);
-    assert.deepEqual(before, { ads: 2, trackers: 1, threats: 0 });
+    await waitForStats(page, { ads: 2, trackers: 1, threats: 0 });
     const tab = await visitAdPage();
     await tab.close();
-    assert.deepEqual(await storedStats(page), { ads: 4, trackers: 2, threats: 0 });
+    await waitForStats(page, { ads: 4, trackers: 2, threats: 0 });
   });
 
   test("shows the real counts on the dashboard", async () => {
@@ -287,7 +299,7 @@ describe("Shields", () => {
       select.value = "today";
       select.dispatchEvent(new Event("change", { bubbles: true }));
     })()`);
-    await sleep(300);
+    await waitForStats(again, { ads: 4, trackers: 2, threats: 0 });
     const numbers = await again.eval(`[...document.querySelectorAll('.widget[data-id="stats"] dd')].map((e) => e.textContent)`);
     assert.deepEqual(numbers, ["4", "2", "0"]);
     page = again;
@@ -308,7 +320,7 @@ describe("Shields", () => {
     const tab = await visitAdPage();
     await tab.close();
     assert.ok(fixture.log.some((e) => e.host === AD_HOST), "the ad host should load with Shields off");
-    assert.deepEqual(await storedStats(page), before);
+    await waitForStats(page, before);
 
     await page.eval(`chrome.runtime.sendMessage({ type: "set-shields", host: "localhost", enabled: true, incognito: false })`);
     fixture.log.length = 0;
@@ -335,11 +347,12 @@ describe("Shields", () => {
   });
 
   test("the counter survives a reset", async () => {
+    await sleep(1000);
     await page.eval(`chrome.runtime.sendMessage({ type: "reset-stats" })`);
-    assert.deepEqual(await storedStats(page), { ads: 0, trackers: 0, threats: 0 });
+    await waitForStats(page, { ads: 0, trackers: 0, threats: 0 });
     const tab = await visitAdPage();
     await tab.close();
-    assert.deepEqual(await storedStats(page), { ads: 2, trackers: 1, threats: 0 });
+    await waitForStats(page, { ads: 2, trackers: 1, threats: 0 });
   });
 });
 
@@ -378,6 +391,156 @@ describe("threat warning", () => {
     const sw = await worker(session);
     const stats = await sw.eval(`chrome.storage.local.get("stats").then((v) => Object.values(v.stats.days)[0].threats)`);
     assert.equal(stats, 1);
+  });
+});
+
+describe("privacy controls", () => {
+  let fixture;
+  let session;
+  let page;
+
+  const FINGERPRINT = `(async () => {
+    const canvas = document.createElement("canvas");
+    canvas.width = 220;
+    canvas.height = 40;
+    const context = canvas.getContext("2d");
+    context.fillStyle = "#f60";
+    context.fillRect(0, 0, 220, 40);
+    context.fillStyle = "#069";
+    context.font = "16px Arial";
+    context.fillText("Orbit fingerprint test", 4, 22);
+    const text = canvas.toDataURL();
+    const pixels = context.getImageData(0, 0, 220, 40).data;
+    const sum = (values) => { let v = 0; for (const x of values) v = (v * 31 + x) >>> 0; return v; };
+    const gl = document.createElement("canvas").getContext("webgl");
+    return {
+      canvas: sum([...text].map((c) => c.charCodeAt(0))),
+      pixels: sum(pixels),
+      renderer: gl ? gl.getParameter(0x9246) : null,
+      cores: navigator.hardwareConcurrency,
+      toStringLooksNative: HTMLCanvasElement.prototype.toDataURL.toString().includes("[native code]"),
+      levelVisible: "__orbitFingerprintLevel" in globalThis,
+    };
+  })()`;
+
+  async function readingFrom(host) {
+    const tab = await session.cdp.newPage(`http://${host}:${fixture.port}/`);
+    await sleep(600);
+    const reading = await tab.eval(FINGERPRINT);
+    await tab.close();
+    return reading;
+  }
+
+  before(async () => {
+    fixture = await startFixture();
+    session = await launchHost({ args: ["--host-resolver-rules=MAP *.test 127.0.0.1", "--disable-features=HttpsFirstBalancedModeAutoEnable"] });
+    page = await dashboard(session);
+    await worker(session);
+    await page.eval(`import("chrome://resources/js/cr.js").catch(() => null)`).catch(() => {});
+    const settings = await session.cdp.newPage("chrome://settings/");
+    await sleep(1000);
+    await settings.eval(`chrome.settingsPrivate.setPref("https_only_mode_enabled", false)`);
+    await settings.close();
+    await sleep(1000);
+  });
+
+  after(async () => {
+    await session.kill();
+    removeProfile(session.profile);
+    await fixture.close();
+  });
+
+  test("at the default level, canvas readings differ between sites and stay stable on one site", async () => {
+    const first = await readingFrom("a.test");
+    const again = await readingFrom("a.test");
+    const other = await readingFrom("b.test");
+    assert.equal(first.canvas, again.canvas, "the reading changed on the same site");
+    assert.equal(first.pixels, again.pixels, "the pixels changed on the same site");
+    assert.notEqual(first.canvas, other.canvas, "two sites got the same canvas reading");
+    assert.notEqual(first.pixels, other.pixels, "two sites got the same pixels");
+    assert.equal(first.toStringLooksNative, true);
+    assert.equal(first.levelVisible, false, "the page can see the protection's setting");
+    assert.ok(first.cores === 4 || first.cores === 8, String(first.cores));
+    if (first.renderer !== null) assert.equal(first.renderer, "ANGLE (Generic Renderer)");
+  });
+
+  test("turning protection off gives every site the real reading", async () => {
+    await page.eval(`chrome.runtime.sendMessage({ type: "set-privacy", settings: { version: 1, fingerprinting: "off", webrtc: "default_public_interface_only", clearOnStart: [], historyDays: 0 } })`);
+    await sleep(300);
+    const first = await readingFrom("a.test");
+    const other = await readingFrom("b.test");
+    assert.equal(first.canvas, other.canvas);
+    assert.equal(first.pixels, other.pixels);
+  });
+
+  test("a site with Shields off gets real readings while others stay protected", async () => {
+    await page.eval(`chrome.runtime.sendMessage({ type: "set-privacy", settings: { version: 1, fingerprinting: "standard", webrtc: "default_public_interface_only", clearOnStart: [], historyDays: 0 } })`);
+    await sleep(300);
+    const protectedReading = await readingFrom("a.test");
+    await page.eval(`chrome.runtime.sendMessage({ type: "set-shields", host: "a.test", enabled: false, incognito: false })`);
+    await sleep(300);
+    const real = await readingFrom("a.test");
+    assert.notEqual(protectedReading.canvas, real.canvas);
+    await page.eval(`chrome.runtime.sendMessage({ type: "set-shields", host: "a.test", enabled: true, incognito: false })`);
+  });
+
+  test("hides local network addresses from WebRTC by default", async () => {
+    const tab = await session.cdp.newPage(`http://a.test:${fixture.port}/`);
+    await sleep(400);
+    const candidates = await tab.eval(`new Promise((resolve) => {
+      const found = [];
+      const pc = new RTCPeerConnection({ iceServers: [] });
+      pc.createDataChannel("x");
+      pc.onicecandidate = (event) => { if (event.candidate) found.push(event.candidate.candidate); else { pc.close(); resolve(found); } };
+      pc.createOffer().then((offer) => pc.setLocalDescription(offer));
+      setTimeout(() => { pc.close(); resolve(found); }, 4000);
+    })`);
+    await tab.close();
+    const privateAddress = /(^| )(10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/;
+    assert.ok(!candidates.some((line) => privateAddress.test(line)), JSON.stringify(candidates));
+  });
+
+  test("the privacy page shows the saved choices and real list details", async () => {
+    const tab = await session.cdp.newPage(`chrome-extension://${EXTENSION_ID}/privacy/privacy.html`);
+    await sleep(800);
+    const seen = await tab.eval(`({
+      level: document.querySelector('input[name="fingerprinting"]:checked')?.value,
+      webrtc: document.querySelector('input[name="webrtc"]:checked')?.value,
+      lists: [...document.querySelectorAll(".list-table tbody tr")].length,
+      text: document.body.innerText,
+    })`);
+    await tab.close();
+    assert.equal(seen.level, "standard");
+    assert.equal(seen.webrtc, "default_public_interface_only");
+    assert.equal(seen.lists, 4);
+    assert.match(seen.text, /EasyList/);
+    assert.match(seen.text, /No setting can make you impossible to track/);
+  });
+
+  test("clears the chosen data when Orbit starts, and keeps the rest", async () => {
+    const origin = `http://a.test:${fixture.port}`;
+    const tab = await session.cdp.newPage(`${origin}/setcookie`);
+    await sleep(500);
+    assert.match(await tab.eval("document.cookie"), /first=party/);
+    await tab.eval(`localStorage.setItem("kept", "1")`);
+    await tab.close();
+    await page.eval(`chrome.bookmarks.create({ parentId: "1", title: "Keep me", url: "https://example.org/keep" })`);
+    await page.eval(`chrome.runtime.sendMessage({ type: "set-privacy", settings: { version: 1, fingerprinting: "standard", webrtc: "default_public_interface_only", clearOnStart: ["cookies"], historyDays: 0 } })`);
+    await sleep(300);
+    await session.closeWindows();
+    await waitForExit(session);
+
+    session = await launchHost({ profile: session.profile, checkProfile: false, args: ["--host-resolver-rules=MAP *.test 127.0.0.1"] });
+    page = await dashboard(session);
+    await sleep(1500);
+    const after = await session.cdp.newPage(`${origin}/`);
+    await sleep(500);
+    assert.equal(await after.eval("document.cookie"), "");
+    for (let i = 0; i < 20 && (await after.eval(`localStorage.getItem("kept")`)) !== null; i++) await sleep(250);
+    assert.equal(await after.eval(`localStorage.getItem("kept")`), null);
+    await after.close();
+    const kept = await page.eval(`chrome.bookmarks.search({ title: "Keep me" })`);
+    assert.equal(kept.length, 1);
   });
 });
 

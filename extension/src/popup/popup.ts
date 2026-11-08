@@ -35,7 +35,7 @@ async function main(): Promise<void> {
 }
 
 byId("privacy").addEventListener("click", () => {
-  void chrome.tabs.create({ url: "chrome://settings/privacy" });
+  void chrome.runtime.openOptionsPage();
 });
 
 byId("siteSettings").addEventListener("click", () => {

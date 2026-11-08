@@ -86,3 +86,32 @@ jobs:
       - name: Test
         if: runner.os != 'Linux'
         run: node --test --test-concurrency=1 --test-reporter=spec tests/host/host.test.mjs tests/host/extension.test.mjs
+
+      - name: Install Inno Setup
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $installer = "$env:RUNNER_TEMP\innosetup.exe"
+          Invoke-WebRequest "https://github.com/jrsoftware/issrc/releases/download/is-7_1_1/innosetup-7.1.1-x64.exe" -OutFile $installer
+          if ((Get-FileHash $installer -Algorithm SHA256).Hash -ne "8A5A6711C3766A6E5FB74F280BA0E3551E719CE94538D901FDBD1F8F9920B3F0") { throw "Inno Setup hash mismatch" }
+          Start-Process $installer -ArgumentList "/VERYSILENT","/SUPPRESSMSGBOXES","/NORESTART","/CURRENTUSER","/PORTABLE=1","/NOICONS","/DIR=$env:RUNNER_TEMP\inno" -Wait
+          "ORBIT_ISCC=$env:RUNNER_TEMP\inno\ISCC.exe" >> $env:GITHUB_ENV
+
+      - name: Package
+        run: node tools/package.mjs
+
+      - name: Test the package on Linux
+        if: runner.os == 'Linux'
+        run: xvfb-run -a node tests/package/install-smoke.mjs
+
+      - name: Test the package
+        if: runner.os != 'Linux'
+        run: node tests/package/install-smoke.mjs
+
+      - name: Keep the unsigned test package
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: orbit-unsigned-test-${{ matrix.platform }}
+          path: out/package/*
+          retention-days: 7
+          compression-level: 0

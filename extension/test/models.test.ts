@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { defaultLayout, moveWidget, sanitizeLayout, updateWidget } from "../src/shared/layout.ts";
 import { createNote, patchNote, sanitizeNotes, sortNotes } from "../src/shared/notes.ts";
+import { excludeMatches, historyCutoff, removalOptions, sanitizePrivacy } from "../src/shared/privacy.ts";
 import { DEFAULT_ACCENT, resolveTheme, sanitizeSettings } from "../src/shared/settings.ts";
 import { allowRule, ALLOW_ID_BASE, categoryOfMatch, normalizeHosts, siteOf } from "../src/shared/shields.ts";
 import { addCount, dayKey, emptyStats, pruneStats, sanitizeStats, summarize } from "../src/shared/stats.ts";
@@ -113,6 +114,34 @@ test("host lists are cleaned before they become rules", () => {
   const rule = allowRule(1, ["a.example"]);
   assert.equal(rule.action.type, "allowAllRequests");
   assert.ok(rule.priority! > 3, "must outrank every compiled rule");
+});
+
+test("privacy settings fall back to the protective default", () => {
+  const settings = sanitizePrivacy({ fingerprinting: "x", webrtc: "y", clearOnStart: ["cookies", "nope", "cookies"], historyDays: 12 });
+  assert.equal(settings.fingerprinting, "standard");
+  assert.equal(settings.webrtc, "default_public_interface_only");
+  assert.deepEqual(settings.clearOnStart, ["cookies"]);
+  assert.equal(settings.historyDays, 0);
+  assert.equal(sanitizePrivacy({ fingerprinting: "off" }).fingerprinting, "off");
+});
+
+test("clearing cookies clears all site storage", () => {
+  const options = removalOptions(["cookies", "history"]);
+  assert.equal(options.cookies, true);
+  assert.equal(options.localStorage, true);
+  assert.equal(options.indexedDB, true);
+  assert.equal(options.history, true);
+  assert.equal(options.cache, undefined);
+  assert.deepEqual(removalOptions([]), {});
+});
+
+test("history cleanup only runs when chosen", () => {
+  assert.equal(historyCutoff(0, NOW), null);
+  assert.equal(historyCutoff(30, NOW), NOW - 30 * DAY);
+});
+
+test("sites with Shields off keep real values, subdomains included", () => {
+  assert.deepEqual(excludeMatches(["a.example"]), ["*://a.example/*", "*://*.a.example/*"]);
 });
 
 test("weather requests round the location", () => {

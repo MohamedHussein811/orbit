@@ -2,7 +2,9 @@
 // Only daily totals and per-tab totals are stored. URLs and hostnames of blocked requests never are.
 
 import { addCount, emptyCounts, emptyStats, pruneStats, sanitizeStats, type Category, type Counts } from "../shared/stats.ts";
+import { sanitizePrivacy } from "../shared/privacy.ts";
 import { allowRule, categoryOfMatch, normalizeHosts, type Message, type TabState } from "../shared/shields.ts";
+import { applyFingerprinting, applyWebRtc, readPrivacy, runStartupCleanup } from "./privacy.ts";
 
 const FLUSH_DELAY_MS = 500;
 const DYNAMIC_ALLOW_RULE = 1;
@@ -124,6 +126,7 @@ async function setShields(host: string, enabled: boolean, incognito: boolean): P
     const sitesOff = change(await hostsOff());
     await chrome.storage.local.set({ sitesOff });
     await applyPersistentRules(sitesOff);
+    await applyFingerprinting(await readPrivacy(), sitesOff);
   }
 }
 
@@ -154,6 +157,13 @@ async function handle(message: Message): Promise<unknown> {
     case "continue-to-site":
       await continueToSite(message.host);
       return { ok: true };
+    case "set-privacy": {
+      const privacy = sanitizePrivacy(message.settings);
+      await chrome.storage.local.set({ privacy });
+      await applyWebRtc(privacy);
+      await applyFingerprinting(privacy, await hostsOff());
+      return { ok: true };
+    }
     case "reset-stats":
       await flush();
       await serialized(() => chrome.storage.local.set({ stats: emptyStats() }));
@@ -163,7 +173,26 @@ async function handle(message: Message): Promise<unknown> {
   }
 }
 
+async function applyAll(): Promise<void> {
+  const privacy = await readPrivacy();
+  await applyWebRtc(privacy);
+  await applyFingerprinting(privacy, await hostsOff());
+}
+
 chrome.runtime.onInstalled.addListener(() => {
   void chrome.action.setBadgeBackgroundColor({ color: "#3b4ad0" });
   void chrome.action.setBadgeTextColor({ color: "#ffffff" });
 });
+
+// The browser re-registers an extension loaded from a folder at each launch, and may report that as
+// either event, so the first worker run of a browser session does the startup work.
+async function startOncePerSession(): Promise<void> {
+  const { sessionStarted } = await chrome.storage.session.get("sessionStarted");
+  if (sessionStarted) return;
+  await chrome.storage.session.set({ sessionStarted: true });
+  await applyAll();
+  await runStartupCleanup(await readPrivacy());
+}
+
+chrome.runtime.onStartup.addListener(() => {});
+void startOncePerSession();
