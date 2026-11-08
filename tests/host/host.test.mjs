@@ -509,6 +509,32 @@ describe("single instance", () => {
   });
 });
 
+describe("closing the last window", () => {
+  test("quits on Windows and Linux, and keeps a Mac app running until it is quit", async () => {
+    const session = await launchHost();
+    try {
+      for (const target of await session.pages()) {
+        await session.cdp.send("Target.closeTarget", { targetId: target.targetId }).catch(() => {});
+      }
+      await sleep(4000);
+      if (process.platform === "darwin") {
+        assert.equal(session.exit, null, "the app quit when its last window closed");
+        const again = await launchHost({ profile: session.profile, connect: false });
+        assert.equal((await waitForExit(again, 15000)).code, PROCESS_NOTIFIED_EXIT);
+        await sleep(2000);
+        assert.equal((await session.pages()).length, 1, "a new launch should open a window");
+        await session.cdp.send("Browser.close", {}, undefined, 8000).catch(() => {});
+        assert.equal((await waitForExit(session)).code, 0);
+      } else {
+        assert.equal((await waitForExit(session)).code, 0);
+      }
+    } finally {
+      await session.kill();
+      removeProfile(session.profile);
+    }
+  });
+});
+
 describe("release build", () => {
   test("ignores switches and opens no debugging port", async () => {
     const profile = tempProfile();

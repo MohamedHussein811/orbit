@@ -43,9 +43,13 @@ class OrbitClient : public CefClient, public CefLifeSpanHandler, public CefComma
                                                                  bool& disable_default_handling) override;
 
   void CloseAllBrowsers(bool force_close);
+  bool HasNoWindows() const { return browsers_.empty(); }
 
   // Opens |url| as a new tab in an existing window. Returns false if no window is open.
   bool OpenTab(const std::string& url);
+
+  // Opens a new window showing |url|.
+  void OpenWindow(const std::string& url);
 
  private:
   void ApplyStartupSetting(CefRefPtr<CefBrowser> browser);
@@ -58,6 +62,7 @@ class OrbitClient : public CefClient, public CefLifeSpanHandler, public CefComma
   const StartupOptions options_;
   std::list<CefRefPtr<CefBrowser>> browsers_;
   bool restore_checked_ = false;
+  bool quitting_ = false;
   CefRefPtr<CefBrowser> initial_browser_;
   int restore_attempts_ = 0;
   size_t browsers_before_restore_ = 0;

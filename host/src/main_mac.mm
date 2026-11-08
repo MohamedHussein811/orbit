@@ -60,6 +60,15 @@
   }
 }
 
+// Clicking the Dock icon with no windows open opens a new one.
+- (BOOL)applicationShouldHandleReopen:(NSApplication*)sender hasVisibleWindows:(BOOL)hasVisibleWindows {
+  orbit::OrbitClient* client = orbit::OrbitClient::GetInstance();
+  if (!hasVisibleWindows && client) {
+    client->OpenWindow(std::string());
+  }
+  return NO;
+}
+
 - (NSApplicationTerminateReply)applicationShouldTerminate:(NSApplication*)sender {
   return NSTerminateNow;
 }
