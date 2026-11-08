@@ -387,10 +387,7 @@ describe("threat warning", () => {
   });
 
   test("counts the stopped page as a threat", async () => {
-    await sleep(COUNT_DELAY_MS);
-    const sw = await worker(session);
-    const stats = await sw.eval(`chrome.storage.local.get("stats").then((v) => Object.values(v.stats.days)[0].threats)`);
-    assert.equal(stats, 1);
+    await waitForStats(await worker(session), { ads: 0, trackers: 0, threats: 1 });
   });
 });
 

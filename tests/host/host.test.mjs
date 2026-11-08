@@ -228,10 +228,11 @@ describe("branding", () => {
         return out;
       };
       const everything = all(document);
-      const visible = (e) => e && !e.hidden && e.getClientRects().length > 0;
+      // A narrow window folds the menu away, so this reads the items' state and not their layout.
+      const offered = (e) => !!e && !e.hidden;
       return {
-        menuHasPrivacy: visible(everything.find((e) => e.localName === "a" && e.id === "privacy")),
-        menuHasAi: visible(everything.find((e) => e.localName === "a" && e.id === "ai")),
+        menuHasPrivacy: offered(everything.find((e) => e.localName === "a" && e.id === "privacy")),
+        menuHasAi: offered(everything.find((e) => e.localName === "a" && e.id === "ai")),
         helpRow: !!everything.find((e) => e.localName === "cr-link-row" && e.id === "help"),
         people: everything.find((e) => e.localName === "a" && e.id === "people")?.textContent.trim(),
       };

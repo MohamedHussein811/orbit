@@ -78,21 +78,32 @@ async function coldStart() {
   return { runs: times, medianMs: median(times) };
 }
 
+/** With no DevTools client attached, because a client costs CPU itself. */
+async function idle() {
+  const session = await launchHost({ profile: tempProfile(), connect: false });
+  try {
+    await sleep(15000);
+    const start = usage(session);
+    await sleep(IDLE_SECONDS * 1000);
+    const end = usage(session);
+    return {
+      processes: end.processes,
+      memoryMb: Math.round(end.memoryMb),
+      idleCpuPercentOfOneCore: Number((((end.cpuSeconds - start.cpuSeconds) / IDLE_SECONDS) * 100).toFixed(2)),
+    };
+  } finally {
+    await session.kill();
+    await sleep(800);
+    removeProfile(session.profile);
+  }
+}
+
 async function steadyState(fixture) {
   const session = await launchHost({ profile: tempProfile(), checkProfile: false });
   const results = {};
   try {
     await dashboardReady(session);
-    await sleep(10000);
-    const idleStart = usage(session);
-    await sleep(IDLE_SECONDS * 1000);
-    const idleEnd = usage(session);
-    results.dashboardOnly = {
-      processes: idleEnd.processes,
-      memoryMb: Math.round(idleEnd.memoryMb),
-      idleCpuPercentOfOneCore: Number((((idleEnd.cpuSeconds - idleStart.cpuSeconds) / IDLE_SECONDS) * 100).toFixed(2)),
-    };
-
+    await sleep(5000);
     const origin = `http://localhost:${fixture.port}`;
     const switches = [];
     const pages = [];
@@ -129,6 +140,7 @@ const report = {
   date: new Date().toISOString(),
   machine: { platform: process.platform, arch: process.arch, cpus: os.cpus().length, cpu: os.cpus()[0]?.model, memoryGb: Math.round(os.totalmem() / 1024 ** 3) },
   coldStartToDashboard: await coldStart(),
+  dashboardIdle: await idle(),
   ...(await steadyState(fixture)),
 };
 await fixture.close();
