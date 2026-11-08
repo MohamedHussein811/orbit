@@ -8,12 +8,13 @@
 #include <list>
 
 #include "include/cef_client.h"
+#include "include/cef_request_handler.h"
 #include "startup.h"
 
 namespace orbit {
 
 // Shared by every Orbit window, including those Chromium's own UI opens.
-class OrbitClient : public CefClient, public CefLifeSpanHandler, public CefCommandHandler {
+class OrbitClient : public CefClient, public CefLifeSpanHandler, public CefCommandHandler, public CefRequestHandler {
  public:
   explicit OrbitClient(StartupOptions options);
   OrbitClient(const OrbitClient&) = delete;
@@ -23,6 +24,7 @@ class OrbitClient : public CefClient, public CefLifeSpanHandler, public CefComma
 
   CefRefPtr<CefLifeSpanHandler> GetLifeSpanHandler() override { return this; }
   CefRefPtr<CefCommandHandler> GetCommandHandler() override { return this; }
+  CefRefPtr<CefRequestHandler> GetRequestHandler() override { return this; }
 
   void OnAfterCreated(CefRefPtr<CefBrowser> browser) override;
   void OnBeforeClose(CefRefPtr<CefBrowser> browser) override;
@@ -31,6 +33,14 @@ class OrbitClient : public CefClient, public CefLifeSpanHandler, public CefComma
                        int command_id,
                        cef_window_open_disposition_t disposition) override;
   bool IsChromeAppMenuItemVisible(CefRefPtr<CefBrowser> browser, int command_id) override;
+
+  CefRefPtr<CefResourceRequestHandler> GetResourceRequestHandler(CefRefPtr<CefBrowser> browser,
+                                                                 CefRefPtr<CefFrame> frame,
+                                                                 CefRefPtr<CefRequest> request,
+                                                                 bool is_navigation,
+                                                                 bool is_download,
+                                                                 const CefString& request_initiator,
+                                                                 bool& disable_default_handling) override;
 
   void CloseAllBrowsers(bool force_close);
 

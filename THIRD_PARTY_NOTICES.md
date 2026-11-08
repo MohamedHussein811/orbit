@@ -6,6 +6,22 @@ Orbit's own code is under the Mozilla Public License 2.0. It builds on the proje
 
 Orbit runs Chromium through CEF. The full list of Chromium's components and their licenses is in `CREDITS.html`, which ships with every Orbit package and appears at `chrome://credits` in the browser.
 
+## Filter lists
+
+Shields ships rules compiled from these lists. `filters/rules/meta.json` records the exact source, hash and license of each.
+
+- EasyList and EasyPrivacy, by The EasyList authors (https://easylist.to/), used under CC BY-SA 3.0.
+- Malicious URL Blocklist, by Ming Di Leom (https://gitlab.com/malware-filter/urlhaus-filter), CC0 1.0, from URLhaus data by abuse.ch. Not endorsed by abuse.ch.
+- Phishing URL Blocklist, by Ming Di Leom (https://gitlab.com/malware-filter/phishing-filter), used under CC BY-SA 4.0, from OpenPhish, IPThreat and PhishTank data. Not endorsed by those sources.
+
+## Fonts
+
+The dashboard uses Red Hat Display, copyright The Red Hat Project Authors, under the SIL Open Font License 1.1. The license is in `extension/src/newtab/fonts/OFL.txt`.
+
+## Weather
+
+Weather data by Open-Meteo.com, under CC BY 4.0. It is requested only after a person enters a city.
+
 ## Chromium Embedded Framework
 
 Orbit links against CEF. Parts of `host/src/main_win.cc`, `host/src/main_linux.cc`, `host/src/main_mac.mm`, `host/src/helper_mac.cc` and the files in `host/mac/` are derived from CEF's `cefsimple` sample, copyright (c) 2013 The Chromium Embedded Framework Authors.

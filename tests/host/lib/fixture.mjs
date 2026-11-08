@@ -41,6 +41,11 @@ export async function startFixture({ pfx, passphrase } = {}) {
       case "/p.gif":
         res.writeHead(200, { "content-type": "image/gif" });
         return res.end(Buffer.from("R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7", "base64"));
+      case "/ads-page": {
+        const ad = url.searchParams.get("ad");
+        const tracker = url.searchParams.get("tracker");
+        return html(`<h1>ads</h1><script src="http://${ad}/ads.js"></script><img src="http://${ad}/banner.gif"><script src="http://${tracker}/collect.js"></script>`);
+      }
       case "/ping-test":
         return html(`<a id="link" href="/ping-target" ping="/ping" target="_blank">go</a>`);
       case "/ping-target":

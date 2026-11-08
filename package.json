@@ -11,7 +11,15 @@
   "scripts": {
     "engine:fetch": "node tools/engine.mjs fetch",
     "engine:check": "node tools/engine.mjs check",
+    "filters:update": "node tools/filters.mjs update",
     "build": "node tools/build-host.mjs",
+    "typecheck": "tsc --noEmit -p extension/tsconfig.json",
+    "test:unit": "node --test tests/tools/*.test.mjs extension/test/*.test.ts",
     "test:host": "node --test --test-concurrency=1 --test-reporter=spec tests/host/host.test.mjs"
+  },
+  "devDependencies": {
+    "@types/chrome": "0.3.7",
+    "@types/node": "24.19.2",
+    "typescript": "7.0.2"
   }
 }

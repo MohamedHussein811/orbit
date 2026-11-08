@@ -33,7 +33,7 @@ OrbitApp::OrbitApp(StartupOptions options) : options_(std::move(options)) {}
 void OrbitApp::OnBeforeCommandLineProcessing(const CefString& process_type,
                                              CefRefPtr<CefCommandLine> command_line) {
   if (process_type.empty()) {
-    ApplySwitches(command_line);
+    ApplySwitches(command_line, options_.extension_dir);
   }
 }
 

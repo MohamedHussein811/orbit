@@ -11,6 +11,8 @@
 
 #if defined(OS_WIN)
 #include <windows.h>
+#elif defined(OS_MAC)
+#include <mach-o/dyld.h>
 #endif
 
 namespace orbit {
@@ -65,6 +67,34 @@ std::string ReadFile(const fs::path& file) {
   std::stringstream contents;
   contents << in.rdbuf();
   return contents.str();
+}
+
+fs::path ExecutablePath() {
+#if defined(OS_WIN)
+  wchar_t buffer[32768];
+  const DWORD length = GetModuleFileNameW(nullptr, buffer, 32768);
+  return fs::path(std::wstring(buffer, length));
+#elif defined(OS_MAC)
+  char buffer[4096];
+  uint32_t size = sizeof(buffer);
+  if (_NSGetExecutablePath(buffer, &size) != 0) {
+    return fs::path();
+  }
+  return fs::path(buffer);
+#else
+  std::error_code ignored;
+  return fs::read_symlink("/proc/self/exe", ignored);
+#endif
+}
+
+// The extension ships next to the executable, or inside the app bundle on macOS.
+fs::path BuiltInExtensionDir() {
+  const fs::path folder = ExecutablePath().parent_path();
+#if defined(OS_MAC)
+  return folder.parent_path() / "Resources" / "orbit-core";
+#else
+  return folder / "orbit-core";
+#endif
 }
 
 bool LastRunCrashed(const fs::path& root) {
@@ -131,6 +161,7 @@ bool ResolveStartup(CefRefPtr<CefCommandLine> command_line,
   std::error_code ignored;
   fs::create_directories(options.user_data_root, ignored);
 
+  options.extension_dir = BuiltInExtensionDir();
   options.startup_setting = SavedStartupSetting(options.user_data_root);
   options.crashed_last_run = LastRunCrashed(options.user_data_root);
   if (options.crashed_last_run) {

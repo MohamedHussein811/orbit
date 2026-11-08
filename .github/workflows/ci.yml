@@ -14,6 +14,23 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  checks:
+    name: Types and unit tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run test:unit
+
   host:
     name: ${{ matrix.name }}
     runs-on: ${{ matrix.os }}
@@ -64,8 +81,8 @@ jobs:
 
       - name: Test on Linux
         if: runner.os == 'Linux'
-        run: xvfb-run -a node --test --test-concurrency=1 --test-reporter=spec tests/host/host.test.mjs
+        run: xvfb-run -a node --test --test-concurrency=1 --test-reporter=spec tests/host/*.test.mjs
 
       - name: Test
         if: runner.os != 'Linux'
-        run: node --test --test-concurrency=1 --test-reporter=spec tests/host/host.test.mjs
+        run: node --test --test-concurrency=1 --test-reporter=spec tests/host/host.test.mjs tests/host/extension.test.mjs

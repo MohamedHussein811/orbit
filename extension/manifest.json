@@ -1,0 +1,43 @@
+{
+  "manifest_version": 3,
+  "name": "Orbit",
+  "description": "Orbit's dashboard and Shields.",
+  "version": "0.0.0",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAtYwQ/pc9IWEOvYo3cDd90UBzrjzxLTcKo10orfYHahL8/Di+khgSVV/J/JYJ6nPUOvn/uu+l9WTWDmT3sO5iTJu1c6UBQNiYe1Nnzv7YCYnQG5l56wo0lBVq6cgc361F1vB6AjTalx+we2w01EDXPG2RuLaX8DFMxvVfJB3cX9tiQ2N/PLMf8qjsqrTi0cXeySe7mTs58d8fEvdNUlqoBks8IKU39zgbcGaqwZ4XLpn660TO0P+Ys0FmDlzyHqiWHqsxBSEKHjbKHHxWKYuMIj7ft8QQXgvd97cw6cmW54MQdhu4Ea1RfZkocGlWkwK8JA1SY97gYGNAeu6WwtnKIwIDAQAB",
+  "incognito": "spanning",
+  "permissions": [
+    "activeTab",
+    "bookmarks",
+    "declarativeNetRequest",
+    "declarativeNetRequestFeedback",
+    "favicon",
+    "search",
+    "storage",
+    "unlimitedStorage"
+  ],
+  "host_permissions": ["<all_urls>"],
+  "background": {
+    "service_worker": "background/main.js",
+    "type": "module"
+  },
+  "action": {
+    "default_title": "Shields",
+    "default_popup": "popup/popup.html",
+    "default_icon": { "16": "icons/orbit-16.png", "32": "icons/orbit-32.png" }
+  },
+  "icons": { "16": "icons/orbit-16.png", "32": "icons/orbit-32.png", "48": "icons/orbit-48.png", "128": "icons/orbit-128.png" },
+  "chrome_url_overrides": { "newtab": "newtab/newtab.html" },
+  "web_accessible_resources": [
+    { "resources": ["blocked/blocked.html"], "matches": ["<all_urls>"] }
+  ],
+  "declarative_net_request": {
+    "rule_resources": [
+      { "id": "ads", "enabled": true, "path": "rules/ads.json" },
+      { "id": "trackers", "enabled": true, "path": "rules/trackers.json" },
+      { "id": "threats", "enabled": true, "path": "rules/threats.json" }
+    ]
+  },
+  "content_security_policy": {
+    "extension_pages": "default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' data: blob: chrome-extension:; connect-src https://api.open-meteo.com https://geocoding-api.open-meteo.com https://orbit.invalid; base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
+  }
+}

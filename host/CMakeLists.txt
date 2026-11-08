@@ -27,6 +27,8 @@ PRINT_CEF_CONFIG()
 set(ORBIT_COMMON_SRCS
   src/defaults.cc
   src/defaults.h
+  src/host_api.cc
+  src/host_api.h
   src/orbit_app.cc
   src/orbit_app.h
   src/orbit_client.cc
@@ -54,6 +56,7 @@ set(ORBIT_MAC_RESOURCES
 
 find_program(ORBIT_NODE node REQUIRED)
 set(ORBIT_BRAND_TOOL "${CMAKE_CURRENT_SOURCE_DIR}/../tools/brand.mjs")
+set(ORBIT_EXTENSION_TOOL "${CMAKE_CURRENT_SOURCE_DIR}/../tools/build-extension.mjs")
 
 if(OS_WINDOWS)
   enable_language(RC)
@@ -88,6 +91,7 @@ function(orbit_add_host target output_name is_test)
     endif()
     add_custom_command(TARGET ${target} POST_BUILD
       COMMAND "${ORBIT_NODE}" "${ORBIT_BRAND_TOOL}" "${CEF_TARGET_OUT_DIR}" "${CEF_INCLUDE_PATH}/include"
+      COMMAND "${ORBIT_NODE}" "${ORBIT_EXTENSION_TOOL}" "${CEF_TARGET_OUT_DIR}/orbit-core"
       VERBATIM)
     SET_LINUX_SUID_PERMISSIONS("${target}" "${CEF_TARGET_OUT_DIR}/chrome-sandbox")
   endif()
@@ -149,6 +153,7 @@ function(orbit_add_host target output_name is_test)
     add_custom_command(TARGET ${target} POST_BUILD
       COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_CURRENT_SOURCE_DIR}/../branding/icons/orbit.icns" "${app}/Contents/Resources/orbit.icns"
       COMMAND "${ORBIT_NODE}" "${ORBIT_BRAND_TOOL}" "${app}/Contents/Frameworks/Chromium Embedded Framework.framework/Resources" "${CEF_INCLUDE_PATH}/include"
+      COMMAND "${ORBIT_NODE}" "${ORBIT_EXTENSION_TOOL}" "${app}/Contents/Resources/orbit-core"
       VERBATIM)
   endif()
 
@@ -173,6 +178,7 @@ function(orbit_add_host target output_name is_test)
     COPY_FILES("${target}" "${CEF_RESOURCE_FILES}" "${CEF_RESOURCE_DIR}" "${CEF_TARGET_OUT_DIR}")
     add_custom_command(TARGET ${target} POST_BUILD
       COMMAND "${ORBIT_NODE}" "${ORBIT_BRAND_TOOL}" "${CEF_TARGET_OUT_DIR}" "${CEF_INCLUDE_PATH}/include"
+      COMMAND "${ORBIT_NODE}" "${ORBIT_EXTENSION_TOOL}" "${CEF_TARGET_OUT_DIR}/orbit-core"
       VERBATIM)
     SET_LPAC_ACLS("${target}")
   endif()
