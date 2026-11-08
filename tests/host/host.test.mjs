@@ -1,7 +1,7 @@
 // End-to-end checks of the built Orbit host. Every run uses a throwaway profile.
 //   node tools/build-host.mjs && node --test --test-concurrency=1 tests/host/host.test.mjs
 import assert from "node:assert/strict";
-import { spawnSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -187,6 +187,73 @@ describe("defaults", () => {
   });
 });
 
+describe("branding", () => {
+  let session;
+
+  before(async () => {
+    session = await launchHost();
+    await sleep(1000);
+  });
+
+  after(async () => {
+    await session.kill();
+    removeProfile(session.profile);
+  });
+
+  test("uses Orbit's name in browser strings", async () => {
+    const title = await evalOn(session, "chrome://settings/help", `(async () => {
+      await new Promise((r) => setTimeout(r, 500));
+      const deep = (root) => {
+        let text = "";
+        for (const e of root.querySelectorAll("*")) {
+          if (e.shadowRoot) text += deep(e.shadowRoot);
+          if (!e.children.length) text += " " + e.textContent;
+        }
+        return text;
+      };
+      return deep(document);
+    })()`);
+    assert.ok(/About Orbit/.test(title), title.slice(0, 400));
+    assert.ok(!/About Chromium/.test(title));
+  });
+
+  test("keeps the attribution to the Chromium project", async () => {
+    const version = await evalOn(session, "chrome://version/", "document.body.innerText");
+    assert.ok(/Chromium Authors/.test(version), version.slice(0, 400));
+    const license = await evalOn(session, "chrome://settings/help", `(async () => {
+      await new Promise((r) => setTimeout(r, 500));
+      const find = (root) => {
+        for (const e of root.querySelectorAll("*")) {
+          if (e.localName === "a" && e.textContent.trim() === "Chromium") return e.parentElement.textContent;
+          const inner = e.shadowRoot && find(e.shadowRoot);
+          if (inner) return inner;
+        }
+        return "";
+      };
+      return find(document);
+    })()`);
+    assert.match(license.replace(/\s+/g, " "), /Orbit is made possible by the Chromium open source project/);
+  });
+
+  test("shows Orbit's logo", async () => {
+    const page = await session.cdp.newPage("about:blank");
+    const url = "chrome://theme/current-channel-logo";
+    await page.goto(url, { settleMs: 300 });
+    const tree = await page.send("Page.getResourceTree");
+    const { content } = await page.send("Page.getResourceContent", { frameId: tree.frameTree.frame.id, url });
+    await page.close();
+    const icons = new URL("../../branding/icons/", import.meta.url);
+    const allowed = ["orbit-16.png", "orbit-32.png", "orbit-64.png"].map((f) => fs.readFileSync(new URL(f, icons)).toString("base64"));
+    assert.ok(allowed.includes(content), "logo does not match branding/icons");
+  });
+
+  test("names Orbit and NovaTech on the Windows executable", { skip: process.platform === "win32" ? false : "Windows only" }, () => {
+    const exe = binaryPath("orbit_test").replaceAll("'", "''");
+    const info = execFileSync("powershell", ["-NoProfile", "-Command", `(Get-Item '${exe}').VersionInfo | Select-Object ProductName,CompanyName,FileDescription | ConvertTo-Json -Compress`], { encoding: "utf8" });
+    assert.deepEqual(JSON.parse(info), { ProductName: "Orbit", CompanyName: "NovaTech", FileDescription: "Orbit" });
+  });
+});
+
 describe("web behaviour", () => {
   let fixture;
   let session;
@@ -251,6 +318,12 @@ describe("web behaviour", () => {
     await page.close();
     if (process.platform === "win32") {
       assert.ok(/Renderer/.test(text) && /Lockdown/.test(text), text.slice(0, 800));
+    } else if (process.platform === "linux") {
+      assert.match(text, /adequately sandboxed/i);
+    } else {
+      const renderers = hostProcesses("orbit_test", session.profile).filter((p) => p.commandLine.includes("--type=renderer"));
+      assert.ok(renderers.length > 0, "no renderer found");
+      assert.ok(renderers.every((p) => p.commandLine.includes("--seatbelt-client")), renderers[0].commandLine);
     }
   });
 });

@@ -11,6 +11,10 @@ project(orbit_host)
 file(READ "${CMAKE_CURRENT_SOURCE_DIR}/../package.json" ORBIT_PACKAGE_JSON)
 string(JSON ORBIT_VERSION GET "${ORBIT_PACKAGE_JSON}" version)
 set(VERSION_SHORT "${ORBIT_VERSION}")
+string(REPLACE "." ";" ORBIT_VERSION_PARTS "${ORBIT_VERSION}")
+list(GET ORBIT_VERSION_PARTS 0 ORBIT_V1)
+list(GET ORBIT_VERSION_PARTS 1 ORBIT_V2)
+list(GET ORBIT_VERSION_PARTS 2 ORBIT_V3)
 
 if(NOT CEF_ROOT)
   message(FATAL_ERROR "Set CEF_ROOT. tools/build-host.mjs does this for you.")
@@ -48,6 +52,17 @@ set(ORBIT_MAC_RESOURCES
   mac/English.lproj/MainMenu.xib
   )
 
+find_program(ORBIT_NODE node REQUIRED)
+set(ORBIT_BRAND_TOOL "${CMAKE_CURRENT_SOURCE_DIR}/../tools/brand.mjs")
+
+if(OS_WINDOWS)
+  enable_language(RC)
+  add_executable(orbit_stamp tools/stamp_exe.cc)
+  target_link_options(orbit_stamp PRIVATE /SUBSYSTEM:CONSOLE)
+  add_library(orbit_resources OBJECT win/orbit.rc)
+  target_compile_definitions(orbit_resources PRIVATE ORBIT_V1=${ORBIT_V1} ORBIT_V2=${ORBIT_V2} ORBIT_V3=${ORBIT_V3})
+endif()
+
 function(orbit_add_host target output_name is_test)
   set(CEF_TARGET "${target}")
   set(CEF_TARGET_OUT_DIR "${CMAKE_BINARY_DIR}/${target}")
@@ -71,6 +86,9 @@ function(orbit_add_host target output_name is_test)
     if(EXISTS "${CEF_BINARY_DIR}/libminigbm.so")
       COPY_FILES("${target}" "libminigbm.so" "${CEF_BINARY_DIR}" "${CEF_TARGET_OUT_DIR}")
     endif()
+    add_custom_command(TARGET ${target} POST_BUILD
+      COMMAND "${ORBIT_NODE}" "${ORBIT_BRAND_TOOL}" "${CEF_TARGET_OUT_DIR}" "${CEF_INCLUDE_PATH}/include"
+      VERBATIM)
     SET_LINUX_SUID_PERMISSIONS("${target}" "${CEF_TARGET_OUT_DIR}/chrome-sandbox")
   endif()
 
@@ -128,6 +146,10 @@ function(orbit_add_host target output_name is_test)
     endforeach()
 
     COPY_MAC_RESOURCES("${ORBIT_MAC_RESOURCES}" "mac/" "${target}" "${CMAKE_CURRENT_SOURCE_DIR}" "${app}")
+    add_custom_command(TARGET ${target} POST_BUILD
+      COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_CURRENT_SOURCE_DIR}/../branding/icons/orbit.icns" "${app}/Contents/Resources/orbit.icns"
+      COMMAND "${ORBIT_NODE}" "${ORBIT_BRAND_TOOL}" "${app}/Contents/Frameworks/Chromium Embedded Framework.framework/Resources" "${CEF_INCLUDE_PATH}/include"
+      VERBATIM)
   endif()
 
   if(OS_WINDOWS)
@@ -142,10 +164,16 @@ function(orbit_add_host target output_name is_test)
       RUNTIME_OUTPUT_DIRECTORY "${CEF_TARGET_OUT_DIR}"
       )
     COPY_SINGLE_FILE(${target} ${CEF_BINARY_DIR}/bootstrap.exe ${CEF_TARGET_OUT_DIR}/${output_name}.exe)
-    add_dependencies(${target} libcef_dll_wrapper)
+    add_custom_command(TARGET ${target} POST_BUILD
+      COMMAND orbit_stamp "${CEF_TARGET_OUT_DIR}/${output_name}.exe" "$<TARGET_OBJECTS:orbit_resources>"
+      VERBATIM)
+    add_dependencies(${target} libcef_dll_wrapper orbit_stamp orbit_resources)
     target_link_libraries(${target} "libcef_lib_${target}" libcef_dll_wrapper ${CEF_STANDARD_LIBS})
     COPY_FILES("${target}" "${CEF_BINARY_FILES}" "${CEF_BINARY_DIR}" "${CEF_TARGET_OUT_DIR}")
     COPY_FILES("${target}" "${CEF_RESOURCE_FILES}" "${CEF_RESOURCE_DIR}" "${CEF_TARGET_OUT_DIR}")
+    add_custom_command(TARGET ${target} POST_BUILD
+      COMMAND "${ORBIT_NODE}" "${ORBIT_BRAND_TOOL}" "${CEF_TARGET_OUT_DIR}" "${CEF_INCLUDE_PATH}/include"
+      VERBATIM)
     SET_LPAC_ACLS("${target}")
   endif()
 

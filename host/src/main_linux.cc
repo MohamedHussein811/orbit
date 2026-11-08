@@ -4,14 +4,14 @@
 // Portions copyright (c) 2013 The Chromium Embedded Framework Authors, under the BSD-style
 // license in THIRD_PARTY_NOTICES.md.
 
-#if defined(CEF_X11)
-#include <X11/Xlib.h>
-#endif
-
 #include "include/base/cef_logging.h"
 #include "include/cef_command_line.h"
 #include "orbit_app.h"
 #include "startup.h"
+
+#if defined(CEF_X11)
+#include <X11/Xlib.h>
+#endif
 
 #if defined(CEF_X11)
 namespace {

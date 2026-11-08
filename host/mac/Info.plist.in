@@ -6,6 +6,8 @@
 	<string>English</string>
 	<key>CFBundleExecutable</key>
 	<string>${EXECUTABLE_NAME}</string>
+	<key>CFBundleIconFile</key>
+	<string>orbit</string>
 	<key>CFBundleIdentifier</key>
 	<string>org.novatech.orbit</string>
 	<key>CFBundleInfoDictionaryVersion</key>
