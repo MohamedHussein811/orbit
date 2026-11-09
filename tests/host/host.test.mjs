@@ -303,6 +303,11 @@ describe("branding", () => {
     assert.ok(allowed.includes(content), "logo does not match branding/icons");
   });
 
+  test("gives Windows browser windows Orbit's own icon", windowsOnly, async () => {
+    await sleep(500);
+    assert.notEqual(session.input("icon"), "icon=0");
+  });
+
   test("names Orbit and NovaTech on the Windows executable", { skip: process.platform === "win32" ? false : "Windows only" }, () => {
     const exe = binaryPath("orbit_test").replaceAll("'", "''");
     const info = execFileSync("powershell", ["-NoProfile", "-Command", `(Get-Item '${exe}').VersionInfo | Select-Object ProductName,CompanyName,FileDescription | ConvertTo-Json -Compress`], { encoding: "utf8" });

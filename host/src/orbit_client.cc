@@ -4,6 +4,10 @@
 
 #include "orbit_client.h"
 
+#if defined(OS_WIN)
+#include <windows.h>
+#endif
+
 #include <fstream>
 #include <system_error>
 
@@ -48,6 +52,25 @@ bool IsRemovedCommand(int command_id) {
   return false;
 }
 
+#if defined(OS_WIN)
+// Windows shows a window's own icon on the taskbar. Chromium's windows otherwise keep the icon built
+// into the engine, so each one gets Orbit's, from the executable's resources.
+void ApplyWindowIcon(CefRefPtr<CefBrowser> browser) {
+  constexpr int kIconResource = 1;
+  HWND window = GetAncestor(browser->GetHost()->GetWindowHandle(), GA_ROOT);
+  if (!window) {
+    return;
+  }
+  const auto load = [](int width, int height) {
+    return reinterpret_cast<LPARAM>(LoadImageW(GetModuleHandleW(nullptr), MAKEINTRESOURCEW(kIconResource), IMAGE_ICON, width, height, 0));
+  };
+  static const LPARAM big = load(GetSystemMetrics(SM_CXICON), GetSystemMetrics(SM_CYICON));
+  static const LPARAM small = load(GetSystemMetrics(SM_CXSMICON), GetSystemMetrics(SM_CYSMICON));
+  SendMessageW(window, WM_SETICON, ICON_BIG, big);
+  SendMessageW(window, WM_SETICON, ICON_SMALL, small);
+}
+#endif
+
 void OpenTabIn(CefRefPtr<CefBrowser> browser, const std::string& url) {
   CefRefPtr<CefDictionaryValue> params = CefDictionaryValue::Create();
   params->SetString("url", url);
@@ -68,6 +91,9 @@ OrbitClient* OrbitClient::GetInstance() {
 void OrbitClient::OnAfterCreated(CefRefPtr<CefBrowser> browser) {
   CEF_REQUIRE_UI_THREAD();
   browsers_.push_back(browser);
+#if defined(OS_WIN)
+  ApplyWindowIcon(browser);
+#endif
   EnsureContextDefaults(browser->GetHost()->GetRequestContext());
   if (!restore_checked_) {
     restore_checked_ = true;

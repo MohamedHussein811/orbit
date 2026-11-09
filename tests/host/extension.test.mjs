@@ -470,6 +470,20 @@ describe("privacy controls", () => {
     assert.equal(first.pixels, other.pixels);
   });
 
+  test("the strict level also rounds screen size", async () => {
+    const setLevel = (level) => page.eval(`chrome.runtime.sendMessage({ type: "set-privacy", settings: { version: 1, fingerprinting: ${JSON.stringify(level)}, webrtc: "default_public_interface_only", clearOnStart: [], historyDays: 0 } })`);
+    await setLevel("strict");
+    await sleep(300);
+    const tab = await session.cdp.newPage(`http://a.test:${fixture.port}/`);
+    await sleep(500);
+    const screenSize = await tab.eval(`({ width: screen.width, height: screen.height, native: Object.getOwnPropertyDescriptor(Screen.prototype, "width").get.toString().includes("[native code]") })`);
+    await tab.close();
+    await setLevel("standard");
+    assert.equal(screenSize.width % 200, 0, String(screenSize.width));
+    assert.equal(screenSize.height % 100, 0, String(screenSize.height));
+    assert.equal(screenSize.native, true);
+  });
+
   test("a site with Shields off gets real readings while others stay protected", async () => {
     await page.eval(`chrome.runtime.sendMessage({ type: "set-privacy", settings: { version: 1, fingerprinting: "standard", webrtc: "default_public_interface_only", clearOnStart: [], historyDays: 0 } })`);
     await sleep(300);
@@ -544,13 +558,30 @@ describe("privacy controls", () => {
 describe("hiding leftover ad space", () => {
   let fixture;
   let session;
+  let site;
   const genericSelector = () => fs.readFileSync(path.join(extensionDir(), "rules", "cosmetic-generic.css"), "utf8").split("\n").map((line) => /^\.([\w-]+)\{/.exec(line)?.[1]).find(Boolean);
-  const SITE = "cosmetic-test.example";
+
+  /** A real site from the rules, with a plain class it hides. */
+  function siteWithHidingRule() {
+    const dir = path.join(extensionDir(), "rules", "cosmetic");
+    for (const file of fs.readdirSync(dir)) {
+      for (const [host, entry] of Object.entries(JSON.parse(fs.readFileSync(path.join(dir, file), "utf8")))) {
+        const selector = entry.hide?.find((candidate) => /^\.[\w-]+$/.test(candidate));
+        if (selector && /^[a-z0-9-]+\.[a-z]+$/.test(host)) return { host, className: selector.slice(1) };
+      }
+    }
+    throw new Error("no site with a plain hiding rule");
+  }
 
   before(async () => {
     fixture = await startFixture();
-    session = await launchHost({ args: [`--host-resolver-rules=MAP ${SITE} 127.0.0.1`] });
+    site = siteWithHidingRule();
+    session = await launchHost({ args: [`--host-resolver-rules=MAP ${site.host} 127.0.0.1`] });
     await worker(session);
+    const settings = await session.cdp.newPage("chrome://settings/");
+    await sleep(1000);
+    await settings.eval(`chrome.settingsPrivate.setPref("https_only_mode_enabled", false)`);
+    await settings.close();
     await sleep(800);
   });
 
@@ -579,6 +610,24 @@ describe("hiding leftover ad space", () => {
     assert.deepEqual(seen, { ad: "none", normal: "block" });
   });
 
+  test("hides elements that match a rule for that site", async () => {
+    const insert = (page) => page.eval(`(() => {
+      const ad = document.createElement("div");
+      ad.className = ${JSON.stringify(site.className)};
+      ad.textContent = "advert";
+      document.body.append(ad);
+      return getComputedStyle(ad).display;
+    })()`);
+    const onSite = await session.cdp.newPage(`http://${site.host}:${fixture.port}/`);
+    let display = "block";
+    for (let i = 0; i < 20 && display !== "none"; i++) {
+      await sleep(250);
+      display = await insert(onSite);
+    }
+    await onSite.close();
+    assert.equal(display, "none", `${site.host} did not hide .${site.className}`);
+  });
+
   test("leaves a site alone when its Shields are off", async () => {
     const className = genericSelector();
     const dashboardPage = await dashboard(session);
@@ -594,6 +643,53 @@ describe("hiding leftover ad space", () => {
     await page.close();
     await dashboardPage.eval(`chrome.runtime.sendMessage({ type: "set-shields", host: "localhost", enabled: true, incognito: false })`);
     assert.equal(display, "block");
+  });
+});
+
+describe("weather", () => {
+  let session;
+  let page;
+
+  before(async () => {
+    session = await launchHost();
+    page = await dashboard(session);
+  });
+
+  after(async () => {
+    await session.kill();
+    removeProfile(session.profile);
+  });
+
+  test("finds a city and shows a real forecast from the named provider", async (t) => {
+    const widget = `document.querySelector('.widget[data-id="weather"]')`;
+    assert.match(await page.eval(`${widget}.textContent`), /Weather by Open-Meteo/);
+    await page.eval(`(() => {
+      const form = ${widget}.querySelector(".place-form");
+      form.querySelector("input").value = "Cairo";
+      form.requestSubmit();
+    })()`);
+    let state = "waiting";
+    for (let i = 0; i < 40 && state === "waiting"; i++) {
+      await sleep(250);
+      state = await page.eval(`${widget}.querySelector(".place-results button") ? "found" : /Could not reach/.test(${widget}.textContent) ? "offline" : "waiting"`);
+    }
+    if (state === "offline" || state === "waiting") {
+      t.skip("the weather service could not be reached from this machine");
+      return;
+    }
+    await page.eval(`${widget}.querySelector(".place-results button").click()`);
+    let temperature = null;
+    for (let i = 0; i < 40 && !temperature; i++) {
+      await sleep(250);
+      temperature = await page.eval(`${widget}.querySelector(".weather-temp")?.textContent ?? null`);
+    }
+    assert.match(temperature ?? "", /^-?\d+°C$/);
+    assert.match(await page.eval(`${widget}.querySelector(".weather-place").textContent`), /Cairo/);
+    const calls = await page.eval(`performance.getEntriesByType("resource").map((e) => e.name).filter((n) => n.includes("//api.open-meteo.com"))`);
+    assert.equal(calls.length, 1);
+    const sent = new URL(calls[0]);
+    assert.match(sent.searchParams.get("latitude"), /^-?\d+(\.\d)?$/, "the location must be rounded");
+    assert.match(sent.searchParams.get("longitude"), /^-?\d+(\.\d)?$/, "the location must be rounded");
   });
 });
 

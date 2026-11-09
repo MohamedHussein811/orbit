@@ -37,6 +37,7 @@ These come from official CEF binaries, and also apply to unbranded Chromium.
 - **Clearing data at startup** starts at the same moment as session restore, so a restored page might load first.
 - **Settings pages:** rows for Safe Browsing, Safety Check, the Privacy Guide, sync and Google services are removed at build time. Those pages can still be reached by typing their address, and some Settings text elsewhere still mentions Google.
 - **Address bar and settings icons** still use Chromium's swirl in a few places, because they are compiled into the engine.
+- **Default browser:** the Windows installer registers Orbit so Windows can offer it in Default apps. Settings has a "Make default" button whose effect has not been tested, and it may not detect that Orbit is the default.
 - **Sign-in to the browser** is off. Google sites can still be used normally in a tab, though real Google login has not been tested.
 - **macOS:** the menu bar and its shortcuts compile, and whether they work has not been checked on a real Mac.
 

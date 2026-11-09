@@ -90,6 +90,8 @@ public static class KeyPost {
     return ok;
   }
 
+  [DllImport("user32.dll")] public static extern IntPtr SendMessage(IntPtr h, uint m, IntPtr w, IntPtr l);
+
   public static string Title(IntPtr h) { var s = new StringBuilder(512); GetWindowText(h, s, 512); return s.ToString(); }
 
   public static void Chord(IntPtr h, bool ctrl, bool shift, uint vk) {
@@ -130,6 +132,11 @@ if ($Keys.StartsWith("click:")) {
 }
 if ($Keys -eq "focus") {
   "focus=$([KeyPost]::Focus($hwnd)) on '$([KeyPost]::Title($hwnd))'"
+  exit 0
+}
+if ($Keys -eq "icon") {
+  # WM_GETICON returns zero unless the window was given its own icon.
+  "icon=$([KeyPost]::SendMessage($hwnd, 0x7F, [IntPtr]1, [IntPtr]0))"
   exit 0
 }
 if ($Keys -eq "close") {
