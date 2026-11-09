@@ -17,7 +17,8 @@ if [ "$(uname)" = "Darwin" ]; then
     src/third_party/llvm-libclang \
     src/ui/gl/resources/angle-metal \
     src/third_party/updater/chromium_mac_arm64/cipd \
-    src/third_party/screen-ai/macos_arm64
+    src/third_party/screen-ai/macos_arm64 \
+    third_party/devtools-frontend/src:third_party/esbuild
 else
   sudo apt-get update -qq
   sudo apt-get install -y -qq ninja-build zstd python3 lld pkg-config > /dev/null

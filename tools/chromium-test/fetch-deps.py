@@ -2,7 +2,8 @@
 """Fetches prebuilt dependencies that Chromium's Linux-made source archive carries only for Linux.
 
 Usage: fetch-deps.py <src folder> <DEPS entry>...
-Entries are read from src/DEPS for an Apple silicon Mac host. Package server downloads are
+Entries are read from src/DEPS, or from <folder>/DEPS when written as <folder>:<entry>, for an
+Apple silicon Mac host. Package server downloads are
 content-addressed, and storage downloads are checked against the sha256 in DEPS.
 """
 
@@ -82,10 +83,12 @@ def fetch_gcs(entry, folder):
 
 def main():
     root = sys.argv[1]
-    deps = read_deps(os.path.join(root, "DEPS"))
-    for name in sys.argv[2:]:
+    for item in sys.argv[2:]:
+        # An entry from a sub-project's DEPS is written as <folder>:<entry>, relative to that folder.
+        base, _, name = item.rpartition(":") if ":" in item and not item.startswith("src/") else ("", "", item)
+        deps = read_deps(os.path.join(root, base, "DEPS"))
         entry = deps[name]
-        folder = os.path.join(root, name.removeprefix("src/"))
+        folder = os.path.join(root, base, name.removeprefix("src/"))
         print(f"{name} [{entry['dep_type']}]")
         if not applies(entry.get("condition", "")):
             raise SystemExit(f"{name} does not apply to this host")
