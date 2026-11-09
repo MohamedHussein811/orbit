@@ -1,0 +1,147 @@
+:root {
+  color-scheme: dark light;
+  --bg: #0b0d1f;
+  --edge: #252a52;
+  --text: #eceeff;
+  --muted: #a2a9cf;
+  --accent: #8d9bff;
+  --on-accent: #0b0d1f;
+  --button: #1c2040;
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg: #f8f9fe;
+    --edge: #dde0f0;
+    --text: #15183a;
+    --muted: #565c84;
+    --accent: #3b4ad0;
+    --on-accent: #ffffff;
+    --button: #e7e9f6;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  width: 19rem;
+  background: var(--bg);
+  color: var(--text);
+  font: 14px/1.4 system-ui, sans-serif;
+}
+
+header {
+  padding: 0.9rem 1rem;
+  border-bottom: 1px solid var(--edge);
+}
+
+#host {
+  margin: 0 0 0.6rem;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.switch {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+}
+
+.switch input {
+  appearance: none;
+  width: 2.4rem;
+  height: 1.35rem;
+  margin: 0;
+  border-radius: 1rem;
+  background: var(--button);
+  position: relative;
+  cursor: pointer;
+}
+
+.switch input::after {
+  content: "";
+  position: absolute;
+  top: 0.15rem;
+  left: 0.15rem;
+  width: 1.05rem;
+  height: 1.05rem;
+  border-radius: 50%;
+  background: var(--muted);
+  transition: transform 120ms ease;
+}
+
+.switch input:checked {
+  background: var(--accent);
+}
+
+.switch input:checked::after {
+  background: var(--on-accent);
+  transform: translateX(1.05rem);
+}
+
+.switch input:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+input:focus-visible,
+button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+section {
+  padding: 0.9rem 1rem 0.7rem;
+}
+
+dl {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+  margin: 0;
+}
+
+dl div {
+  display: flex;
+  flex-direction: column;
+}
+
+dd {
+  margin: 0;
+  font-size: 1.6rem;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+}
+
+dt {
+  color: var(--muted);
+}
+
+.caption {
+  margin: 0.6rem 0 0;
+  color: var(--muted);
+  font-size: 0.8125rem;
+}
+
+footer {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0 1rem 0.9rem;
+}
+
+footer button {
+  flex: 1;
+  font: inherit;
+  font-size: 0.8125rem;
+  padding: 0.4rem 0.5rem;
+  border: 0;
+  border-radius: 0.5rem;
+  background: var(--button);
+  color: var(--text);
+  cursor: pointer;
+}

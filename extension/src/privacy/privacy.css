@@ -1,0 +1,81 @@
+.settings-page {
+  max-width: 44rem;
+  margin: 0 auto;
+  padding: 2.5rem 1.5rem 4rem;
+}
+
+.settings-page h1 {
+  margin: 0 0 1.5rem;
+  font-size: 2rem;
+  font-weight: 400;
+}
+
+.setting {
+  margin-bottom: 1rem;
+}
+
+.setting h2 {
+  font-size: 1.0625rem;
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+.setting > p {
+  color: var(--muted);
+  margin-bottom: 0.75rem;
+  max-width: 62ch;
+}
+
+.options {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.options label {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0 0.6rem;
+  padding: 0.4rem 0.5rem;
+  border-radius: var(--radius-control);
+  cursor: pointer;
+}
+
+.options label:hover {
+  background: var(--control);
+}
+
+.options small {
+  grid-column: 2;
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
+.site-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.2rem 0.5rem;
+}
+
+.list-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.list-table th {
+  text-align: left;
+  font-weight: 600;
+  padding: 0.3rem 0.5rem 0.3rem 0;
+}
+
+.list-table td {
+  padding: 0.3rem 0.5rem 0.3rem 0;
+  color: var(--muted);
+  border-top: 1px solid var(--pane-edge);
+}
+
+.settings-page a {
+  color: var(--accent-text, var(--accent));
+}

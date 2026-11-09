@@ -11,6 +11,8 @@
 
 #if defined(OS_WIN)
 #include <windows.h>
+#elif defined(OS_MAC)
+#include <mach-o/dyld.h>
 #endif
 
 namespace orbit {
@@ -20,6 +22,7 @@ namespace fs = std::filesystem;
 namespace {
 
 constexpr char kNewTabUrl[] = "chrome://newtab/";
+constexpr char kExtensionBuildId[] = "build-id.txt";
 
 #if defined(OS_WIN)
 std::wstring ReadEnv(const wchar_t* name) {
@@ -67,6 +70,58 @@ std::string ReadFile(const fs::path& file) {
   return contents.str();
 }
 
+fs::path ExecutablePath() {
+#if defined(OS_WIN)
+  wchar_t buffer[32768];
+  const DWORD length = GetModuleFileNameW(nullptr, buffer, 32768);
+  return fs::path(std::wstring(buffer, length));
+#elif defined(OS_MAC)
+  char buffer[4096];
+  uint32_t size = sizeof(buffer);
+  if (_NSGetExecutablePath(buffer, &size) != 0) {
+    return fs::path();
+  }
+  return fs::path(buffer);
+#else
+  std::error_code ignored;
+  return fs::read_symlink("/proc/self/exe", ignored);
+#endif
+}
+
+// The extension ships next to the executable, or inside the app bundle on macOS.
+fs::path BuiltInExtensionDir() {
+  const fs::path folder = ExecutablePath().parent_path();
+#if defined(OS_MAC)
+  return folder.parent_path() / "Resources" / "orbit-core";
+#else
+  return folder / "orbit-core";
+#endif
+}
+
+// Chromium writes generated rule files into the folder of an extension loaded from disk. A program
+// folder may be read-only, and on macOS writing there would break the app's signature, so the
+// extension runs from a copy in the user's data folder. The copy is replaced when the build changes.
+fs::path PrepareExtension(const fs::path& bundled, const fs::path& root) {
+  const std::string build_id = ReadFile(bundled / kExtensionBuildId);
+  const fs::path copy = root / "orbit-core";
+  if (build_id.empty()) {
+    return bundled;
+  }
+  if (ReadFile(copy / kExtensionBuildId) == build_id) {
+    return copy;
+  }
+  std::error_code error;
+  const fs::path staging = root / "orbit-core.new";
+  fs::remove_all(staging, error);
+  fs::copy(bundled, staging, fs::copy_options::recursive | fs::copy_options::overwrite_existing, error);
+  if (error) {
+    return bundled;
+  }
+  fs::remove_all(copy, error);
+  fs::rename(staging, copy, error);
+  return error ? bundled : copy;
+}
+
 bool LastRunCrashed(const fs::path& root) {
   return ReadFile(root / "Default" / "Preferences").find("\"exit_type\":\"Crashed\"") != std::string::npos;
 }
@@ -84,6 +139,24 @@ int SavedStartupSetting(const fs::path& root) {
     }
   }
   return kStartupNewTab;
+}
+
+// Percent-encodes a local path into a file: URL.
+std::string FileUrlFromPath(const fs::path& path) {
+  std::string generic = path.generic_u8string().empty() ? std::string() : std::string(reinterpret_cast<const char*>(path.generic_u8string().c_str()));
+  std::string url = generic.rfind("/", 0) == 0 ? "file://" : "file:///";
+  static const char kHex[] = "0123456789ABCDEF";
+  for (unsigned char c : generic) {
+    const bool keep = (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '/' || c == ':' || c == '-' || c == '_' || c == '.' || c == '~';
+    if (keep) {
+      url.push_back(static_cast<char>(c));
+    } else {
+      url.push_back('%');
+      url.push_back(kHex[c >> 4]);
+      url.push_back(kHex[c & 15]);
+    }
+  }
+  return url;
 }
 
 bool IsOpenableUrl(const std::string& value) {
@@ -109,6 +182,11 @@ std::string UrlFromArguments(CefRefPtr<CefCommandLine> command_line) {
     if (IsOpenableUrl(value)) {
       return value;
     }
+    std::error_code ignored;
+    const fs::path path(argument.ToWString());
+    if (path.is_absolute() && fs::is_regular_file(path, ignored)) {
+      return FileUrlFromPath(path);
+    }
   }
   return std::string();
 }
@@ -131,6 +209,7 @@ bool ResolveStartup(CefRefPtr<CefCommandLine> command_line,
   std::error_code ignored;
   fs::create_directories(options.user_data_root, ignored);
 
+  options.extension_dir = PrepareExtension(BuiltInExtensionDir(), options.user_data_root);
   options.startup_setting = SavedStartupSetting(options.user_data_root);
   options.crashed_last_run = LastRunCrashed(options.user_data_root);
   if (options.crashed_last_run) {

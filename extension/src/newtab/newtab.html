@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en" data-theme="space">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>New Tab</title>
+<link rel="icon" href="../icons/orbit-32.png">
+<link rel="stylesheet" href="newtab.css">
+<script src="theme-boot.js"></script>
+</head>
+<body>
+<div class="backdrop" aria-hidden="true">
+  <div class="stars"></div>
+  <div class="limb"></div>
+</div>
+
+<div class="page">
+  <header class="topbar">
+    <p class="clock"><time id="time"></time><span id="date"></span></p>
+    <button id="open-customize" class="ghost" type="button" aria-haspopup="dialog">Customize</button>
+  </header>
+  <main id="board" class="board"></main>
+</div>
+
+<dialog id="customize" class="drawer" aria-labelledby="customize-title"></dialog>
+
+<script type="module" src="newtab.js"></script>
+</body>
+</html>

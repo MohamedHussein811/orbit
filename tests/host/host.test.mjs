@@ -1,7 +1,7 @@
 // End-to-end checks of the built Orbit host. Every run uses a throwaway profile.
 //   node tools/build-host.mjs && node --test --test-concurrency=1 tests/host/host.test.mjs
 import assert from "node:assert/strict";
-import { spawnSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -187,6 +187,129 @@ describe("defaults", () => {
   });
 });
 
+describe("branding", () => {
+  let session;
+
+  before(async () => {
+    session = await launchHost();
+    await sleep(1000);
+  });
+
+  after(async () => {
+    await session.kill();
+    removeProfile(session.profile);
+  });
+
+  test("uses Orbit's name in browser strings", async () => {
+    const title = await evalOn(session, "chrome://settings/help", `(async () => {
+      await new Promise((r) => setTimeout(r, 500));
+      const deep = (root) => {
+        let text = "";
+        for (const e of root.querySelectorAll("*")) {
+          if (e.shadowRoot) text += deep(e.shadowRoot);
+          if (!e.children.length) text += " " + e.textContent;
+        }
+        return text;
+      };
+      return deep(document);
+    })()`);
+    assert.ok(/About Orbit/.test(title), title.slice(0, 400));
+    assert.ok(!/About Chromium/.test(title));
+  });
+
+  test("removes the AI section and the Google help link from Settings", async () => {
+    const seen = await evalOn(session, "chrome://settings/help", `(async () => {
+      await new Promise((r) => setTimeout(r, 500));
+      const all = (root, out = []) => {
+        for (const e of root.querySelectorAll("*")) {
+          out.push(e);
+          if (e.shadowRoot) all(e.shadowRoot, out);
+        }
+        return out;
+      };
+      const everything = all(document);
+      // A narrow window folds the menu away, so this reads the items' state and not their layout.
+      const offered = (e) => !!e && !e.hidden;
+      return {
+        menuHasPrivacy: offered(everything.find((e) => e.localName === "a" && e.id === "privacy")),
+        menuHasAi: offered(everything.find((e) => e.localName === "a" && e.id === "ai")),
+        helpRow: !!everything.find((e) => e.localName === "cr-link-row" && e.id === "help"),
+        people: everything.find((e) => e.localName === "a" && e.id === "people")?.textContent.trim(),
+      };
+    })()`);
+    assert.equal(seen.menuHasPrivacy, true, "the check did not find the Settings menu");
+    assert.ok(!seen.menuHasAi);
+    assert.equal(seen.helpRow, false);
+    assert.equal(seen.people, "Your profile");
+  });
+
+  test("offers no control for services this build cannot use", async () => {
+    const read = (url) => evalOn(session, url, `(async () => {
+      await new Promise((r) => setTimeout(r, 900));
+      const all = (root, out = []) => {
+        for (const e of root.querySelectorAll("*")) {
+          out.push(e);
+          if (e.shadowRoot) all(e.shadowRoot, out);
+        }
+        return out;
+      };
+      const everything = all(document);
+      // Reads each item's own state, because a background tab may have no layout to measure.
+      const offered = (id) => { const e = everything.find((x) => x.id === id); return !!e && !e.hidden; };
+      return Object.fromEntries(["safeBrowsingSection", "passwordsLeakToggle", "safetyHubEntryPoint", "privacyGuideLinkRow", "privacyGuidePromo", "google-services", "sync-setup", "securityLinkRow", "people", "privacy"].map((id) => [id, offered(id)]));
+    })()`);
+    const privacy = await read("chrome://settings/privacy");
+    assert.equal(privacy.securityLinkRow, true, "the check did not find the Privacy page");
+    assert.equal(privacy.safetyHubEntryPoint, false);
+    assert.equal(privacy.privacyGuideLinkRow, false);
+    assert.equal(privacy.privacyGuidePromo, false);
+    const security = await read("chrome://settings/security");
+    assert.equal(security.safeBrowsingSection, false);
+    assert.equal(security.passwordsLeakToggle, false);
+    const people = await read("chrome://settings/people");
+    assert.equal(people["google-services"], false);
+    assert.equal(people["sync-setup"], false);
+    assert.equal(people.people, true, "the Settings menu lost a page");
+    assert.equal(people.privacy, true, "the Settings menu lost a page");
+  });
+
+  test("keeps the attribution to the Chromium project", async () => {
+    const version = await evalOn(session, "chrome://version/", "document.body.innerText");
+    assert.ok(/Chromium Authors/.test(version), version.slice(0, 400));
+    const license = await evalOn(session, "chrome://settings/help", `(async () => {
+      await new Promise((r) => setTimeout(r, 500));
+      const find = (root) => {
+        for (const e of root.querySelectorAll("*")) {
+          if (e.localName === "a" && e.textContent.trim() === "Chromium") return e.parentElement.textContent;
+          const inner = e.shadowRoot && find(e.shadowRoot);
+          if (inner) return inner;
+        }
+        return "";
+      };
+      return find(document);
+    })()`);
+    assert.match(license.replace(/\s+/g, " "), /Orbit is made possible by the Chromium open source project/);
+  });
+
+  test("shows Orbit's logo", async () => {
+    const page = await session.cdp.newPage("about:blank");
+    const url = "chrome://theme/current-channel-logo";
+    await page.goto(url, { settleMs: 300 });
+    const tree = await page.send("Page.getResourceTree");
+    const { content } = await page.send("Page.getResourceContent", { frameId: tree.frameTree.frame.id, url });
+    await page.close();
+    const icons = new URL("../../branding/icons/", import.meta.url);
+    const allowed = ["orbit-16.png", "orbit-32.png", "orbit-64.png"].map((f) => fs.readFileSync(new URL(f, icons)).toString("base64"));
+    assert.ok(allowed.includes(content), "logo does not match branding/icons");
+  });
+
+  test("names Orbit and NovaTech on the Windows executable", { skip: process.platform === "win32" ? false : "Windows only" }, () => {
+    const exe = binaryPath("orbit_test").replaceAll("'", "''");
+    const info = execFileSync("powershell", ["-NoProfile", "-Command", `(Get-Item '${exe}').VersionInfo | Select-Object ProductName,CompanyName,FileDescription | ConvertTo-Json -Compress`], { encoding: "utf8" });
+    assert.deepEqual(JSON.parse(info), { ProductName: "Orbit", CompanyName: "NovaTech", FileDescription: "Orbit" });
+  });
+});
+
 describe("web behaviour", () => {
   let fixture;
   let session;
@@ -222,7 +345,7 @@ describe("web behaviour", () => {
     assert.ok(!fixture.log.some((e) => e.path === "/ping"), "ping was sent");
   });
 
-  test("sends a typed search to DuckDuckGo", windowsOnly, async () => {
+  test("sends a typed search to DuckDuckGo", windowsOnly, async (t) => {
     const page = await session.cdp.newPage("about:blank");
     await sleep(800);
     const searched = (urls) => urls.some((u) => u.startsWith("https://duckduckgo.com/?q=orbit+test+search"));
@@ -230,7 +353,11 @@ describe("web behaviour", () => {
     // Posted shortcuts can be dropped while another application holds the foreground.
     for (let attempt = 1; attempt <= 3 && !searched(urls); attempt++) {
       await page.send("Page.bringToFront");
-      session.input("focus");
+      if (session.input("focus").startsWith("focus=False")) {
+        await page.close();
+        t.skip("another application holds the foreground, so typed keys cannot reach the window");
+        return;
+      }
       await sleep(500);
       session.input("ctrl+l");
       await sleep(500);
@@ -251,6 +378,12 @@ describe("web behaviour", () => {
     await page.close();
     if (process.platform === "win32") {
       assert.ok(/Renderer/.test(text) && /Lockdown/.test(text), text.slice(0, 800));
+    } else if (process.platform === "linux") {
+      assert.match(text, /adequately sandboxed/i);
+    } else {
+      const renderers = hostProcesses("orbit_test", session.profile).filter((p) => p.commandLine.includes("--type=renderer"));
+      assert.ok(renderers.length > 0, "no renderer found");
+      assert.ok(renderers.every((p) => p.commandLine.includes("--seatbelt-client")), renderers[0].commandLine);
     }
   });
 });
@@ -404,6 +537,28 @@ describe("single instance", () => {
     assert.equal(pages.length, before + 1);
   });
 
+  test("a second launch with a file path opens that file", async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "orbit-host-file-"));
+    const file = path.join(dir, "a page & more.html");
+    fs.writeFileSync(file, "<!doctype html><title>Local</title><h1>Local page</h1>");
+    const second = await launchHost({ profile: first.profile, connect: false, urls: [file] });
+    assert.equal((await waitForExit(second, 15000)).code, PROCESS_NOTIFIED_EXIT);
+    await sleep(1500);
+    const urls = (await first.pages()).map((t) => t.url);
+    fs.rmSync(dir, { recursive: true, force: true });
+    assert.ok(urls.some((u) => u.startsWith("file:") && u.endsWith("/a%20page%20%26%20more.html")), JSON.stringify(urls));
+  });
+
+  test("a second launch ignores a script URL and a missing file", async () => {
+    const before = (await first.pages()).map((t) => t.url);
+    const second = await launchHost({ profile: first.profile, connect: false, urls: ["javascript:alert(1)"] });
+    assert.equal((await waitForExit(second, 15000)).code, PROCESS_NOTIFIED_EXIT);
+    await sleep(1500);
+    const urls = (await first.pages()).map((t) => t.url);
+    assert.ok(!urls.some((u) => u.startsWith("javascript:")), JSON.stringify(urls));
+    assert.ok(urls.length >= before.length);
+  });
+
   test("a second launch without a URL opens a new page", async () => {
     const before = (await first.pages()).length;
     const second = await launchHost({ profile: first.profile, connect: false });
@@ -411,6 +566,32 @@ describe("single instance", () => {
     assert.equal(exit.code, PROCESS_NOTIFIED_EXIT);
     await sleep(1500);
     assert.equal((await first.pages()).length, before + 1);
+  });
+});
+
+describe("closing the last window", () => {
+  test("quits on Windows and Linux, and keeps a Mac app running until it is quit", async () => {
+    const session = await launchHost();
+    try {
+      for (const target of await session.pages()) {
+        await session.cdp.send("Target.closeTarget", { targetId: target.targetId }).catch(() => {});
+      }
+      await sleep(4000);
+      if (process.platform === "darwin") {
+        assert.equal(session.exit, null, "the app quit when its last window closed");
+        const again = await launchHost({ profile: session.profile, connect: false });
+        assert.equal((await waitForExit(again, 15000)).code, PROCESS_NOTIFIED_EXIT);
+        await sleep(2000);
+        assert.equal((await session.pages()).length, 1, "a new launch should open a window");
+        await session.cdp.send("Browser.close", {}, undefined, 8000).catch(() => {});
+        assert.equal((await waitForExit(session)).code, 0);
+      } else {
+        assert.equal((await waitForExit(session)).code, 0);
+      }
+    } finally {
+      await session.kill();
+      removeProfile(session.profile);
+    }
   });
 });
 

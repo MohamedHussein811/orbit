@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Shields</title>
+<link rel="stylesheet" href="popup.css">
+</head>
+<body>
+<header>
+  <p id="host"></p>
+  <label id="switch-row" class="switch">
+    <span id="switch-label">Shields on</span>
+    <input id="switch" type="checkbox" role="switch">
+  </label>
+</header>
+<section aria-label="Blocked on this page">
+  <dl>
+    <div><dd id="ads">0</dd><dt>Ads</dt></div>
+    <div><dd id="trackers">0</dd><dt>Trackers</dt></div>
+    <div><dd id="threats">0</dd><dt>Threats</dt></div>
+  </dl>
+  <p class="caption">Blocked on this page</p>
+</section>
+<footer>
+  <button id="privacy" type="button">Privacy settings</button>
+  <button id="siteSettings" type="button">Site settings</button>
+</footer>
+<script type="module" src="popup.js"></script>
+</body>
+</html>

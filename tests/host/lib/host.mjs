@@ -171,7 +171,7 @@ function windowShot(session, file) {
   ).trim();
 }
 
-/** Closes every window the way a user does: the Windows path posts WM_CLOSE. */
+/** Closes the browser as a whole, which records the open window for restore. Windows posts WM_CLOSE. */
 async function closeWindows(session) {
   if (process.platform === "win32") {
     for (let i = 0; i < 12 && !session.exit; i++) {
@@ -181,9 +181,7 @@ async function closeWindows(session) {
     }
     return;
   }
-  for (const target of await session.pages()) {
-    await session.cdp.send("Target.closeTarget", { targetId: target.targetId }).catch(() => {});
-  }
+  await session.cdp.send("Browser.close", {}, undefined, 8000).catch(() => {});
 }
 
 export function readJson(file) {

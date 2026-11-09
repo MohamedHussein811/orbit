@@ -10,10 +10,11 @@ const DROP_TOTAL = 4 * 1024 * 1024;
 const DROP_AT = 1024 * 1024;
 
 /** Pass { pfx, passphrase } to serve HTTPS. */
-export async function startFixture({ pfx, passphrase } = {}) {
+export async function startFixture({ pfx, passphrase, key, cert } = {}) {
   const log = [];
   let port;
-  const scheme = pfx ? "https" : "http";
+  const secure = !!(pfx || key);
+  const scheme = secure ? "https" : "http";
   const handler = (req, res) => {
     const host = (req.headers.host ?? "").split(":")[0];
     const url = new URL(req.url, `${scheme}://${req.headers.host}`);
@@ -24,10 +25,12 @@ export async function startFixture({ pfx, passphrase } = {}) {
         return html(`<h1>${host}</h1>`);
       case "/frames":
         return html(`<h1>top ${host}</h1><iframe id="x" src="${scheme}://b.test:${port}/frame"></iframe>`);
+      case "/frames-cross":
+        return html(`<h1>parent</h1><iframe id="x" src="${scheme}://${url.searchParams.get("frame")}/frame"></iframe>`);
       case "/frames-same":
         return html(`<h1>top ${host}</h1><iframe id="x" src="${scheme}://${host}:${port}/frame"></iframe>`);
       case "/frame":
-        res.writeHead(200, { "content-type": "text/html", "set-cookie": `third=party; Path=/; SameSite=None${pfx ? "; Secure" : ""}` });
+        res.writeHead(200, { "content-type": "text/html", "set-cookie": `third=party; Path=/; SameSite=None${secure ? "; Secure" : ""}` });
         return res.end(`<!doctype html><title>frame</title><script>parent.postMessage({cookie:document.cookie},'*')</script>frame on ${host}`);
       case "/setcookie":
         res.writeHead(200, { "content-type": "text/html", "set-cookie": `first=party; Path=/` });
@@ -41,6 +44,11 @@ export async function startFixture({ pfx, passphrase } = {}) {
       case "/p.gif":
         res.writeHead(200, { "content-type": "image/gif" });
         return res.end(Buffer.from("R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7", "base64"));
+      case "/ads-page": {
+        const ad = url.searchParams.get("ad");
+        const tracker = url.searchParams.get("tracker");
+        return html(`<h1>ads</h1><script src="http://${ad}/ads.js"></script><img src="http://${ad}/banner.gif"><script src="http://${tracker}/collect.js"></script>`);
+      }
       case "/ping-test":
         return html(`<a id="link" href="/ping-target" ping="/ping" target="_blank">go</a>`);
       case "/ping-target":
@@ -52,7 +60,7 @@ export async function startFixture({ pfx, passphrase } = {}) {
         res.writeHead(200, { "content-type": "application/pdf" });
         return res.end(MIN_PDF);
       case "/dl":
-        return html(`<style>a{display:block;font:32px sans-serif;margin:12px}</style><a id="slow" href="/slow.bin">slow</a><a id="drop" href="/drop.bin">drop</a><a id="exe" href="/orbit-probe.exe">exe</a>`);
+        return html(`<style>a{display:block;font:32px sans-serif;margin:12px}</style><a id="slow" href="/slow.bin">slow</a><a id="drop" href="/drop.bin">drop</a><a id="exe" href="/orbit-probe.exe">exe</a><a id="note" href="/orbit-note.txt">note</a>`);
       case "/slow.bin": {
         const total = 8 * 1024 * 1024;
         res.writeHead(200, { "content-type": "application/octet-stream", "content-length": total, "content-disposition": 'attachment; filename="orbit-slow.bin"' });
@@ -78,6 +86,9 @@ export async function startFixture({ pfx, passphrase } = {}) {
         res.write(Buffer.alloc(DROP_AT, 9), () => setTimeout(() => req.socket.destroy(), 300));
         return undefined;
       }
+      case "/orbit-note.txt":
+        res.writeHead(200, { "content-type": "text/plain", "content-disposition": 'attachment; filename="orbit-note.txt"' });
+        return res.end("orbit test note\n");
       case "/orbit-probe.exe":
         res.writeHead(200, { "content-type": "application/octet-stream", "content-disposition": 'attachment; filename="orbit-probe.exe"' });
         return res.end(Buffer.from("orbit test file, not a real program\n"));
@@ -91,7 +102,7 @@ export async function startFixture({ pfx, passphrase } = {}) {
         return res.end("not found");
     }
   };
-  const server = pfx ? https.createServer({ pfx, passphrase }, handler) : http.createServer(handler);
+  const server = secure ? https.createServer(pfx ? { pfx, passphrase } : { key, cert }, handler) : http.createServer(handler);
   await new Promise((r) => server.listen(0, "127.0.0.1", r));
   port = server.address().port;
   return { port, log, scheme, close: () => new Promise((r) => { server.closeAllConnections(); server.close(r); }) };

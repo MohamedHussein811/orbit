@@ -5,14 +5,23 @@
 #ifndef ORBIT_HOST_DEFAULTS_H_
 #define ORBIT_HOST_DEFAULTS_H_
 
+#include <filesystem>
+
 #include "include/cef_command_line.h"
+#include <filesystem>
+
 #include "include/cef_preference.h"
+#include <filesystem>
+
 #include "include/cef_request_context.h"
 
 namespace orbit {
 
+// The built-in extension's ID, derived from the public key in extension/manifest.json.
+inline constexpr char kExtensionId[] = "boccmnigbogdpajphlpgodcalflpinmk";
+
 // Adds Orbit's privacy and security switches. Browser process only.
-void ApplySwitches(CefRefPtr<CefCommandLine> command_line);
+void ApplySwitches(CefRefPtr<CefCommandLine> command_line, const std::filesystem::path& extension_dir);
 
 void RegisterPreferences(cef_preferences_type_t type,
                          CefRawPtr<CefPreferenceRegistrar> registrar);

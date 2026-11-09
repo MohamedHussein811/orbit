@@ -11,6 +11,9 @@ Orbit is a free, privacy-focused desktop browser by NovaTech, built on the Chrom
 - Web APIs for AI and advertising switched off.
 - Session restore after a clean exit and after a crash, with a guard against crash loops.
 - A pinned engine with SHA-256 checks, and a daily job that proposes an update when CEF ships a newer stable build.
+- A built-in extension with the dashboard (search, bookmarks, protection counts, weather, notes, themes and layout) and Shields, which blocks ads, trackers and listed threats with Chromium's own rule engine.
+- A privacy page for fingerprinting protection levels, WebRTC handling, clearing data at startup and history cleanup.
+- Installers and archives for each system, tested by installing them on CI. They are unsigned, so there are no public downloads yet.
 
 The automated tests in [`tests/host`](tests/host) define what counts as working. CI runs them on each system listed in [`.github/workflows/ci.yml`](.github/workflows/ci.yml).
 
@@ -18,7 +21,8 @@ The automated tests in [`tests/host`](tests/host) define what counts as working.
 
 - **Video:** official CEF binaries have no H.264, AAC or HEVC. Sites that need those formats fail. YouTube plays through VP9. This is an open release blocker.
 - **Safe Browsing:** not available in this engine build. A replacement threat feed is planned and not built.
-- **Not built yet:** the dashboard, ad and tracker blocking, themes, updater, installers and signed packages.
+- **Blocking:** guest windows have no extensions, so no Shields. Details are in [docs/KNOWN_LIMITS.md](docs/KNOWN_LIMITS.md).
+- **Not built yet:** updater and signed packages.
 
 ## Build
 
@@ -34,7 +38,8 @@ On Windows the build goes to `%LOCALAPPDATA%\NovaTech\orbit-build`. Elsewhere it
 ## Test
 
 ```sh
-node --test --test-concurrency=1 tests/host/host.test.mjs
+npm run test:unit
+npm run test:host
 ```
 
 Tests start `orbit_test` on a temporary profile. That build refuses to run without `ORBIT_USER_DATA_DIR`, so it cannot touch a real profile.
@@ -45,8 +50,10 @@ Tests start `orbit_test` on a temporary profile. That build refuses to run witho
 | --- | --- |
 | `host/` | Native host. The only code that names CEF |
 | `engine/engine.json` | Pinned CEF version and hashes |
-| `tools/` | Engine and build scripts |
-| `tests/host/` | End-to-end tests of the built host |
+| `extension/` | Built-in extension: dashboard and Shields |
+| `filters/` | Filter list sources and the compiled blocking rules |
+| `tools/` | Engine, filter, branding and build scripts |
+| `tests/` | Unit tests and end-to-end tests of the built host |
 
 ## Security
 

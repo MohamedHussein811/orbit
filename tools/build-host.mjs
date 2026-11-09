@@ -7,6 +7,8 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { brand } from "./brand.mjs";
+import { buildExtension } from "./build-extension.mjs";
 import { currentPlatform, fetchEngine } from "./engine.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -20,6 +22,26 @@ export function buildDir() {
   if (process.env.ORBIT_BUILD_DIR) return process.env.ORBIT_BUILD_DIR;
   if (process.platform === "win32") return path.join(process.env.LOCALAPPDATA, "NovaTech", "orbit-build");
   return path.join(ROOT, "out", "host");
+}
+
+/** Starts from the engine's original resource packs, so branding never builds on an earlier run. */
+function brandResources(cefRoot, out, target) {
+  const framework = "Chromium Embedded Framework.framework";
+  const mac = process.platform === "darwin";
+  const source = mac ? path.join(cefRoot, "Release", framework, "Resources") : path.join(cefRoot, "Resources");
+  const app = target === "orbit" ? "Orbit.app" : "OrbitTest.app";
+  const destination = mac ? path.join(out, target, app, "Contents", "Frameworks", framework, "Resources") : path.join(out, target);
+  for (const name of fs.readdirSync(source)) {
+    const isPack = name.endsWith(".pak") || name === "locales" || name.endsWith(".lproj");
+    if (isPack) fs.cpSync(path.join(source, name), path.join(destination, name), { recursive: true });
+  }
+  brand(destination, path.join(cefRoot, "include"));
+}
+
+function extensionOutput(out, target) {
+  if (process.platform !== "darwin") return path.join(out, target, "orbit-core");
+  const app = target === "orbit" ? "Orbit.app" : "OrbitTest.app";
+  return path.join(out, target, app, "Contents", "Resources", "orbit-core");
 }
 
 function defaultJobs() {
@@ -73,6 +95,11 @@ export async function build({ targets = ["orbit", "orbit_test"], jobs = defaultJ
   const started = Date.now();
   const result = spawnSync(command, args, { stdio: "inherit" });
   if (result.status !== 0) throw new Error(`build failed with exit code ${result.status}`);
+  // These run on every build, because changes to them do not relink the host.
+  for (const target of targets) {
+    brandResources(cefRoot, out, target);
+    buildExtension(extensionOutput(out, target));
+  }
   console.log(`built ${targets.join(", ")} in ${Math.round((Date.now() - started) / 1000)} s at ${out}`);
   return out;
 }

@@ -8,7 +8,9 @@
 #include <system_error>
 
 #include "defaults.h"
+#include "host_api.h"
 #include "include/base/cef_callback.h"
+#include "include/cef_browser.h"
 #include "include/cef_id_mappers.h"
 #include "include/cef_values.h"
 #include "include/wrapper/cef_closure_task.h"
@@ -82,9 +84,16 @@ void OrbitClient::OnBeforeClose(CefRefPtr<CefBrowser> browser) {
       break;
     }
   }
-  if (browsers_.empty()) {
-    CefQuitMessageLoop();
+  if (!browsers_.empty()) {
+    return;
   }
+#if defined(OS_MAC)
+  // A Mac app stays running with no windows until the person quits it.
+  if (!quitting_) {
+    return;
+  }
+#endif
+  CefQuitMessageLoop();
 }
 
 bool OrbitClient::OnChromeCommand(CefRefPtr<CefBrowser> browser,
@@ -97,14 +106,54 @@ bool OrbitClient::IsChromeAppMenuItemVisible(CefRefPtr<CefBrowser> browser, int 
   return !IsRemovedCommand(command_id);
 }
 
+CefRefPtr<CefResourceRequestHandler> OrbitClient::GetResourceRequestHandler(CefRefPtr<CefBrowser> browser,
+                                                                            CefRefPtr<CefFrame> frame,
+                                                                            CefRefPtr<CefRequest> request,
+                                                                            bool is_navigation,
+                                                                            bool is_download,
+                                                                            const CefString& request_initiator,
+                                                                            bool& disable_default_handling) {
+  if (is_navigation || is_download || !IsHostApiRequest(request->GetURL().ToString(), request_initiator.ToString())) {
+    return nullptr;
+  }
+  return CreateHostApiHandler();
+}
+
 void OrbitClient::CloseAllBrowsers(bool force_close) {
   if (!CefCurrentlyOn(TID_UI)) {
     CefPostTask(TID_UI, base::BindOnce(&OrbitClient::CloseAllBrowsers, this, force_close));
     return;
   }
-  for (const auto& browser : browsers_) {
-    browser->GetHost()->CloseBrowser(force_close);
+  quitting_ = true;
+  if (browsers_.empty()) {
+    CefQuitMessageLoop();
+    return;
   }
+  // Closing by window rather than by tab records each window as one entry for session restore.
+  static const int close_window = cef_id_for_command_id_name("IDC_CLOSE_WINDOW");
+  const std::list<CefRefPtr<CefBrowser>> open = browsers_;
+  for (const auto& browser : open) {
+    if (force_close || close_window == -1) {
+      browser->GetHost()->CloseBrowser(force_close);
+    } else {
+      browser->GetHost()->ExecuteChromeCommand(close_window, CEF_WOD_CURRENT_TAB);
+    }
+  }
+}
+
+void OrbitClient::OpenWindow(const std::string& url) {
+  if (!CefCurrentlyOn(TID_UI)) {
+    CefPostTask(TID_UI, base::BindOnce(&OrbitClient::OpenWindow, this, url));
+    return;
+  }
+  // With no parent window, Chrome style opens Chromium's full tabbed browser.
+  CefWindowInfo window_info;
+#if defined(OS_WIN)
+  window_info.SetAsPopup(nullptr, "Orbit");
+#endif
+  window_info.runtime_style = CEF_RUNTIME_STYLE_CHROME;
+  CefBrowserSettings browser_settings;
+  CefBrowserHost::CreateBrowser(window_info, this, url.empty() ? options_.initial_url : url, browser_settings, nullptr, nullptr);
 }
 
 bool OrbitClient::OpenTab(const std::string& url) {

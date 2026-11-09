@@ -6,6 +6,8 @@
 	<string>English</string>
 	<key>CFBundleExecutable</key>
 	<string>${EXECUTABLE_NAME}</string>
+	<key>CFBundleIconFile</key>
+	<string>orbit</string>
 	<key>CFBundleIdentifier</key>
 	<string>org.novatech.orbit</string>
 	<key>CFBundleInfoDictionaryVersion</key>
@@ -27,8 +29,6 @@
 	</dict>
 	<key>LSMinimumSystemVersion</key>
 	<string>13.0</string>
-	<key>NSMainNibFile</key>
-	<string>MainMenu</string>
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
 	<key>NSSupportsAutomaticGraphicsSwitching</key>

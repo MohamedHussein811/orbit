@@ -23,6 +23,7 @@ constexpr int kStartupNewTab = 5;
 // Facts about this launch, resolved before CEF starts.
 struct StartupOptions {
   std::filesystem::path user_data_root;
+  std::filesystem::path extension_dir;
   std::string initial_url;
   bool explicit_url = false;
   // Read from disk, because the live preference reads as the default once the browser starts.

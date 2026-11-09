@@ -11,6 +11,10 @@ project(orbit_host)
 file(READ "${CMAKE_CURRENT_SOURCE_DIR}/../package.json" ORBIT_PACKAGE_JSON)
 string(JSON ORBIT_VERSION GET "${ORBIT_PACKAGE_JSON}" version)
 set(VERSION_SHORT "${ORBIT_VERSION}")
+string(REPLACE "." ";" ORBIT_VERSION_PARTS "${ORBIT_VERSION}")
+list(GET ORBIT_VERSION_PARTS 0 ORBIT_V1)
+list(GET ORBIT_VERSION_PARTS 1 ORBIT_V2)
+list(GET ORBIT_VERSION_PARTS 2 ORBIT_V3)
 
 if(NOT CEF_ROOT)
   message(FATAL_ERROR "Set CEF_ROOT. tools/build-host.mjs does this for you.")
@@ -23,6 +27,8 @@ PRINT_CEF_CONFIG()
 set(ORBIT_COMMON_SRCS
   src/defaults.cc
   src/defaults.h
+  src/host_api.cc
+  src/host_api.h
   src/orbit_app.cc
   src/orbit_app.h
   src/orbit_client.cc
@@ -31,7 +37,7 @@ set(ORBIT_COMMON_SRCS
   src/startup.h
   )
 set(ORBIT_SRCS_LINUX src/main_linux.cc)
-set(ORBIT_SRCS_MAC src/main_mac.mm)
+set(ORBIT_SRCS_MAC src/main_mac.mm src/mac_menu.h src/mac_menu.mm)
 set(ORBIT_SRCS_WINDOWS src/main_win.cc)
 set(ORBIT_SRCS ${ORBIT_COMMON_SRCS})
 if(OS_LINUX)
@@ -45,8 +51,16 @@ endif()
 set(ORBIT_HELPER_SRCS src/helper_mac.cc)
 set(ORBIT_MAC_RESOURCES
   mac/English.lproj/InfoPlist.strings
-  mac/English.lproj/MainMenu.xib
   )
+
+
+if(OS_WINDOWS)
+  enable_language(RC)
+  add_executable(orbit_stamp tools/stamp_exe.cc)
+  target_link_options(orbit_stamp PRIVATE /SUBSYSTEM:CONSOLE)
+  add_library(orbit_resources OBJECT win/orbit.rc)
+  target_compile_definitions(orbit_resources PRIVATE ORBIT_V1=${ORBIT_V1} ORBIT_V2=${ORBIT_V2} ORBIT_V3=${ORBIT_V3})
+endif()
 
 function(orbit_add_host target output_name is_test)
   set(CEF_TARGET "${target}")
@@ -128,6 +142,9 @@ function(orbit_add_host target output_name is_test)
     endforeach()
 
     COPY_MAC_RESOURCES("${ORBIT_MAC_RESOURCES}" "mac/" "${target}" "${CMAKE_CURRENT_SOURCE_DIR}" "${app}")
+    add_custom_command(TARGET ${target} POST_BUILD
+      COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_CURRENT_SOURCE_DIR}/../branding/icons/orbit.icns" "${app}/Contents/Resources/orbit.icns"
+      VERBATIM)
   endif()
 
   if(OS_WINDOWS)
@@ -142,7 +159,10 @@ function(orbit_add_host target output_name is_test)
       RUNTIME_OUTPUT_DIRECTORY "${CEF_TARGET_OUT_DIR}"
       )
     COPY_SINGLE_FILE(${target} ${CEF_BINARY_DIR}/bootstrap.exe ${CEF_TARGET_OUT_DIR}/${output_name}.exe)
-    add_dependencies(${target} libcef_dll_wrapper)
+    add_custom_command(TARGET ${target} POST_BUILD
+      COMMAND orbit_stamp "${CEF_TARGET_OUT_DIR}/${output_name}.exe" "$<TARGET_OBJECTS:orbit_resources>"
+      VERBATIM)
+    add_dependencies(${target} libcef_dll_wrapper orbit_stamp orbit_resources)
     target_link_libraries(${target} "libcef_lib_${target}" libcef_dll_wrapper ${CEF_STANDARD_LIBS})
     COPY_FILES("${target}" "${CEF_BINARY_FILES}" "${CEF_BINARY_DIR}" "${CEF_TARGET_OUT_DIR}")
     COPY_FILES("${target}" "${CEF_RESOURCE_FILES}" "${CEF_RESOURCE_DIR}" "${CEF_TARGET_OUT_DIR}")

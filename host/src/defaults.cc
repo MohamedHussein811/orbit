@@ -4,6 +4,8 @@
 
 #include "defaults.h"
 
+#include "host_api.h"
+
 #include <string>
 #include <vector>
 
@@ -16,6 +18,8 @@ namespace {
 
 constexpr int kDefaultsVersion = 1;
 constexpr char kVersionPref[] = "orbit.defaults_version";
+constexpr char kDefaultThemeMode[] = "space";
+constexpr char kDefaultAccent[] = "#8d9bff";
 
 const char* const kSwitches[] = {
     "disable-default-apps",
@@ -40,6 +44,7 @@ const char* const kAiAndAdFeatures[] = {
 const char* const kDisableFeatures[] = {
     "AimEnabled",
     "AimServerEligibilityEnabled",
+    "NtpFooter",
     "NetworkTimeServiceQuerying",
     "PrivacySandboxAdsAPIsM1Override",
 };
@@ -89,6 +94,30 @@ CefRefPtr<CefValue> DefaultSearchEngine() {
   return result;
 }
 
+// Lets the built-in extension run in private windows and skips the new tab change prompt.
+void SeedExtensionPrefs(CefRefPtr<CefRequestContext> context) {
+  CefRefPtr<CefValue> current = context->GetPreference("extensions.settings");
+  CefRefPtr<CefDictionaryValue> settings =
+      current && current->GetType() == VTYPE_DICTIONARY ? current->GetDictionary()->Copy(false) : CefDictionaryValue::Create();
+  CefRefPtr<CefDictionaryValue> entry =
+      settings->HasKey(kExtensionId) ? settings->GetDictionary(kExtensionId) : CefDictionaryValue::Create();
+  entry->SetBool("incognito", true);
+  entry->SetBool("ack_ntp_bubble", true);
+  settings->SetDictionary(kExtensionId, entry);
+  CefRefPtr<CefValue> value = CefValue::Create();
+  value->SetDictionary(settings);
+  CefString error;
+  if (!context->SetPreference("extensions.settings", value, error)) {
+    LOG(WARNING) << "Could not set extension preferences: " << error.ToString();
+  }
+
+  CefRefPtr<CefListValue> pinned = CefListValue::Create();
+  pinned->SetString(0, kExtensionId);
+  CefRefPtr<CefValue> pinned_value = CefValue::Create();
+  pinned_value->SetList(pinned);
+  context->SetPreference("extensions.pinned_extensions", pinned_value, error);
+}
+
 void Set(CefRefPtr<CefPreferenceManager> manager,
          const char* name,
          CefRefPtr<CefValue> value) {
@@ -101,9 +130,13 @@ void Set(CefRefPtr<CefPreferenceManager> manager,
 
 }  // namespace
 
-void ApplySwitches(CefRefPtr<CefCommandLine> command_line) {
+void ApplySwitches(CefRefPtr<CefCommandLine> command_line, const std::filesystem::path& extension_dir) {
   for (const char* name : kSwitches) {
     command_line->AppendSwitch(name);
+  }
+  std::error_code ignored;
+  if (std::filesystem::exists(extension_dir / "manifest.json", ignored)) {
+    command_line->AppendSwitchWithValue("load-extension", extension_dir.native());
   }
   std::vector<std::string> enable(std::begin(kEnableFeatures), std::end(kEnableFeatures));
   MergeList(command_line, "enable-features", enable);
@@ -153,6 +186,9 @@ void EnsureContextDefaults(CefRefPtr<CefRequestContext> context) {
   Set(context, "url_keyed_anonymized_data_collection.enabled", BoolValue(false));
   Set(context, "spellcheck.use_spelling_service", BoolValue(false));
   Set(context, "signin.allowed", BoolValue(false));
+  Set(context, "profile.password_manager_leak_detection", BoolValue(false));
+  SeedExtensionPrefs(context);
+  ApplyBrowserTheme(context, kDefaultThemeMode, kDefaultAccent);
   Set(context, kVersionPref, IntValue(kDefaultsVersion));
 }
 
