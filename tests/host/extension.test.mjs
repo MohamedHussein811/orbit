@@ -768,6 +768,23 @@ describe("extension location", () => {
   });
 });
 
+describe("user folders with other alphabets", () => {
+  test("work, including spaces and Arabic letters", async () => {
+    const base = tempProfile();
+    const profile = path.join(base, "ملف مستخدم");
+    const session = await launchHost({ profile, checkProfile: false });
+    try {
+      const page = await dashboard(session);
+      assert.ok(await page.eval(`document.querySelector(".widget") !== null`), "the dashboard did not draw");
+      assert.ok(fs.existsSync(path.join(profile, "orbit-core", "manifest.json")), "the extension was not copied");
+      assert.ok(fs.existsSync(path.join(profile, "Local State")), "the profile went somewhere else");
+    } finally {
+      await session.kill();
+      removeProfile(base);
+    }
+  });
+});
+
 describe("release build", () => {
   test("loads the extension and its rules", async () => {
     const profile = tempProfile();

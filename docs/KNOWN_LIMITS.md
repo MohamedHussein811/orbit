@@ -39,7 +39,7 @@ These come from official CEF binaries, and also apply to unbranded Chromium.
 - **Address bar and settings icons** still use Chromium's swirl in a few places, because they are compiled into the engine.
 - **Default browser:** the Windows installer registers Orbit so Windows can offer it in Default apps. Settings has a "Make default" button whose effect has not been tested, and it may not detect that Orbit is the default.
 - **Sign-in to the browser** is off. Google sites can still be used normally in a tab, though real Google login has not been tested.
-- **macOS:** the menu bar and its shortcuts compile, and whether they work has not been checked on a real Mac.
+- **macOS:** on CI's virtual Mac, the menus appear and Command-T opens a tab. The other shortcuts and everyday use have not been checked, and nothing has run on a physical Mac.
 
 ## Not measured yet
 
