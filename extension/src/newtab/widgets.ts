@@ -11,6 +11,7 @@ import {
   parseForecast,
   parsePlaces,
   WEATHER_PROVIDER,
+  WEATHER_TIMEOUT_MS,
   type WeatherPlace,
   type WeatherReport,
 } from "../shared/weather.ts";
@@ -365,10 +366,11 @@ export function mountWeather(root: HTMLElement, context: WidgetContext): void {
           event.preventDefault();
           const query = input.value.trim();
           if (!query) return;
-          results.replaceChildren();
+          results.replaceChildren(h("li", { class: "notice" }, "Searching..."));
           try {
-            const res = await fetch(geocodeUrl(query), { credentials: "omit", referrerPolicy: "no-referrer" });
+            const res = await fetch(geocodeUrl(query), { credentials: "omit", referrerPolicy: "no-referrer", signal: AbortSignal.timeout(WEATHER_TIMEOUT_MS) });
             const places = parsePlaces(await res.json());
+            results.replaceChildren();
             if (!places.length) {
               results.append(h("li", { class: "notice" }, "No place found with that name. Check the spelling."));
             }
@@ -395,7 +397,7 @@ export function mountWeather(root: HTMLElement, context: WidgetContext): void {
               );
             }
           } catch {
-            results.append(h("li", { class: "notice" }, "Could not reach the weather service. Check your connection and try again."));
+            results.replaceChildren(h("li", { class: "notice" }, "Could not reach the weather service. Check your connection and try again."));
           }
         },
       },
@@ -417,28 +419,36 @@ export function mountWeather(root: HTMLElement, context: WidgetContext): void {
       showPlaceForm();
       return;
     }
+    if (cached) {
+      showReport(place, cached, false);
+      if (isFresh(cached, Date.now())) return;
+    } else {
+      body.replaceChildren(h("p", { class: "weather-place" }, place.name), h("p", { class: "notice" }, "Loading the weather..."));
+    }
     let report = cached;
     let failed = false;
-    if (!isFresh(report, Date.now())) {
-      try {
-        const res = await fetch(forecastUrl(place, unitName), { credentials: "omit", referrerPolicy: "no-referrer" });
-        const parsed = parseForecast(await res.json(), Date.now());
-        if (parsed) {
-          report = parsed;
-          await chrome.storage.local.set({ weatherReport: parsed });
-        } else {
-          failed = true;
-        }
-      } catch {
+    try {
+      const res = await fetch(forecastUrl(place, unitName), { credentials: "omit", referrerPolicy: "no-referrer", signal: AbortSignal.timeout(WEATHER_TIMEOUT_MS) });
+      const parsed = parseForecast(await res.json(), Date.now());
+      if (parsed) {
+        report = parsed;
+        await chrome.storage.local.set({ weatherReport: parsed });
+      } else {
         failed = true;
       }
+    } catch {
+      failed = true;
     }
+    showReport(place, report, failed);
+  }
+
+  function showReport(place: WeatherPlace, report: WeatherReport | null, failed: boolean): void {
     const change = h("button", { type: "button", class: "link", onclick: () => showPlaceForm() }, "Change city");
     if (!report) {
       body.replaceChildren(h("p", { class: "weather-place" }, place.name), h("p", { class: "notice" }, "Weather is unavailable right now. Check your connection."), change);
       return;
     }
-    const symbol = unitName === "celsius" ? "°C" : "°F";
+    const symbol = context.settings().temperatureUnit === "celsius" ? "°C" : "°F";
     body.replaceChildren(
       h(
         "div",

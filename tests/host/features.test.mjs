@@ -213,7 +213,11 @@ describe("certificate handling", () => {
     fixture.log.length = 0;
     const page = await session.cdp.newPage("about:blank");
     await page.goto(`https://a.test:${fixture.port}/secret`, { settleMs: 1200, timeoutMs: 15000 }).catch(() => {});
-    const text = await page.text(600).catch(() => "");
+    let text = "";
+    for (let i = 0; i < 40 && !text; i++) {
+      text = await page.text(600).catch(() => "");
+      if (!text) await sleep(250);
+    }
     await page.close();
     assert.deepEqual(fixture.log, [], "the page was requested over an untrusted connection");
     assert.match(text, /not private|privacy|ERR_CERT/i, text);

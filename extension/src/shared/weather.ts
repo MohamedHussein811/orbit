@@ -8,6 +8,7 @@ export const WEATHER_PROVIDER = {
 } as const;
 
 export const WEATHER_CACHE_MS = 30 * 60 * 1000;
+export const WEATHER_TIMEOUT_MS = 10 * 1000;
 
 export interface WeatherPlace {
   name: string;

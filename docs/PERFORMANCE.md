@@ -38,6 +38,27 @@ One run each on the same machine, measured the same way on a fresh profile, 20 s
 | Orbit 0.1.0 (Chromium 156) | 7 | 476 MB | 3.1 |
 | Chrome 157 | 9 | 607 MB | 5.1 |
 
+## Real websites
+
+`node tests/perf/sites.mjs` visits sites one at a time with Shields on, signed out. Sites change, so this is a manual check and not part of CI. Run on 2026-11-09, 37 ads and 124 trackers were blocked across all 12 sites.
+
+| Site | Load seconds | Result |
+| --- | --- | --- |
+| Wikipedia | 1.0 | Loaded |
+| GitHub | 2.1 | Loaded |
+| YouTube | 3.0 | Loaded, video played |
+| Reddit | 4.8 | Loaded, 3 script errors on the page |
+| X | 1.6 | Loaded the signed-out page |
+| BBC | 2.8 | Loaded |
+| CNN | 5.7 | Loaded, 2 script errors on the page |
+| Amazon | 0.9 | Loaded |
+| Stack Overflow | 0.8 | Loaded |
+| Google Maps | 2.7 | Loaded |
+| Vimeo | 5.5 | Loaded, video did not play, a known H.264 limit |
+| Twitch | 6.2 | Loaded, video did not play, a known H.264 limit |
+
+Script errors may come from blocked trackers, and this run did not compare them with Shields off. Sites were only loaded, not used.
+
 ## Not measured yet
 
-Real websites, long sessions, memory growth over time, and macOS and Linux.
+Long sessions, memory growth over time, and macOS and Linux.
