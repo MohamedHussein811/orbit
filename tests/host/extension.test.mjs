@@ -1,6 +1,7 @@
 // End-to-end checks of the built-in extension on the built host, with the real rule files.
 import assert from "node:assert/strict";
 import fs from "node:fs";
+import net from "node:net";
 import path from "node:path";
 import { after, before, describe, test } from "node:test";
 import { startFixture } from "./lib/fixture.mjs";
@@ -34,6 +35,10 @@ async function dashboard(session) {
       const page = await session.cdp.page(target.targetId);
       const href = await page.eval("location.href").catch(() => "");
       if (href.startsWith(`chrome-extension://${EXTENSION_ID}/`)) {
+        for (let j = 0; j < 40; j++) {
+          if (await page.eval(`document.querySelector(".widget") !== null`).catch(() => false)) break;
+          await sleep(250);
+        }
         await sleep(500);
         return page;
       }
@@ -43,10 +48,16 @@ async function dashboard(session) {
   throw new Error("the dashboard did not open");
 }
 
+/** Blocks are only reported to a worker that has its listeners, so tests wait for those. */
 async function worker(session) {
-  for (let i = 0; i < 60; i++) {
+  let page = null;
+  for (let i = 0; i < 80; i++) {
     const target = (await session.cdp.targets()).find((t) => t.type === "service_worker" && t.url.includes(EXTENSION_ID));
-    if (target) return session.cdp.page(target.targetId);
+    if (target) {
+      if (page?.targetId !== target.targetId) page = await session.cdp.page(target.targetId);
+      const listening = await page.eval(`chrome.declarativeNetRequest.onRuleMatchedDebug.hasListeners()`, { timeoutMs: 5000 }).catch(() => false);
+      if (listening) return page;
+    }
     await sleep(250);
   }
   throw new Error("the extension's worker did not start");
@@ -472,16 +483,23 @@ describe("privacy controls", () => {
 
   test("the strict level also rounds screen size", async () => {
     const setLevel = (level) => page.eval(`chrome.runtime.sendMessage({ type: "set-privacy", settings: { version: 1, fingerprinting: ${JSON.stringify(level)}, webrtc: "default_public_interface_only", clearOnStart: [], historyDays: 0 } })`);
+    const readScreen = async () => {
+      const tab = await session.cdp.newPage(`http://a.test:${fixture.port}/`);
+      await sleep(500);
+      const reading = await tab.eval(`({ width: screen.width, height: screen.height, native: Object.getOwnPropertyDescriptor(Screen.prototype, "width").get.toString().includes("[native code]") })`);
+      await tab.close();
+      return reading;
+    };
+    await setLevel("off");
+    await sleep(300);
+    const real = await readScreen();
     await setLevel("strict");
     await sleep(300);
-    const tab = await session.cdp.newPage(`http://a.test:${fixture.port}/`);
-    await sleep(500);
-    const screenSize = await tab.eval(`({ width: screen.width, height: screen.height, native: Object.getOwnPropertyDescriptor(Screen.prototype, "width").get.toString().includes("[native code]") })`);
-    await tab.close();
+    const strict = await readScreen();
     await setLevel("standard");
-    assert.equal(screenSize.width % 200, 0, String(screenSize.width));
-    assert.equal(screenSize.height % 100, 0, String(screenSize.height));
-    assert.equal(screenSize.native, true);
+    assert.equal(strict.width, Math.max(1024, Math.floor(real.width / 200) * 200));
+    assert.equal(strict.height, Math.max(600, Math.floor(real.height / 100) * 100));
+    assert.equal(strict.native, true);
   });
 
   test("a site with Shields off gets real readings while others stay protected", async () => {
@@ -696,6 +714,40 @@ describe("weather", () => {
     const sent = new URL(calls[0]);
     assert.match(sent.searchParams.get("latitude"), /^-?\d+(\.\d)?$/, "the location must be rounded");
     assert.match(sent.searchParams.get("longitude"), /^-?\d+(\.\d)?$/, "the location must be rounded");
+  });
+});
+
+describe("weather service that never answers", () => {
+  let silent;
+  let session;
+  let page;
+
+  before(async () => {
+    silent = net.createServer((socket) => socket.on("error", () => {}));
+    await new Promise((resolve) => silent.listen(0, "127.0.0.1", resolve));
+    session = await launchHost({ args: [`--host-resolver-rules=MAP api.open-meteo.com 127.0.0.1:${silent.address().port}`] });
+    page = await dashboard(session);
+  });
+
+  after(async () => {
+    await session.kill();
+    removeProfile(session.profile);
+    silent.close();
+  });
+
+  test("shows loading, then says the weather is unavailable", async () => {
+    await page.eval(`chrome.storage.local.set({ weatherPlace: { name: "Cairo", detail: "Egypt", latitude: 30.1, longitude: 31.2 } })`);
+    await page.eval("location.reload()").catch(() => {});
+    const widgetText = () => page.eval(`document.querySelector('.widget[data-id="weather"]')?.textContent ?? ""`).catch(() => "");
+    const seen = new Set();
+    const started = Date.now();
+    while (Date.now() - started < 16000 && !seen.has("unavailable")) {
+      const text = await widgetText();
+      if (/Loading the weather/.test(text)) seen.add("loading");
+      if (/Weather is unavailable/.test(text)) seen.add("unavailable");
+      await sleep(200);
+    }
+    assert.deepEqual([...seen], ["loading", "unavailable"]);
   });
 });
 
