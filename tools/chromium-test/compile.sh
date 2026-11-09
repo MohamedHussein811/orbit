@@ -5,7 +5,7 @@ set -uo pipefail
 steps_in() { sed -n 's/^\[[0-9]*\/\([0-9]*\)\].*/\1/p'; }
 
 cd src
-before=$(ninja -C out/Release -n chrome chrome_sandbox | tail -1)
+before=$(ninja -C out/Release -n $TARGETS | tail -1)
 echo "remaining before this stage: $before"
 
 # A restore that lost file dates would quietly restart the whole build.
@@ -19,14 +19,14 @@ if [ -f out/remaining-steps ]; then
 fi
 
 started=$SECONDS
-timeout --signal=INT --kill-after=180 "$COMPILE_SECONDS" ninja -C out/Release -k 0 chrome chrome_sandbox 2>&1 |
+timeout --signal=INT --kill-after=180 "$COMPILE_SECONDS" ninja -C out/Release -k 0 $TARGETS 2>&1 |
   tee ../ninja.log |
   grep -E --line-buffered "^\[[0-9]+000/|^FAILED|^ninja: " |
   stdbuf -oL cut -c1-200
 status=${PIPESTATUS[0]}
 echo "compiled for $((SECONDS - started)) seconds, ninja status $status"
-free -h | head -2
-df -h /
+{ free -h 2>/dev/null || vm_stat; } | head -6
+df -h .
 du -sh out/Release
 
 failures=$(grep -c '^FAILED' ../ninja.log)
@@ -35,7 +35,7 @@ if [ "$failures" -gt 0 ]; then
   grep -A25 '^FAILED' ../ninja.log | cut -c1-600 | head -600
 fi
 
-left=$(ninja -C out/Release -n chrome chrome_sandbox | tail -1)
+left=$(ninja -C out/Release -n $TARGETS | tail -1)
 echo "remaining after this stage: $left"
 echo "$left" | steps_in > out/remaining-steps
 {

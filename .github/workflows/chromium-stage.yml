@@ -11,6 +11,12 @@ on:
       stage:
         type: number
         required: true
+      runner:
+        type: string
+        default: ubuntu-24.04
+      targets:
+        type: string
+        default: chrome chrome_sandbox
       resume_run:
         type: string
         default: ""
@@ -27,10 +33,11 @@ permissions:
 
 env:
   CHROMIUM_VERSION: "157.0.8103.38"
+  TARGETS: ${{ inputs.targets }}
 
 jobs:
   build:
-    runs-on: ubuntu-24.04
+    runs-on: ${{ inputs.runner }}
     timeout-minutes: 350
     outputs:
       done: ${{ steps.compile.outputs.done }}
@@ -40,6 +47,7 @@ jobs:
           persist-credentials: false
 
       - name: Free disk space and add swap
+        if: runner.os == 'Linux'
         run: |
           sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc /usr/local/.ghcup /opt/hostedtoolcache/CodeQL /usr/local/share/boost /usr/local/share/powershell /usr/share/swift
           sudo docker image prune --all --force > /dev/null
@@ -50,6 +58,13 @@ jobs:
           df -h /
           free -h
 
+      - name: Show the machine
+        if: runner.os == 'macOS'
+        run: |
+          sysctl -n machdep.cpu.brand_string hw.ncpu hw.memsize
+          sw_vers
+          df -h .
+
       - name: Download and verify the Chromium source
         run: tools/chromium-test/fetch-source.sh
 
@@ -58,6 +73,12 @@ jobs:
 
       - name: Install Go for Dawn
         run: tools/chromium-test/go.sh
+
+      - name: List Linux programs in the source archive
+        if: runner.os == 'macOS' && inputs.stage == 1 && inputs.resume_run == ''
+        continue-on-error: true
+        run: |
+          find src -type f -perm +111 -size +200k -not -path '*/.git/*' -print0 | xargs -0 file | grep ELF | cut -d: -f1 | awk -F/ '{ print $2 "/" $3 "/" $4 }' | sort | uniq -c | sort -rn | head -40
 
       - name: Prepare the first stage
         if: inputs.stage == 1 && inputs.resume_run == ''
@@ -78,7 +99,7 @@ jobs:
           set -o pipefail
           zstd -dc state/state.tar.zst | tar -xf - -C src
           rm -rf state
-          df -h /
+          df -h .
 
       - name: Compile
         id: compile
