@@ -15,7 +15,7 @@ These are true of the current code. Each one says what a person would notice.
 
 These come from official CEF binaries, and also apply to unbranded Chromium.
 
-- **Safe Browsing** does not work. Threat lists are a partial, slower replacement.
+- **Safe Browsing** does not work. Threat lists are a partial, slower replacement. Without it, Chromium holds program downloads such as .exe files and asks the person to confirm, because it cannot check them.
 - **Key pinning** is off.
 - **Certificate Transparency** data is on through a feature switch, and whether it is enforced is unproven.
 - **Network Service sandbox on Windows** is off by default on both Chrome and CEF.
@@ -35,7 +35,7 @@ These come from official CEF binaries, and also apply to unbranded Chromium.
 - **Session restore** brings back the most recent window only, even if several were open.
 - **Crash detection** needs preferences on disk, which happens about 10 seconds after start. A crash sooner than that on a first run restores nothing.
 - **Clearing data at startup** starts at the same moment as session restore, so a restored page might load first.
-- **Settings pages** still mention Google services in some rows, such as sync, and those rows do not work because browser sign-in is off.
+- **Settings pages:** rows for Safe Browsing, Safety Check, the Privacy Guide, sync and Google services are removed at build time. Those pages can still be reached by typing their address, and some Settings text elsewhere still mentions Google.
 - **Address bar and settings icons** still use Chromium's swirl in a few places, because they are compiled into the engine.
 - **Sign-in to the browser** is off. Google sites can still be used normally in a tab, though real Google login has not been tested.
 - **macOS:** the menu bar comes from a small template, and browser keyboard shortcuts have not been checked on a real Mac.

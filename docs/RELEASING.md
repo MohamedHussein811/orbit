@@ -15,7 +15,7 @@ node tools/build-host.mjs   # build orbit and orbit_test, then the extension
 ```sh
 npm run typecheck
 npm run test:unit
-node --test --test-concurrency=1 tests/host/host.test.mjs tests/host/extension.test.mjs
+npm run test:host
 ```
 
 `tests/package/install-smoke.mjs` installs system-wide and only runs on CI.

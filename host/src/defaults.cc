@@ -186,6 +186,7 @@ void EnsureContextDefaults(CefRefPtr<CefRequestContext> context) {
   Set(context, "url_keyed_anonymized_data_collection.enabled", BoolValue(false));
   Set(context, "spellcheck.use_spelling_service", BoolValue(false));
   Set(context, "signin.allowed", BoolValue(false));
+  Set(context, "profile.password_manager_leak_detection", BoolValue(false));
   SeedExtensionPrefs(context);
   ApplyBrowserTheme(context, kDefaultThemeMode, kDefaultAccent);
   Set(context, kVersionPref, IntValue(kDefaultsVersion));

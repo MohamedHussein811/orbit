@@ -243,6 +243,36 @@ describe("branding", () => {
     assert.equal(seen.people, "Your profile");
   });
 
+  test("offers no control for services this build cannot use", async () => {
+    const read = (url) => evalOn(session, url, `(async () => {
+      await new Promise((r) => setTimeout(r, 900));
+      const all = (root, out = []) => {
+        for (const e of root.querySelectorAll("*")) {
+          out.push(e);
+          if (e.shadowRoot) all(e.shadowRoot, out);
+        }
+        return out;
+      };
+      const everything = all(document);
+      // Reads each item's own state, because a background tab may have no layout to measure.
+      const offered = (id) => { const e = everything.find((x) => x.id === id); return !!e && !e.hidden; };
+      return Object.fromEntries(["safeBrowsingSection", "passwordsLeakToggle", "safetyHubEntryPoint", "privacyGuideLinkRow", "privacyGuidePromo", "google-services", "sync-setup", "securityLinkRow", "people", "privacy"].map((id) => [id, offered(id)]));
+    })()`);
+    const privacy = await read("chrome://settings/privacy");
+    assert.equal(privacy.securityLinkRow, true, "the check did not find the Privacy page");
+    assert.equal(privacy.safetyHubEntryPoint, false);
+    assert.equal(privacy.privacyGuideLinkRow, false);
+    assert.equal(privacy.privacyGuidePromo, false);
+    const security = await read("chrome://settings/security");
+    assert.equal(security.safeBrowsingSection, false);
+    assert.equal(security.passwordsLeakToggle, false);
+    const people = await read("chrome://settings/people");
+    assert.equal(people["google-services"], false);
+    assert.equal(people["sync-setup"], false);
+    assert.equal(people.people, true, "the Settings menu lost a page");
+    assert.equal(people.privacy, true, "the Settings menu lost a page");
+  });
+
   test("keeps the attribution to the Chromium project", async () => {
     const version = await evalOn(session, "chrome://version/", "document.body.innerText");
     assert.ok(/Chromium Authors/.test(version), version.slice(0, 400));

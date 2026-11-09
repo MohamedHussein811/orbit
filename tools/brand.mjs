@@ -30,11 +30,42 @@ const SETTINGS_PATCHES = [
     find: /<cr-link-row class="hr" id="help"[^>]*><\/cr-link-row>/g,
     replace: "",
   },
+  {
+    // Safe Browsing does not work in this engine build, so a switch for it would be a fake control.
+    find: '<div id="safeBrowsingSection">',
+    replace: '<div id="safeBrowsingSection" hidden>',
+  },
+  {
+    // Removes Safety Check, whose main recommendation is to turn that switch on. Settings' own page
+    // list needs every page named once a list exists, as the guest version shows.
+    find: 'function createPageVisibility(){if(!loadTimeData.getBoolean("isGuest")){return undefined}',
+    replace:
+      'function createPageVisibility(){if(!loadTimeData.getBoolean("isGuest")){return{a11y:true,ai:false,appearance:true,autofill:true,defaultBrowser:true,downloads:true,extensions:true,languages:true,onStartup:true,people:true,performance:true,privacy:true,reset:true,safetyHub:false,system:true,yourSavedInfo:true}}',
+  },
+  {
+    // The check needs a Google account, which Orbit does not use.
+    find: '<settings-toggle-button id="passwordsLeakToggle"',
+    replace: '<settings-toggle-button hidden id="passwordsLeakToggle"',
+  },
+  {
+    // The Privacy Guide walks through Safe Browsing and Google services.
+    find: 'loadTimeData.getBoolean("showPrivacyGuide")',
+    replace: "false",
+  },
+  {
+    // The Sync and Google services rows lead to controls for accounts Orbit does not use.
+    find: /\?hidden="\$\{!?this\.shouldHideSyncSetupLinkRow_\(\)\}"/g,
+    replace: "hidden",
+  },
 ];
-const SETTINGS_MARKER = 'id="ai" href="/ai"';
 
-// English names that describe Google rather than Orbit.
-const ENGLISH_STRINGS = { IDS_SETTINGS_PEOPLE: "Your profile" };
+// English text that describes Google or misstates what happened.
+const ENGLISH_STRINGS = {
+  IDS_SETTINGS_PEOPLE: "Your profile",
+  // Orbit made this choice, not the person, because Safe Browsing does not work in this engine build.
+  IDS_BLOCK_DOWNLOAD_REASON_UNVERIFIED_NO_SAFE_BROWSING: "Orbit can't check this file for malware. Download it only if you trust this site.",
+  IDS_DOWNLOAD_BUBBLE_SUBPAGE_SUMMARY_WARNING_NO_SAFE_BROWSING: "Orbit can't check this file for malware",
+};
 
 function unpack(raw) {
   if (raw[0] === 0x1f && raw[1] === 0x8b) return { data: zlib.gunzipSync(raw), kind: "gzip" };
@@ -54,25 +85,32 @@ function pack(data, kind) {
 
 function patchSettings(file) {
   const pak = readPak(file);
+  const applied = new Set();
   for (const [id, raw] of pak.resources) {
+    if (raw[0] !== 0x1f && raw[0] !== 0x1e) continue;
     let unpacked;
     try {
       unpacked = unpack(raw);
     } catch {
       continue;
     }
-    if (!unpacked.data.includes(SETTINGS_MARKER)) continue;
+    if (!unpacked.data.includes("settings-")) continue;
     let text = unpacked.data.toString("utf8");
-    for (const { find, replace } of SETTINGS_PATCHES) {
-      const found = typeof find === "string" ? text.includes(find) : text.search(find) !== -1;
-      if (!found) throw new Error(`Settings no longer contains: ${find}`);
-      text = text.replaceAll(find, replace);
+    let changed = false;
+    for (const patch of SETTINGS_PATCHES) {
+      const found = typeof patch.find === "string" ? text.includes(patch.find) : text.search(patch.find) !== -1;
+      if (found) {
+        text = text.replaceAll(patch.find, patch.replace);
+        applied.add(patch);
+        changed = true;
+      }
     }
-    pak.resources.set(id, pack(Buffer.from(text, "utf8"), unpacked.kind));
-    writePak(file, pak);
-    return;
+    if (changed) pak.resources.set(id, pack(Buffer.from(text, "utf8"), unpacked.kind));
   }
-  throw new Error(`no resource in ${file} holds the Settings page`);
+  for (const patch of SETTINGS_PATCHES) {
+    if (!applied.has(patch)) throw new Error(`Settings no longer contains: ${patch.find}`);
+  }
+  writePak(file, pak);
 }
 
 function stringIds(includeDir) {

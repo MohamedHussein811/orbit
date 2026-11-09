@@ -54,8 +54,6 @@ set(ORBIT_MAC_RESOURCES
   mac/English.lproj/MainMenu.xib
   )
 
-find_program(ORBIT_NODE node REQUIRED)
-set(ORBIT_BRAND_TOOL "${CMAKE_CURRENT_SOURCE_DIR}/../tools/brand.mjs")
 
 if(OS_WINDOWS)
   enable_language(RC)
@@ -88,9 +86,6 @@ function(orbit_add_host target output_name is_test)
     if(EXISTS "${CEF_BINARY_DIR}/libminigbm.so")
       COPY_FILES("${target}" "libminigbm.so" "${CEF_BINARY_DIR}" "${CEF_TARGET_OUT_DIR}")
     endif()
-    add_custom_command(TARGET ${target} POST_BUILD
-      COMMAND "${ORBIT_NODE}" "${ORBIT_BRAND_TOOL}" "${CEF_TARGET_OUT_DIR}" "${CEF_INCLUDE_PATH}/include"
-      VERBATIM)
     SET_LINUX_SUID_PERMISSIONS("${target}" "${CEF_TARGET_OUT_DIR}/chrome-sandbox")
   endif()
 
@@ -150,7 +145,6 @@ function(orbit_add_host target output_name is_test)
     COPY_MAC_RESOURCES("${ORBIT_MAC_RESOURCES}" "mac/" "${target}" "${CMAKE_CURRENT_SOURCE_DIR}" "${app}")
     add_custom_command(TARGET ${target} POST_BUILD
       COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_CURRENT_SOURCE_DIR}/../branding/icons/orbit.icns" "${app}/Contents/Resources/orbit.icns"
-      COMMAND "${ORBIT_NODE}" "${ORBIT_BRAND_TOOL}" "${app}/Contents/Frameworks/Chromium Embedded Framework.framework/Resources" "${CEF_INCLUDE_PATH}/include"
       VERBATIM)
   endif()
 
@@ -173,9 +167,6 @@ function(orbit_add_host target output_name is_test)
     target_link_libraries(${target} "libcef_lib_${target}" libcef_dll_wrapper ${CEF_STANDARD_LIBS})
     COPY_FILES("${target}" "${CEF_BINARY_FILES}" "${CEF_BINARY_DIR}" "${CEF_TARGET_OUT_DIR}")
     COPY_FILES("${target}" "${CEF_RESOURCE_FILES}" "${CEF_RESOURCE_DIR}" "${CEF_TARGET_OUT_DIR}")
-    add_custom_command(TARGET ${target} POST_BUILD
-      COMMAND "${ORBIT_NODE}" "${ORBIT_BRAND_TOOL}" "${CEF_TARGET_OUT_DIR}" "${CEF_INCLUDE_PATH}/include"
-      VERBATIM)
     SET_LPAC_ACLS("${target}")
   endif()
 

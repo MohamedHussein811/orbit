@@ -86,7 +86,7 @@ jobs:
 
       - name: Test
         if: runner.os != 'Linux'
-        run: node --test --test-concurrency=1 --test-reporter=spec tests/host/host.test.mjs tests/host/extension.test.mjs
+        run: node --test --test-concurrency=1 --test-reporter=spec tests/host/host.test.mjs tests/host/extension.test.mjs tests/host/features.test.mjs
 
       - name: Install Inno Setup
         if: runner.os == 'Windows'

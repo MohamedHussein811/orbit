@@ -7,7 +7,7 @@ import { normalizeHosts, type Message } from "../shared/shields.ts";
 const page = document.getElementById("page")!;
 
 const FINGERPRINT_CHOICES: Array<{ value: FingerprintLevel; label: string; detail: string }> = [
-  { value: "standard", label: "Standard", detail: "Canvas, audio and graphics readings differ from site to site. Hardware details are rounded. Few sites notice." },
+  { value: "standard", label: "Standard", detail: "Canvas, audio and graphics readings differ from site to site. Hardware details are rounded. This is the least likely to affect how sites work." },
   { value: "strict", label: "Strict", detail: "Also rounds screen size and changes text measurements slightly. Some sites may look or behave differently." },
   { value: "off", label: "Off", detail: "Sites read your real values." },
 ];

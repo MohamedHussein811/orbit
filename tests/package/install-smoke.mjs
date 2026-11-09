@@ -29,8 +29,14 @@ async function launchInstalled(binary) {
   await sleep(15000);
   assert.equal(exit, null, `the installed browser exited: ${JSON.stringify(exit)}`);
   assert.ok(fs.existsSync(path.join(profile, "Local State")), "the installed browser did not start its profile");
-  const prefs = ["Secure Preferences", "Preferences"].map((name) => path.join(profile, "Default", name)).filter((file) => fs.existsSync(file));
-  assert.ok(prefs.some((file) => fs.readFileSync(file, "utf8").includes("boccmnigbogdpajphlpgodcalflpinmk")), "the built-in extension did not load");
+  const extensionLoaded = () =>
+    ["Secure Preferences", "Preferences"]
+      .map((name) => path.join(profile, "Default", name))
+      .filter((file) => fs.existsSync(file))
+      .some((file) => fs.readFileSync(file, "utf8").includes("boccmnigbogdpajphlpgodcalflpinmk"));
+  // Preferences reach the disk some seconds after they change, and later on a slow machine.
+  for (let i = 0; i < 60 && !extensionLoaded(); i++) await sleep(1000);
+  assert.ok(extensionLoaded(), "the built-in extension did not load");
   process.kill(child.pid, "SIGKILL");
   await sleep(1000);
   fs.rmSync(profile, { recursive: true, force: true, maxRetries: 5, retryDelay: 500 });

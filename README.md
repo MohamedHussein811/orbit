@@ -39,7 +39,7 @@ On Windows the build goes to `%LOCALAPPDATA%\NovaTech\orbit-build`. Elsewhere it
 
 ```sh
 npm run test:unit
-node --test --test-concurrency=1 tests/host/host.test.mjs tests/host/extension.test.mjs
+npm run test:host
 ```
 
 Tests start `orbit_test` on a temporary profile. That build refuses to run without `ORBIT_USER_DATA_DIR`, so it cannot touch a real profile.
