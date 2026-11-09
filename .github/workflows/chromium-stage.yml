@@ -1,0 +1,84 @@
+name: Chromium build stage
+
+# One slice of the build. A GitHub job can run for 6 hours, so each slice stops in time to save its
+# work for the next one. Source timestamps come from the archive, so ninja can resume from them.
+
+on:
+  workflow_call:
+    inputs:
+      stage:
+        type: number
+        required: true
+    outputs:
+      done:
+        value: ${{ jobs.build.outputs.done }}
+
+permissions:
+  contents: read
+
+env:
+  CHROMIUM_VERSION: "157.0.8103.38"
+  COMPILE_SECONDS: "17100"
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 350
+    outputs:
+      done: ${{ steps.compile.outputs.done }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Free disk space
+        run: |
+          sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc /usr/local/.ghcup /opt/hostedtoolcache/CodeQL /usr/local/share/boost /usr/local/share/powershell /usr/share/swift
+          sudo docker image prune --all --force > /dev/null
+          df -h / /mnt
+
+      - name: Download and verify the Chromium source
+        run: tools/chromium-test/fetch-source.sh
+
+      - name: Prepare the first stage
+        if: inputs.stage == 1
+        run: tools/chromium-test/prepare.sh
+
+      - name: Install build packages
+        if: inputs.stage != 1
+        run: tools/chromium-test/packages.sh
+
+      - name: Restore the previous stage
+        if: inputs.stage != 1
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: chromium-state-${{ inputs.stage }}
+          path: state
+
+      - name: Unpack the previous stage
+        if: inputs.stage != 1
+        run: |
+          zstd -dc state/state.tar.zst | tar -xf - -C src
+          rm -rf state
+          df -h /
+
+      - name: Compile
+        id: compile
+        run: tools/chromium-test/compile.sh
+
+      - name: Save this stage
+        if: steps.compile.outputs.done != 'true'
+        run: tools/chromium-test/save-state.sh
+
+      - name: Keep this stage for the next job
+        if: steps.compile.outputs.done != 'true'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: chromium-state-${{ inputs.stage == 1 && 2 || inputs.stage == 2 && 3 || inputs.stage == 3 && 4 || inputs.stage == 4 && 5 || inputs.stage == 5 && 6 || inputs.stage == 6 && 7 || inputs.stage == 7 && 8 || inputs.stage == 8 && 9 || 10 }}
+          path: state.tar.zst
+          retention-days: 2
+          compression-level: 0
+
+      - name: Run the finished browser
+        if: steps.compile.outputs.done == 'true'
+        run: tools/chromium-test/smoke.sh

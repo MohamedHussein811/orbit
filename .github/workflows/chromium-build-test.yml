@@ -1,0 +1,56 @@
+name: Chromium build test
+
+# Answers one question: can free GitHub runners compile unmodified Chromium for Linux?
+# It uses a plain release configuration. An official optimized build would need more.
+
+on:
+  push:
+    branches: [chromium-build-test]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: chromium-build-test
+  cancel-in-progress: true
+
+jobs:
+  stage1:
+    uses: ./.github/workflows/chromium-stage.yml
+    with: { stage: 1 }
+  stage2:
+    needs: stage1
+    if: needs.stage1.outputs.done != 'true'
+    uses: ./.github/workflows/chromium-stage.yml
+    with: { stage: 2 }
+  stage3:
+    needs: stage2
+    if: needs.stage2.outputs.done != 'true'
+    uses: ./.github/workflows/chromium-stage.yml
+    with: { stage: 3 }
+  stage4:
+    needs: stage3
+    if: needs.stage3.outputs.done != 'true'
+    uses: ./.github/workflows/chromium-stage.yml
+    with: { stage: 4 }
+  stage5:
+    needs: stage4
+    if: needs.stage4.outputs.done != 'true'
+    uses: ./.github/workflows/chromium-stage.yml
+    with: { stage: 5 }
+  stage6:
+    needs: stage5
+    if: needs.stage5.outputs.done != 'true'
+    uses: ./.github/workflows/chromium-stage.yml
+    with: { stage: 6 }
+  stage7:
+    needs: stage6
+    if: needs.stage6.outputs.done != 'true'
+    uses: ./.github/workflows/chromium-stage.yml
+    with: { stage: 7 }
+  stage8:
+    needs: stage7
+    if: needs.stage7.outputs.done != 'true'
+    uses: ./.github/workflows/chromium-stage.yml
+    with: { stage: 8 }
