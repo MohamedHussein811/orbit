@@ -2,7 +2,8 @@ name: Chromium build stage
 
 # One slice of the build. A GitHub job can run for 6 hours, so each slice stops in time to save its
 # work for the next one. Source timestamps come from the archive, so ninja can resume from them.
-# The first slice is short, to show the build speed and any setup failure early.
+# A fresh start compiles for one hour first, to show the build speed and any setup failure early.
+# resume_run and resume_state continue from a stage saved by an earlier run.
 
 on:
   workflow_call:
@@ -10,12 +11,19 @@ on:
       stage:
         type: number
         required: true
+      resume_run:
+        type: string
+        default: ""
+      resume_state:
+        type: number
+        default: 0
     outputs:
       done:
         value: ${{ jobs.build.outputs.done }}
 
 permissions:
   contents: read
+  actions: read
 
 env:
   CHROMIUM_VERSION: "157.0.8103.38"
@@ -48,19 +56,24 @@ jobs:
       - name: Install build packages
         run: tools/chromium-test/packages.sh
 
+      - name: Install Go for Dawn
+        run: tools/chromium-test/go.sh
+
       - name: Prepare the first stage
-        if: inputs.stage == 1
+        if: inputs.stage == 1 && inputs.resume_run == ''
         run: tools/chromium-test/prepare.sh
 
       - name: Restore the previous stage
-        if: inputs.stage != 1
+        if: inputs.stage != 1 || inputs.resume_run != ''
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
-          name: chromium-state-${{ inputs.stage }}
+          name: chromium-state-${{ inputs.resume_run != '' && inputs.resume_state || inputs.stage }}
           path: state
+          run-id: ${{ inputs.resume_run || github.run_id }}
+          github-token: ${{ github.token }}
 
       - name: Unpack the previous stage
-        if: inputs.stage != 1
+        if: inputs.stage != 1 || inputs.resume_run != ''
         run: |
           set -o pipefail
           zstd -dc state/state.tar.zst | tar -xf - -C src
@@ -71,7 +84,7 @@ jobs:
         id: compile
         env:
           STAGE: ${{ inputs.stage }}
-          COMPILE_SECONDS: ${{ inputs.stage == 1 && '3600' || '17100' }}
+          COMPILE_SECONDS: ${{ inputs.stage == 1 && inputs.resume_run == '' && '3600' || '18600' }}
         run: tools/chromium-test/compile.sh
 
       - name: Save this stage
@@ -84,7 +97,7 @@ jobs:
         with:
           name: chromium-state-${{ steps.compile.outputs.next }}
           path: state.tar.zst
-          retention-days: 2
+          retention-days: 5
           compression-level: 0
 
       - name: Run the finished browser

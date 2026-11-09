@@ -10,6 +10,7 @@ on:
 
 permissions:
   contents: read
+  actions: read
 
 concurrency:
   group: chromium-build-test
@@ -18,7 +19,7 @@ concurrency:
 jobs:
   stage1:
     uses: ./.github/workflows/chromium-stage.yml
-    with: { stage: 1 }
+    with: { stage: 1, resume_run: "42593470726", resume_state: 2 }
   stage2:
     needs: stage1
     if: needs.stage1.outputs.done != 'true'
