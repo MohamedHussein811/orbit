@@ -12,6 +12,12 @@ if [ "$(uname)" = "Darwin" ]; then
   test -n "$version"
   tools/chromium-test/cipd.sh infra/3pp/tools/cpython3/mac-arm64 "$version" src/third_party/cpython3/host
   src/third_party/cpython3/host/bin/python3 --version
+  python3 -I tools/chromium-test/fetch-deps.py src \
+    src/third_party/typescript/mac-arm64/src \
+    src/third_party/llvm-libclang \
+    src/ui/gl/resources/angle-metal \
+    src/third_party/updater/chromium_mac_arm64/cipd \
+    src/third_party/screen-ai/macos_arm64
 else
   sudo apt-get update -qq
   sudo apt-get install -y -qq ninja-build zstd python3 lld pkg-config > /dev/null
