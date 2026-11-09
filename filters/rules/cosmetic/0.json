@@ -107,6 +107,7 @@
 "trovitargentina.com.ar":{"hide":[".afs-container-skeleton"]},
 "ungeek.ph":{"hide":[".ungee-entity-placement"]},
 "up-4ever.net":{"hide":["a[href^=\"https://s.click.aliexpress.com/\"]","img[width=\"300\"]"]},
+"uqload.vc":{"hide":["#uqcs-bar"]},
 "variety.com":{"hide":["#jwplayer_xH3PjHXT_plsZnDJi_div","#leaderboard-no-padding",".vip-banner"]},
 "vesselfinder.com":{"hide":[".ad-right-m"]},
 "virtualrealitieshub.com":{"hide":[".g"]},
