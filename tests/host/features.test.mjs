@@ -155,6 +155,39 @@ describe("browser features", () => {
   });
 });
 
+describe("macOS menu bar", { skip: process.platform === "darwin" ? false : "macOS only" }, () => {
+  let session;
+
+  const script = (text) => execFileSync("osascript", ["-e", text], { encoding: "utf8", timeout: 15000 }).trim();
+
+  before(async () => {
+    session = await launchHost();
+    await sleep(1500);
+  });
+
+  after(async () => {
+    await session.kill();
+    removeProfile(session.profile);
+  });
+
+  test("offers the standard menus, and Command-T opens a tab", async (t) => {
+    let menus;
+    try {
+      script(`tell application "System Events" to set frontmost of first process whose unix id is ${session.pid} to true`);
+      menus = script(`tell application "System Events" to tell first process whose unix id is ${session.pid} to get name of menu bar items of menu bar 1`);
+    } catch (error) {
+      t.skip(`this machine does not allow controlling apps: ${String(error.message).slice(0, 120)}`);
+      return;
+    }
+    for (const name of ["File", "Edit", "View", "History", "Bookmarks", "Window"]) assert.match(menus, new RegExp(name), menus);
+    const before = (await session.pages()).length;
+    await session.cdp.send("Page.bringToFront", {}, (await session.cdp.page((await session.pages())[0].targetId)).sessionId);
+    script(`tell application "System Events" to keystroke "t" using command down`);
+    await sleep(1500);
+    assert.equal((await session.pages()).length, before + 1, "Command-T did not open a tab");
+  });
+});
+
 describe("certificate handling", () => {
   let certificate;
   let fixture;

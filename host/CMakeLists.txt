@@ -37,7 +37,7 @@ set(ORBIT_COMMON_SRCS
   src/startup.h
   )
 set(ORBIT_SRCS_LINUX src/main_linux.cc)
-set(ORBIT_SRCS_MAC src/main_mac.mm)
+set(ORBIT_SRCS_MAC src/main_mac.mm src/mac_menu.h src/mac_menu.mm)
 set(ORBIT_SRCS_WINDOWS src/main_win.cc)
 set(ORBIT_SRCS ${ORBIT_COMMON_SRCS})
 if(OS_LINUX)
@@ -51,7 +51,6 @@ endif()
 set(ORBIT_HELPER_SRCS src/helper_mac.cc)
 set(ORBIT_MAC_RESOURCES
   mac/English.lproj/InfoPlist.strings
-  mac/English.lproj/MainMenu.xib
   )
 
 

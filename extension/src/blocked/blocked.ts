@@ -2,7 +2,7 @@
 
 import { siteOf, type Message } from "../shared/shields.ts";
 
-const target = decodeURIComponent(location.hash.slice(1));
+const target = location.hash.slice(1);
 const host = siteOf(target);
 
 const hostLine = document.getElementById("host")!;

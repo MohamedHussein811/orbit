@@ -24,7 +24,7 @@ Weather data by Open-Meteo.com, under CC BY 4.0. It is requested only after a pe
 
 ## Chromium Embedded Framework
 
-Orbit links against CEF. Parts of `host/src/main_win.cc`, `host/src/main_linux.cc`, `host/src/main_mac.mm`, `host/src/helper_mac.cc` and the files in `host/mac/` are derived from CEF's `cefsimple` sample, copyright (c) 2013 The Chromium Embedded Framework Authors.
+Orbit links against CEF. Parts of `host/src/main_win.cc`, `host/src/main_linux.cc`, `host/src/main_mac.mm`, `host/src/helper_mac.cc` and the property lists in `host/mac/` are derived from CEF's `cefsimple` sample, copyright (c) 2013 The Chromium Embedded Framework Authors.
 
 CEF's license:
 

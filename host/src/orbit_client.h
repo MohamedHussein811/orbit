@@ -44,6 +44,7 @@ class OrbitClient : public CefClient, public CefLifeSpanHandler, public CefComma
 
   void CloseAllBrowsers(bool force_close);
   bool HasNoWindows() const { return browsers_.empty(); }
+  const std::list<CefRefPtr<CefBrowser>>& browsers() const { return browsers_; }
 
   // Opens |url| as a new tab in an existing window. Returns false if no window is open.
   bool OpenTab(const std::string& url);

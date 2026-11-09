@@ -10,6 +10,7 @@
 #include "include/cef_command_line.h"
 #include "include/wrapper/cef_helpers.h"
 #include "include/wrapper/cef_library_loader.h"
+#include "mac_menu.h"
 #include "orbit_app.h"
 #include "orbit_client.h"
 #include "startup.h"
@@ -49,7 +50,7 @@
 
 @implementation OrbitAppDelegate
 - (void)createApplication:(id)object {
-  [[NSBundle mainBundle] loadNibNamed:@"MainMenu" owner:NSApp topLevelObjects:nil];
+  orbit::InstallMainMenu();
   [[NSApplication sharedApplication] setDelegate:self];
 }
 

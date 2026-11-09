@@ -29,8 +29,6 @@
 	</dict>
 	<key>LSMinimumSystemVersion</key>
 	<string>13.0</string>
-	<key>NSMainNibFile</key>
-	<string>MainMenu</string>
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
 	<key>NSSupportsAutomaticGraphicsSwitching</key>
