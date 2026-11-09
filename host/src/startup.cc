@@ -22,6 +22,7 @@ namespace fs = std::filesystem;
 namespace {
 
 constexpr char kNewTabUrl[] = "chrome://newtab/";
+constexpr char kExtensionBuildId[] = "build-id.txt";
 
 #if defined(OS_WIN)
 std::wstring ReadEnv(const wchar_t* name) {
@@ -95,6 +96,30 @@ fs::path BuiltInExtensionDir() {
 #else
   return folder / "orbit-core";
 #endif
+}
+
+// Chromium writes generated rule files into the folder of an extension loaded from disk. A program
+// folder may be read-only, and on macOS writing there would break the app's signature, so the
+// extension runs from a copy in the user's data folder. The copy is replaced when the build changes.
+fs::path PrepareExtension(const fs::path& bundled, const fs::path& root) {
+  const std::string build_id = ReadFile(bundled / kExtensionBuildId);
+  const fs::path copy = root / "orbit-core";
+  if (build_id.empty()) {
+    return bundled;
+  }
+  if (ReadFile(copy / kExtensionBuildId) == build_id) {
+    return copy;
+  }
+  std::error_code error;
+  const fs::path staging = root / "orbit-core.new";
+  fs::remove_all(staging, error);
+  fs::copy(bundled, staging, fs::copy_options::recursive | fs::copy_options::overwrite_existing, error);
+  if (error) {
+    return bundled;
+  }
+  fs::remove_all(copy, error);
+  fs::rename(staging, copy, error);
+  return error ? bundled : copy;
 }
 
 bool LastRunCrashed(const fs::path& root) {
@@ -184,7 +209,7 @@ bool ResolveStartup(CefRefPtr<CefCommandLine> command_line,
   std::error_code ignored;
   fs::create_directories(options.user_data_root, ignored);
 
-  options.extension_dir = BuiltInExtensionDir();
+  options.extension_dir = PrepareExtension(BuiltInExtensionDir(), options.user_data_root);
   options.startup_setting = SavedStartupSetting(options.user_data_root);
   options.crashed_last_run = LastRunCrashed(options.user_data_root);
   if (options.crashed_last_run) {

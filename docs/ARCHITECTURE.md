@@ -67,3 +67,5 @@ Only `host/` names CEF. The extension, filter pipeline, branding packs and tests
 2. CEF starts. `OnContextInitialized` applies defaults once per profile.
 3. The first window opens. If the setting or a crash calls for it, `IDC_RESTORE_TAB` restores the last window, guarded against crash loops.
 4. Chromium loads the extension, whose worker applies privacy choices once per session.
+
+Chromium writes generated rule files into the folder of an extension loaded from disk. A program folder may be read-only, and on macOS writing there would break the app's signature. So the host copies the extension into the user's data folder at startup, whenever its build ID differs, and loads it from there.

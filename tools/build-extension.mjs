@@ -1,6 +1,7 @@
 // Builds Orbit's built-in extension into a folder. TypeScript types are stripped with Node's own
 // tool, so the build has no third-party dependencies. The type check runs separately in CI.
 //   node tools/build-extension.mjs <output folder>
+import crypto from "node:crypto";
 import fs from "node:fs";
 import { stripTypeScriptTypes } from "node:module";
 import path from "node:path";
@@ -29,6 +30,24 @@ function copySources(from, to) {
   }
 }
 
+/** Hash of every file's path and contents, so any change to the extension gives a new ID. */
+function contentId(dir) {
+  const hash = crypto.createHash("sha256");
+  const walk = (folder) => {
+    for (const entry of fs.readdirSync(folder, { withFileTypes: true }).sort((a, b) => (a.name < b.name ? -1 : 1))) {
+      const file = path.join(folder, entry.name);
+      if (entry.isDirectory()) {
+        walk(file);
+      } else {
+        hash.update(path.relative(dir, file).replaceAll("\\", "/"));
+        hash.update(fs.readFileSync(file));
+      }
+    }
+  };
+  walk(dir);
+  return hash.digest("hex");
+}
+
 export function buildExtension(out) {
   fs.rmSync(out, { recursive: true, force: true });
   copySources(SRC, out);
@@ -47,6 +66,9 @@ export function buildExtension(out) {
   const ruleDir = path.join(out, "rules");
   fs.mkdirSync(ruleDir, { recursive: true });
   fs.cpSync(RULES_DIR, ruleDir, { recursive: true });
+
+  // The host compares this to know when its copy in the user's data folder is out of date.
+  fs.writeFileSync(path.join(out, "build-id.txt"), contentId(out));
 
   console.log(`built extension ${version} at ${out}`);
 }

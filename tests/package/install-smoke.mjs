@@ -37,6 +37,7 @@ async function launchInstalled(binary) {
   // Preferences reach the disk some seconds after they change, and later on a slow machine.
   for (let i = 0; i < 60 && !extensionLoaded(); i++) await sleep(1000);
   assert.ok(extensionLoaded(), "the built-in extension did not load");
+  assert.ok(fs.existsSync(path.join(profile, "orbit-core", "_metadata")), "the extension is not running from the user's data folder");
   process.kill(child.pid, "SIGKILL");
   await sleep(1000);
   fs.rmSync(profile, { recursive: true, force: true, maxRetries: 5, retryDelay: 500 });
@@ -82,6 +83,7 @@ async function macos() {
   assert.ok(fs.existsSync(path.join(app, "Contents", "Resources", "orbit.icns")), "the icon is missing");
   assert.ok(fs.existsSync(path.join(app, "Contents", "Resources", "notices", "CREDITS.html")), "license notices are missing");
   await launchInstalled(path.join(app, "Contents", "MacOS", "Orbit"));
+  run("codesign", ["--verify", "--deep", "--strict", app]);
   fs.rmSync(dir, { recursive: true, force: true });
 }
 

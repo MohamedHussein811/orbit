@@ -642,6 +642,36 @@ describe("host link", () => {
   });
 });
 
+describe("extension location", () => {
+  test("runs from the user's data folder and leaves the program folder untouched", async () => {
+    const profile = tempProfile();
+    let session = await launchHost({ profile, checkProfile: false });
+    try {
+      const page = await dashboard(session);
+      await page.eval("location.href");
+      await sleep(1500);
+      const copy = path.join(profile, "orbit-core");
+      assert.ok(fs.existsSync(path.join(copy, "manifest.json")), "the extension was not copied");
+      assert.ok(fs.existsSync(path.join(copy, "_metadata")), "Chromium should write its rule index beside the copy");
+      assert.ok(!fs.existsSync(path.join(extensionDir(), "_metadata")), "Chromium wrote into the program folder");
+      assert.equal(fs.readFileSync(path.join(copy, "build-id.txt"), "utf8"), fs.readFileSync(path.join(extensionDir(), "build-id.txt"), "utf8"));
+      await session.closeWindows();
+      await waitForExit(session);
+
+      // A different build ID stands in for an Orbit update, and the copy must follow it.
+      fs.writeFileSync(path.join(copy, "build-id.txt"), "an older build");
+      fs.rmSync(path.join(copy, "rules", "meta.json"));
+      session = await launchHost({ profile, checkProfile: false });
+      await dashboard(session);
+      assert.ok(fs.existsSync(path.join(copy, "rules", "meta.json")), "the copy was not refreshed");
+      assert.equal(fs.readFileSync(path.join(copy, "build-id.txt"), "utf8"), fs.readFileSync(path.join(extensionDir(), "build-id.txt"), "utf8"));
+    } finally {
+      await session.kill();
+      removeProfile(profile);
+    }
+  });
+});
+
 describe("release build", () => {
   test("loads the extension and its rules", async () => {
     const profile = tempProfile();
