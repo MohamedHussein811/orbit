@@ -54,3 +54,33 @@ jobs:
     if: needs.stage7.outputs.done != 'true'
     uses: ./.github/workflows/chromium-stage.yml
     with: { stage: 8 }
+  stage9:
+    needs: stage8
+    if: needs.stage8.outputs.done != 'true'
+    uses: ./.github/workflows/chromium-stage.yml
+    with: { stage: 9 }
+  stage10:
+    needs: stage9
+    if: needs.stage9.outputs.done != 'true'
+    uses: ./.github/workflows/chromium-stage.yml
+    with: { stage: 10 }
+  stage11:
+    needs: stage10
+    if: needs.stage10.outputs.done != 'true'
+    uses: ./.github/workflows/chromium-stage.yml
+    with: { stage: 11 }
+  stage12:
+    needs: stage11
+    if: needs.stage11.outputs.done != 'true'
+    uses: ./.github/workflows/chromium-stage.yml
+    with: { stage: 12 }
+  stage13:
+    needs: stage12
+    if: needs.stage12.outputs.done != 'true'
+    uses: ./.github/workflows/chromium-stage.yml
+    with: { stage: 13 }
+  stage14:
+    needs: stage13
+    if: needs.stage13.outputs.done != 'true'
+    uses: ./.github/workflows/chromium-stage.yml
+    with: { stage: 14 }

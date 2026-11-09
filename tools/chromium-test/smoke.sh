@@ -9,8 +9,8 @@ cp chrome_sandbox "$sandbox"
 sudo chown root:root "$sandbox"
 sudo chmod 4755 "$sandbox"
 export CHROME_DEVEL_SANDBOX="$sandbox"
-./chrome --version
+timeout 60 ./chrome --version
 profile=$(mktemp -d)
-./chrome --headless --user-data-dir="$profile" --dump-dom "data:text/html,<title>built</title><h1 id=x>ok</h1>" | tee "$RUNNER_TEMP/dom.txt"
+timeout 180 ./chrome --headless --user-data-dir="$profile" --dump-dom "data:text/html,<title>built</title><h1 id=x>ok</h1>" | tee "$RUNNER_TEMP/dom.txt"
 grep -q 'id="x">ok' "$RUNNER_TEMP/dom.txt"
 echo "### Chromium built and ran on free runners" >> "$GITHUB_STEP_SUMMARY"

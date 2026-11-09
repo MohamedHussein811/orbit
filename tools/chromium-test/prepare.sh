@@ -2,19 +2,23 @@
 # First stage only: fetches Chromium's toolchains and generates the build files.
 set -euo pipefail
 
-tools/chromium-test/packages.sh
 cd src
 
-sudo build/install-build-deps.sh --no-prompt --no-arm --no-chromeos-fonts --no-nacl > /dev/null
 python3 tools/clang/scripts/update.py
 python3 tools/rust/update_rust.py
 python3 build/linux/sysroot_scripts/install-sysroot.py --arch=amd64
-if [ -x third_party/node/update_node_binaries ]; then third_party/node/update_node_binaries; fi
+third_party/node/update_node_binaries > /dev/null 2>&1
+third_party/node/linux/node-linux-x64/bin/node --version
+test -f third_party/node/node_modules/typescript/lib/tsc.js
+
+mkdir -p third_party/jdk/current/bin
+ln -sf "$(command -v java)" third_party/jdk/current/bin/java
 
 export CC="$PWD/third_party/llvm-build/Release+Asserts/bin/clang"
 export CXX="$PWD/third_party/llvm-build/Release+Asserts/bin/clang++"
 export AR="$PWD/third_party/llvm-build/Release+Asserts/bin/llvm-ar"
 export LDFLAGS="-fuse-ld=lld"
+mkdir -p out/gn
 python3 tools/gn/bootstrap/bootstrap.py --skip-generate-buildfiles -j"$(nproc)" -o out/gn/gn
 unset CC CXX AR LDFLAGS
 
