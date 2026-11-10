@@ -1,33 +1,33 @@
 {
   "engine": "cef",
-  "cefVersion": "156.0.26+g8ea0c73+chromium-156.0.8078.88",
+  "cefVersion": "156.0.27+ga10dae3+chromium-156.0.8078.88",
   "chromiumVersion": "156.0.8078.88",
   "channel": "stable",
   "source": "https://cef-builds.spotifycdn.com",
   "packages": {
     "windows64": {
-      "file": "cef_binary_156.0.26+g8ea0c73+chromium-156.0.8078.88_windows64.tar.bz2",
-      "size": 367334877,
-      "sha1": "83c3145b1030e9a41e1e3fdf4c80f49d076c75d7",
-      "sha256": "5cf7f7f8580ed9e58b6e324ecbcb3f19d583a66c7fd6e5bdba5d10e7a3d4018b"
+      "file": "cef_binary_156.0.27+ga10dae3+chromium-156.0.8078.88_windows64.tar.bz2",
+      "size": 367330599,
+      "sha1": "8a1859f45fbb700809e0e50a8ee072f2a5037442",
+      "sha256": "22a897fd9d39f6a62075b3aef6f6f7c72e9de2fd8d7f9c843f1abc7ff57bee34"
     },
     "macosarm64": {
-      "file": "cef_binary_156.0.26+g8ea0c73+chromium-156.0.8078.88_macosarm64.tar.bz2",
-      "size": 312254165,
-      "sha1": "6989ef3226be063ae164d1d9f0764a2f203d4cb1",
-      "sha256": "fb2b22354267e932c375cdb746355741669acf374fd7bb8e60e176b266d95d42"
+      "file": "cef_binary_156.0.27+ga10dae3+chromium-156.0.8078.88_macosarm64.tar.bz2",
+      "size": 312260503,
+      "sha1": "e6328f1ab1c36113a03ac9f43755bf94a748c14c",
+      "sha256": "b7defe200787caa2d8ed36d72453a8e15345a4216a455ad8347ac9c081a4d0eb"
     },
     "macosx64": {
-      "file": "cef_binary_156.0.26+g8ea0c73+chromium-156.0.8078.88_macosx64.tar.bz2",
-      "size": 360684107,
-      "sha1": "6288140b3d9af26d4d816abf6a758ca1d33236a4",
-      "sha256": "efdfc9258d7b235e9dd3b35789e3f86b8f26d49abf28881ad875a5cae916952e"
+      "file": "cef_binary_156.0.27+ga10dae3+chromium-156.0.8078.88_macosx64.tar.bz2",
+      "size": 360664480,
+      "sha1": "09c888fb74bcf1f55876647af1ade7c5193db3a1",
+      "sha256": "3044dea7a260e4f67875535a7a592ddf642c0d5e33809ccc828c604166340681"
     },
     "linux64": {
-      "file": "cef_binary_156.0.26+g8ea0c73+chromium-156.0.8078.88_linux64.tar.bz2",
-      "size": 697401908,
-      "sha1": "21708af1a1eb4d673f40b1174ae5e0932230da07",
-      "sha256": "009215c934fb5471f270a75f3c35013700322d4ab4280c19b83d19d63129ddcf"
+      "file": "cef_binary_156.0.27+ga10dae3+chromium-156.0.8078.88_linux64.tar.bz2",
+      "size": 697399245,
+      "sha1": "d969e860d475df1a640016424996f4c2b6ee2922",
+      "sha256": "93370e64a719d6f6930d461254daf12e5493aa6cbd63a8553d556451745020bc"
     }
   }
 }
