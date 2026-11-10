@@ -124,7 +124,7 @@ def fetch_git(url, folder):
         raise SystemExit(f"cannot fetch {repository}: only Chromium's Git server is supported")
     data = download(f"{repository}/+archive/{revision}.tar.gz")
     print(f"  {repository} @ {revision}")
-    fresh(folder)
+    os.makedirs(folder, exist_ok=True)
     with tarfile.open(fileobj=io.BytesIO(data)) as archive:
         archive.extractall(folder, filter="tar")
 
@@ -160,6 +160,7 @@ def fetch_named(root, items, host):
 
 def fetch_extras(root, host):
     """Fetches what host needs beyond a Linux checkout, which is what the source archive holds."""
+    # Files are added, never removed: Chromium keeps its own build files in some of these folders.
     files = [("", "DEPS")] + [(sub, os.path.join(sub, "DEPS")) for sub in SUB_PROJECTS]
     for base, deps_file in files:
         path = os.path.join(root, deps_file)
@@ -186,12 +187,12 @@ def fetch_extras(root, host):
                 ]
                 if objects:
                     print(f"{label} [gcs]")
-                    fetch_gcs(entry, objects, folder, keep=False)
+                    fetch_gcs(entry, objects, folder, keep=True)
             elif kind(entry) == "cipd":
                 per_platform = any("${{" in p["package"] for p in entry["packages"])
                 if not on_linux or per_platform:
                     print(f"{label} [cipd]")
-                    fetch_cipd(entry, folder, keep=False, host=host)
+                    fetch_cipd(entry, folder, keep=True, host=host)
             elif not on_linux:
                 print(f"{label} [git]")
                 fetch_git(entry if isinstance(entry, str) else entry["url"], folder)
