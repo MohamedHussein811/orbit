@@ -35,6 +35,8 @@ elif is_windows; then
   curl -fsSL --retry 5 -o "$rc" "https://storage.googleapis.com/chromium-browser-clang/rc/$sha1"
   echo "$sha1  $rc" | sha1sum -c -
   touch -d 2020-01-01 "$rc"
+  # The archive also holds Linux ninja at this path, which Windows tools would try to run.
+  rm -f src/third_party/ninja/ninja
   cygpath -w "$PWD/src/third_party/ninja" >> "$GITHUB_PATH"
   # GN checks that the interpreter path in .gn exists exactly as written, with no .exe.
   cp -p src/third_party/cpython3/host/bin/python3.exe src/third_party/cpython3/host/bin/python3
