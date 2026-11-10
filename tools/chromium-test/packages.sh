@@ -36,7 +36,8 @@ elif is_windows; then
   echo "$sha1  $rc" | sha1sum -c -
   touch -d 2020-01-01 "$rc"
   cygpath -w "$PWD/src/third_party/ninja" >> "$GITHUB_PATH"
-  ls src/third_party/cpython3/host src/third_party/cpython3/host/bin 2>/dev/null | head -20
+  # GN checks that the interpreter path in .gn exists exactly as written, with no .exe.
+  cp -p src/third_party/cpython3/host/bin/python3.exe src/third_party/cpython3/host/bin/python3
 else
   sudo apt-get update -qq
   sudo apt-get install -y -qq ninja-build zstd python3 lld pkg-config > /dev/null
