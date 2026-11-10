@@ -34,6 +34,9 @@ permissions:
 env:
   CHROMIUM_VERSION: "157.0.8103.38"
   TARGETS: ${{ inputs.targets }}
+  # Windows: use the installed Visual Studio, not Google's internal toolchain package.
+  DEPOT_TOOLS_WIN_TOOLCHAIN: "0"
+  vs2026_install: C:\Program Files\Microsoft Visual Studio\18\Enterprise
 
 jobs:
   build:
@@ -41,6 +44,9 @@ jobs:
     timeout-minutes: 350
     outputs:
       done: ${{ steps.compile.outputs.done }}
+    defaults:
+      run:
+        shell: bash
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -72,6 +78,17 @@ jobs:
           sudo rm -rf "$HOME/Library/Android" /usr/local/share/dotnet "$HOME/.dotnet"
           xcodebuild -version
           df -h .
+
+      - name: Prepare the Windows machine
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          Add-MpPreference -ExclusionPath $env:GITHUB_WORKSPACE -ErrorAction SilentlyContinue
+          New-ItemProperty -Path HKLM:\SYSTEM\CurrentControlSet\Control\FileSystem -Name LongPathsEnabled -Value 1 -PropertyType DWORD -Force | Out-Null
+          Get-CimInstance Win32_Processor | Select-Object Name, NumberOfLogicalProcessors
+          "{0:N1} GB RAM" -f ((Get-CimInstance Win32_ComputerSystem).TotalPhysicalMemory / 1GB)
+          Get-PSDrive -PSProvider FileSystem | Select-Object Name, @{n='FreeGB';e={[math]::Round($_.Free/1GB)}}
+          "Workspace: $env:GITHUB_WORKSPACE"
 
       - name: Download and verify the Chromium source
         run: tools/chromium-test/fetch-source.sh

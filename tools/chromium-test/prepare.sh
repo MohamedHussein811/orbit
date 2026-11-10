@@ -1,15 +1,23 @@
 #!/bin/bash
 # First stage only: fetches Chromium's toolchains and generates the build files.
 set -euo pipefail
+is_windows() { case "$(uname -s)" in MINGW*|MSYS*|CYGWIN*) return 0 ;; esac; return 1; }
 
 cd src
 
-python3 tools/clang/scripts/update.py
-python3 tools/rust/update_rust.py
+if is_windows; then
+  python=third_party/cpython3/host/bin/python3.exe
+else
+  python=python3
+fi
+"$python" tools/clang/scripts/update.py
+"$python" tools/rust/update_rust.py
 node_version=$(sed -n 's/^NODE_VERSION="\(v[0-9.]*\)"/\1/p' third_party/node/update_node_binaries)
 test -n "$node_version"
 
-if [ "$(uname)" = "Darwin" ]; then
+if is_windows; then
+  third_party/node/win/node.exe --version
+elif [ "$(uname)" = "Darwin" ]; then
   # Same Node release that Chromium's own update script fetches, unpacked where node.py looks.
   name="node-${node_version}-darwin-arm64"
   curl -fsSL --retry 5 -o "$name.tar.gz" "https://nodejs.org/dist/$node_version/$name.tar.gz"
@@ -30,7 +38,9 @@ fi
 test -f third_party/node/node_modules/typescript/lib/tsc.js
 
 mkdir -p out/gn
-if [ "$(uname)" = "Darwin" ]; then
+if is_windows; then
+  cp -p buildtools/win/gn.exe out/gn/gn.exe
+elif [ "$(uname)" = "Darwin" ]; then
   python3 tools/gn/bootstrap/bootstrap.py --skip-generate-buildfiles -j"$(sysctl -n hw.ncpu)" -o out/gn/gn
 else
   CC="$PWD/third_party/llvm-build/Release+Asserts/bin/clang" \

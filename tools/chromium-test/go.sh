@@ -2,6 +2,13 @@
 # Installs the Go version Dawn pins, from Go's official downloads. Dawn runs Go during the build.
 set -euo pipefail
 
+case "$(uname -s)" in
+  MINGW*|MSYS*)
+    # On Windows, fetch-deps.py --windows-extras already fetched Dawn's pinned Go package.
+    src/third_party/dawn/tools/golang/windows-amd64/bin/go.exe version
+    exit 0 ;;
+esac
+
 if [ "$(uname)" = "Darwin" ]; then
   folder=mac-arm64
   platform=darwin-arm64

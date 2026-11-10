@@ -1,0 +1,87 @@
+name: Chromium build test (Windows)
+
+# Answers one question: can free GitHub runners compile unmodified Chromium for Windows x64?
+# Chromium 157 needs Visual Studio 2026 and Windows SDK 10.0.28000, which each stage installs.
+
+on:
+  push:
+    branches: [chromium-build-test-win]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: chromium-build-test-win
+  cancel-in-progress: true
+
+jobs:
+  stage1:
+    uses: ./.github/workflows/chromium-stage.yml
+    with: { stage: 1, runner: windows-2025-vs2026, targets: chrome }
+  stage2:
+    needs: stage1
+    if: needs.stage1.outputs.done != 'true'
+    uses: ./.github/workflows/chromium-stage.yml
+    with: { stage: 2, runner: windows-2025-vs2026, targets: chrome }
+  stage3:
+    needs: stage2
+    if: needs.stage2.outputs.done != 'true'
+    uses: ./.github/workflows/chromium-stage.yml
+    with: { stage: 3, runner: windows-2025-vs2026, targets: chrome }
+  stage4:
+    needs: stage3
+    if: needs.stage3.outputs.done != 'true'
+    uses: ./.github/workflows/chromium-stage.yml
+    with: { stage: 4, runner: windows-2025-vs2026, targets: chrome }
+  stage5:
+    needs: stage4
+    if: needs.stage4.outputs.done != 'true'
+    uses: ./.github/workflows/chromium-stage.yml
+    with: { stage: 5, runner: windows-2025-vs2026, targets: chrome }
+  stage6:
+    needs: stage5
+    if: needs.stage5.outputs.done != 'true'
+    uses: ./.github/workflows/chromium-stage.yml
+    with: { stage: 6, runner: windows-2025-vs2026, targets: chrome }
+  stage7:
+    needs: stage6
+    if: needs.stage6.outputs.done != 'true'
+    uses: ./.github/workflows/chromium-stage.yml
+    with: { stage: 7, runner: windows-2025-vs2026, targets: chrome }
+  stage8:
+    needs: stage7
+    if: needs.stage7.outputs.done != 'true'
+    uses: ./.github/workflows/chromium-stage.yml
+    with: { stage: 8, runner: windows-2025-vs2026, targets: chrome }
+  stage9:
+    needs: stage8
+    if: needs.stage8.outputs.done != 'true'
+    uses: ./.github/workflows/chromium-stage.yml
+    with: { stage: 9, runner: windows-2025-vs2026, targets: chrome }
+  stage10:
+    needs: stage9
+    if: needs.stage9.outputs.done != 'true'
+    uses: ./.github/workflows/chromium-stage.yml
+    with: { stage: 10, runner: windows-2025-vs2026, targets: chrome }
+  stage11:
+    needs: stage10
+    if: needs.stage10.outputs.done != 'true'
+    uses: ./.github/workflows/chromium-stage.yml
+    with: { stage: 11, runner: windows-2025-vs2026, targets: chrome }
+  stage12:
+    needs: stage11
+    if: needs.stage11.outputs.done != 'true'
+    uses: ./.github/workflows/chromium-stage.yml
+    with: { stage: 12, runner: windows-2025-vs2026, targets: chrome }
+  stage13:
+    needs: stage12
+    if: needs.stage12.outputs.done != 'true'
+    uses: ./.github/workflows/chromium-stage.yml
+    with: { stage: 13, runner: windows-2025-vs2026, targets: chrome }
+  stage14:
+    needs: stage13
+    if: needs.stage13.outputs.done != 'true'
+    uses: ./.github/workflows/chromium-stage.yml
+    with: { stage: 14, runner: windows-2025-vs2026, targets: chrome }

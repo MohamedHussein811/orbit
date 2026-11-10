@@ -24,10 +24,13 @@ started=$SECONDS
 timeout --signal=INT --kill-after=180 "$COMPILE_SECONDS" ninja -C out/Release -k 0 $TARGETS 2>&1 |
   tee ../ninja.log |
   grep -E --line-buffered "^\[[0-9]+000/|^FAILED|^ninja: " |
-  stdbuf -oL cut -c1-200
+  awk '{ print substr($0, 1, 200); fflush() }'
 status=${PIPESTATUS[0]}
+case "$(uname -s)" in
+  MINGW*|MSYS*) taskkill //F //T //IM ninja.exe > /dev/null 2>&1; taskkill //F //IM clang-cl.exe > /dev/null 2>&1; taskkill //F //IM lld-link.exe > /dev/null 2>&1 ;;
+esac
 echo "compiled for $((SECONDS - started)) seconds, ninja status $status"
-{ free -h 2>/dev/null || vm_stat; } | head -6
+{ free -h 2>/dev/null || vm_stat 2>/dev/null || true; } | head -6
 df -h .
 du -sh out/Release
 
