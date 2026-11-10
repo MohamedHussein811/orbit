@@ -113,6 +113,12 @@ jobs:
           rm -rf state
           df -h .
 
+      - name: Retry two steps that failed on Mac before
+        if: runner.os == 'macOS' && inputs.resume_run != ''
+        run: |
+          export PATH="$PWD/src/out/gn:$PATH"
+          ninja -C src/out/Release libvk_swiftshader.dylib gen/v8/metagen/instance-types.h
+
       - name: Compile
         id: compile
         env:
