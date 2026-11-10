@@ -58,11 +58,19 @@ jobs:
           df -h /
           free -h
 
-      - name: Show the machine
+      - name: Show the machine and free disk space
         if: runner.os == 'macOS'
         run: |
           sysctl -n machdep.cpu.brand_string hw.ncpu hw.memsize
           sw_vers
+          in_use=$(cd "$(xcode-select -p)/../.." && pwd -P)
+          echo "Xcode in use: $in_use"
+          for app in /Applications/Xcode_*.app; do
+            real=$(cd "$app" 2>/dev/null && pwd -P) || continue
+            if [ "$real" != "$in_use" ] && [ ! -L "$app" ]; then sudo rm -rf "$app"; fi
+          done
+          sudo rm -rf "$HOME/Library/Android" /usr/local/share/dotnet "$HOME/.dotnet"
+          xcodebuild -version
           df -h .
 
       - name: Download and verify the Chromium source

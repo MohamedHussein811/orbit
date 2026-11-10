@@ -14,6 +14,7 @@ import os
 import shutil
 import sys
 import tarfile
+import time
 import urllib.parse
 import urllib.request
 import zipfile
@@ -46,8 +47,9 @@ def fresh(folder):
     os.makedirs(folder)
 
 
-def fetch_cipd(entry, folder):
-    fresh(folder)
+def fetch_cipd(entry, folder, keep):
+    if not keep:
+        fresh(folder)
     for package in entry["packages"]:
         name = package["package"].replace("${{platform}}", "mac-arm64").replace("${{arch}}", "arm64")
         version = urllib.parse.quote(package["version"], safe="")
@@ -59,13 +61,17 @@ def fetch_cipd(entry, folder):
                 mode = member.external_attr >> 16
                 if mode:
                     os.chmod(target, mode & 0o777)
+                # Keep the packaged dates, so a stage that fetches again does not look newer to ninja.
+                stamp = time.mktime(member.date_time + (0, 0, -1))
+                os.utime(target, (stamp, stamp))
 
 
-def fetch_gcs(entry, folder):
+def fetch_gcs(entry, folder, keep):
     objects = [item for item in entry["objects"] if applies(item.get("condition", ""))]
     if not objects:
         raise SystemExit("no storage object applies to this host")
-    fresh(folder)
+    if not keep:
+        fresh(folder)
     for item in objects:
         data = download(f"https://storage.googleapis.com/{entry['bucket']}/{item['object_name']}")
         actual = hashlib.sha256(data).hexdigest()
@@ -84,6 +90,9 @@ def fetch_gcs(entry, folder):
 def main():
     root = sys.argv[1]
     for item in sys.argv[2:]:
+        # A leading + adds to an existing folder instead of replacing it.
+        keep = item.startswith("+")
+        item = item.lstrip("+")
         # An entry from a sub-project's DEPS is written as <folder>:<entry>, relative to that folder.
         base, _, name = item.rpartition(":") if ":" in item and not item.startswith("src/") else ("", "", item)
         deps = read_deps(os.path.join(root, base, "DEPS"))
@@ -93,9 +102,9 @@ def main():
         if not applies(entry.get("condition", "")):
             raise SystemExit(f"{name} does not apply to this host")
         if entry["dep_type"] == "cipd":
-            fetch_cipd(entry, folder)
+            fetch_cipd(entry, folder, keep)
         else:
-            fetch_gcs(entry, folder)
+            fetch_gcs(entry, folder, keep)
 
 
 if __name__ == "__main__":

@@ -5,6 +5,8 @@ set -uo pipefail
 steps_in() { sed -n 's/^\[[0-9]*\/\([0-9]*\)\].*/\1/p'; }
 
 cd src
+# Some build steps run GN themselves and look for it on PATH.
+export PATH="$PWD/out/gn:$PATH"
 before=$(ninja -C out/Release -n $TARGETS | tail -1)
 echo "remaining before this stage: $before"
 

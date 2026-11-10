@@ -18,7 +18,8 @@ if [ "$(uname)" = "Darwin" ]; then
     src/ui/gl/resources/angle-metal \
     src/third_party/updater/chromium_mac_arm64/cipd \
     src/third_party/screen-ai/macos_arm64 \
-    third_party/devtools-frontend/src:third_party/esbuild
+    third_party/devtools-frontend/src:third_party/esbuild \
+    +src/third_party/llvm-build/Release+Asserts
 else
   sudo apt-get update -qq
   sudo apt-get install -y -qq ninja-build zstd python3 lld pkg-config > /dev/null

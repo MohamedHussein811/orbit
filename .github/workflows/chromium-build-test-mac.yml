@@ -19,7 +19,7 @@ concurrency:
 jobs:
   stage1:
     uses: ./.github/workflows/chromium-stage.yml
-    with: { stage: 1, runner: xcode-27, targets: chrome }
+    with: { stage: 1, runner: xcode-27, targets: chrome, resume_run: "42687006651", resume_state: 3 }
   stage2:
     needs: stage1
     if: needs.stage1.outputs.done != 'true'
