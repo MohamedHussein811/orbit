@@ -109,8 +109,8 @@ jobs:
         if: inputs.stage == 1 && inputs.resume_run == ''
         run: tools/chromium-test/prepare.sh
 
-      - name: Build one DevTools file, which needs Mac-only tools
-        if: runner.os == 'macOS' && inputs.stage == 1 && inputs.resume_run == ''
+      - name: Build one DevTools file, which needs tools the archive has only for Linux
+        if: runner.os != 'Linux' && inputs.stage == 1 && inputs.resume_run == ''
         run: ninja -C src/out/Release gen/third_party/devtools-frontend/src/front_end/core/root/root.js
 
       - name: Restore the previous stage
