@@ -79,6 +79,7 @@ def platform_name(text, host):
 def fetch_cipd(entry, folder, keep, host):
     if not keep:
         fresh(folder)
+    os.makedirs(folder, exist_ok=True)
     for package in entry["packages"]:
         name = platform_name(package["package"], host)
         version = urllib.parse.quote(package["version"], safe="")
@@ -98,6 +99,7 @@ def fetch_cipd(entry, folder, keep, host):
 def fetch_gcs(entry, objects, folder, keep):
     if not keep:
         fresh(folder)
+    os.makedirs(folder, exist_ok=True)
     for item in objects:
         data = download(f"https://storage.googleapis.com/{entry['bucket']}/{item['object_name']}")
         actual = hashlib.sha256(data).hexdigest()
