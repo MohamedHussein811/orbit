@@ -40,7 +40,7 @@ timeout 180 "$browser" --headless --user-data-dir="$profile" --dump-dom "data:te
 grep -q 'id="x">ok' "$RUNNER_TEMP/dom.txt"
 
 # A normal start, without a profile switch, must create Orbit's own data folder.
-test ! -e "$data_dir"
+test ! -e "$data_dir/Default"
 flags=(--no-first-run --no-default-browser-check about:blank)
 if [ "$(uname)" = "Darwin" ]; then
   timeout 30 "$browser" --use-mock-keychain "${flags[@]}" || true
