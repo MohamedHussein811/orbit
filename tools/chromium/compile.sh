@@ -11,7 +11,7 @@ before=$(ninja -C out/Release -n $TARGETS | tail -1)
 echo "remaining before this stage: $before"
 
 # A restore that lost file dates would quietly restart the whole build.
-if [ -f out/remaining-steps ]; then
+if [ -f out/remaining-steps ] && [ -z "${CHANGED_SOURCE:-}" ]; then
   saved=$(cat out/remaining-steps)
   count=$(echo "$before" | steps_in)
   if [ "${count:-0}" -gt $((${saved:-0} + 500)) ]; then

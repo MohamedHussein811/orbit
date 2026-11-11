@@ -1,11 +1,17 @@
-name: Chromium build test
+name: Orbit browser (Linux)
 
-# Answers one question: can free GitHub runners compile unmodified Chromium for Linux?
-# It uses a plain release configuration. An official optimized build would need more.
+# Builds Orbit's Chromium fork for Linux x64 on free runners and checks that it runs.
+# Stage 1 continues from a stage saved by an earlier run (kept 5 days). Clear resume_run to build
+# from scratch.
 
 on:
   push:
-    branches: [chromium-build-test]
+    branches: [fork]
+    paths:
+      - chromium/**
+      - tools/chromium/**
+      - .github/workflows/chromium-stage.yml
+      - .github/workflows/browser-linux.yml
   workflow_dispatch:
 
 permissions:
@@ -13,13 +19,13 @@ permissions:
   actions: read
 
 concurrency:
-  group: chromium-build-test
+  group: browser-linux
   cancel-in-progress: true
 
 jobs:
   stage1:
     uses: ./.github/workflows/chromium-stage.yml
-    with: { stage: 1, resume_run: "42593470726", resume_state: 2 }
+    with: { stage: 1, resume_run: "42603802295", resume_state: 2 }
   stage2:
     needs: stage1
     if: needs.stage1.outputs.done != 'true'

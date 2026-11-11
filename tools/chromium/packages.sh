@@ -11,9 +11,9 @@ if [ "$(uname)" = "Darwin" ]; then
   # The source archive carries Linux's Python. Build steps need the Mac one, at the pinned version.
   version=$(sed -n "s/^ *'cpython3_version': '\([^']*\)',.*/\1/p" src/DEPS)
   test -n "$version"
-  tools/chromium-test/cipd.sh infra/3pp/tools/cpython3/mac-arm64 "$version" src/third_party/cpython3/host
+  tools/chromium/cipd.sh infra/3pp/tools/cpython3/mac-arm64 "$version" src/third_party/cpython3/host
   src/third_party/cpython3/host/bin/python3 --version
-  python3 -I tools/chromium-test/fetch-deps.py src \
+  python3 -I tools/chromium/fetch-deps.py src \
     src/third_party/typescript/mac-arm64/src \
     src/third_party/llvm-libclang \
     src/ui/gl/resources/angle-metal \
@@ -28,7 +28,7 @@ elif is_windows; then
   echo "e8e264aca8bc34abdf592352bf09f986a85cdb96db0efba405ca9e149181fe61  $sdk_installer" | sha256sum -c -
   MSYS2_ARG_CONV_EXCL="*" "$sdk_installer" /features OptionId.DesktopCPPx64 OptionId.DesktopCPPx86 OptionId.WindowsDesktopDebuggers /q /norestart
   test -f "/c/Program Files (x86)/Windows Kits/10/Include/10.0.28000.0/um/dcomp.h"
-  python -I tools/chromium-test/fetch-deps.py src --windows-extras
+  python -I tools/chromium/fetch-deps.py src --windows-extras
   # Chromium's resource compiler, from the hash checked into the source.
   rc=src/build/toolchain/win/rc/win/rc.exe
   sha1=$(tr -d '[:space:]' < "$rc.sha1")

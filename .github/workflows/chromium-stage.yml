@@ -1,4 +1,4 @@
-name: Chromium build stage
+name: Orbit browser stage
 
 # One slice of the build. A GitHub job can run for 6 hours, so each slice stops in time to save its
 # work for the next one. Source timestamps come from the archive, so ninja can resume from them.
@@ -51,6 +51,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          fetch-depth: 0
 
       - name: Free disk space and add swap
         if: runner.os == 'Linux'
@@ -91,13 +92,19 @@ jobs:
           "Workspace: $env:GITHUB_WORKSPACE"
 
       - name: Download and verify the Chromium source
-        run: tools/chromium-test/fetch-source.sh
+        run: tools/chromium/fetch-source.sh
 
       - name: Install build packages
-        run: tools/chromium-test/packages.sh
+        run: tools/chromium/packages.sh
 
       - name: Install Go for Dawn
-        run: tools/chromium-test/go.sh
+        run: tools/chromium/go.sh
+
+      - name: Apply Orbit's changes to Chromium
+        run: |
+          stamp=$(git log -1 --format=%ct -- chromium tools/chromium/apply-fork.py)
+          if [ "$RUNNER_OS" = Windows ]; then python=python; else python=python3; fi
+          "$python" -I tools/chromium/apply-fork.py src "$stamp"
 
       - name: List Linux programs in the source archive
         if: runner.os == 'macOS' && inputs.stage == 1 && inputs.resume_run == ''
@@ -107,7 +114,7 @@ jobs:
 
       - name: Prepare the first stage
         if: inputs.stage == 1 && inputs.resume_run == ''
-        run: tools/chromium-test/prepare.sh
+        run: tools/chromium/prepare.sh
 
       - name: Build one DevTools file, which needs tools the archive has only for Linux
         if: runner.os != 'Linux' && inputs.stage == 1 && inputs.resume_run == ''
@@ -140,12 +147,13 @@ jobs:
         id: compile
         env:
           STAGE: ${{ inputs.stage }}
+          CHANGED_SOURCE: ${{ inputs.resume_run != '' && 'yes' || '' }}
           COMPILE_SECONDS: ${{ inputs.stage == 1 && inputs.resume_run == '' && '3600' || '18600' }}
-        run: tools/chromium-test/compile.sh
+        run: tools/chromium/compile.sh
 
       - name: Save this stage
         if: steps.compile.outputs.done != ''
-        run: tools/chromium-test/save-state.sh
+        run: tools/chromium/save-state.sh
 
       - name: Keep this stage for the next job
         if: steps.compile.outputs.done != ''
@@ -158,4 +166,4 @@ jobs:
 
       - name: Run the finished browser
         if: steps.compile.outputs.done == 'true'
-        run: tools/chromium-test/smoke.sh
+        run: tools/chromium/smoke.sh
