@@ -114,9 +114,8 @@ jobs:
 
       - name: Apply Orbit's changes to Chromium
         run: |
-          stamp=$(git log -1 --format=%ct -- chromium tools/chromium/apply-fork.py extension filters tools/build-extension.mjs tools/chromium/pack-extension.mjs)
           if [ "$RUNNER_OS" = Windows ]; then python=python; else python=python3; fi
-          "$python" -I tools/chromium/apply-fork.py src "$stamp"
+          "$python" -I tools/chromium/apply-fork.py src
 
       - name: List Linux programs in the source archive
         if: runner.os == 'macOS' && inputs.stage == 1 && inputs.resume_run == ''
@@ -148,6 +147,11 @@ jobs:
           zstd -dc state/state.tar.zst | tar -xf - -C src
           rm -rf state
           df -h .
+
+      - name: Date Orbit's changed files against the restored build
+        run: |
+          if [ "$RUNNER_OS" = Windows ]; then python=python; else python=python3; fi
+          "$python" -I tools/chromium/date-fork.py src
 
       - name: Retry two steps that failed on Mac before
         if: runner.os == 'macOS' && inputs.resume_run != ''

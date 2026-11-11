@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 """Turns an unpacked Chromium source tree into Orbit's.
 
-usage: apply-fork.py <chromium src folder> <unix time>
+usage: apply-fork.py <chromium src folder>
 
-Every changed file gets the given time, so a build resumed from saved output only redoes the work
-that depends on a real change.
+The changed files and their hashes go to orbit-fork-files.json in the source folder, which
+date-fork.py compares with the saved build.
 """
 
-import os
+import hashlib
+import json
 import pathlib
 import re
 import shutil
@@ -137,13 +138,15 @@ def mac_icons(src):
 
 def main():
     src = pathlib.Path(sys.argv[1]).resolve()
-    stamp = int(sys.argv[2])
     changed = copy_overlay(src) + apply_patches(src) + brand_strings(src)
     if sys.platform == "darwin":
         changed += mac_icons(src)
-    for path in changed:
-        os.utime(path, (stamp, stamp))
-    print(f"{len(changed)} files changed, dated {stamp}")
+    hashes = {
+        path.relative_to(src).as_posix(): hashlib.sha256(path.read_bytes()).hexdigest()
+        for path in sorted(set(changed))
+    }
+    (src / "orbit-fork-files.json").write_text(json.dumps(hashes, indent=1, sort_keys=True))
+    print(f"{len(hashes)} files changed")
 
 
 if __name__ == "__main__":
