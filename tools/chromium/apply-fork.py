@@ -57,7 +57,9 @@ def message_ids(grd):
     from grit import grd_reader
     from grit.node import message
 
-    root = grd_reader.Parse(str(grd), dir=str(grd.parent), debug=False)
+    conditions = " ".join(re.findall(r'<if expr="([^"]*)"', grd.read_text(encoding="utf-8")))
+    defines = {name: False for name in re.findall(r"[A-Za-z_]\w*", conditions)}
+    root = grd_reader.Parse(str(grd), dir=str(grd.parent), debug=False, defines=defines)
     return [
         node.GetCliques()[0].GetId()
         for node in root.Preorder()
