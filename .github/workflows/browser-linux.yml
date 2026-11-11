@@ -6,7 +6,7 @@ name: Orbit browser (Linux)
 
 on:
   push:
-    branches: [fork]
+    branches: [fork, shields]
     paths:
       - chromium/**
       - tools/chromium/**
@@ -19,14 +19,14 @@ permissions:
   actions: read
 
 concurrency:
-  group: browser-linux
+  group: browser-linux-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
   stage1:
     uses: ./.github/workflows/chromium-stage.yml
     secrets: inherit
-    with: { stage: 1, resume_run: "42603802295", resume_state: 2 }
+    with: { stage: 1, resume_run: "43088839438", resume_state: 2 }
   stage2:
     needs: stage1
     if: needs.stage1.outputs.done != 'true'
