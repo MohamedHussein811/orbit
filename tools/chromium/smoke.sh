@@ -66,4 +66,9 @@ for expected in '"https_only_mode_enabled": true' '"keyword": "duckduckgo.com"' 
 done
 grep -qF '"mode": "secure"' "$RUNNER_TEMP/local-state.txt" || { echo "secure DNS is not the default"; exit 1; }
 
+timeout 180 "$browser" --headless --user-data-dir="$profile" --dump-dom chrome://settings/strings.m.js > "$RUNNER_TEMP/settings.txt"
+for expected in '"showAiPage":false' '"showPrivacyGuide":false'; do
+  grep -qF "$expected" "$RUNNER_TEMP/settings.txt" || { echo "missing in Settings data: $expected"; exit 1; }
+done
+
 echo "### $product built and ran on free runners ($(uname))" >> "$GITHUB_STEP_SUMMARY"
