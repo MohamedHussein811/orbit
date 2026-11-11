@@ -59,7 +59,8 @@ extension=$(ls ../../chrome/browser/resources/orbit_extensions/*.json | xargs -n
 ls "$data_dir/Default/Extensions/$extension"
 
 # Privacy defaults, read from the browser's own settings pages.
-timeout 180 "$browser" --headless --user-data-dir="$profile" --dump-dom chrome://prefs-internals > "$RUNNER_TEMP/prefs.txt"
+timeout 180 "$browser" --headless --user-data-dir="$profile" --dump-dom chrome://prefs-internals > "$RUNNER_TEMP/prefs.txt" 2> "$RUNNER_TEMP/prefs-log.txt"
+if grep "No Orbit default" "$RUNNER_TEMP/prefs-log.txt"; then exit 1; fi
 timeout 180 "$browser" --headless --user-data-dir="$profile" --dump-dom chrome://local-state > "$RUNNER_TEMP/local-state.txt"
 for expected in '"https_only_mode_enabled": true' '"keyword": "duckduckgo.com"' '"network_prediction_options": 2'; do
   grep -qF "$expected" "$RUNNER_TEMP/prefs.txt" || { echo "missing in profile settings: $expected"; exit 1; }

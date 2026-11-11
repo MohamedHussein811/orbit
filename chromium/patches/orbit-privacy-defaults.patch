@@ -51,13 +51,41 @@ diff --git a/chrome/app/chrome_main_delegate.cc b/chrome/app/chrome_main_delegat
 diff --git a/chrome/browser/prefs/browser_prefs.cc b/chrome/browser/prefs/browser_prefs.cc
 --- a/chrome/browser/prefs/browser_prefs.cc
 +++ b/chrome/browser/prefs/browser_prefs.cc
-@@ -1643,6 +1643,68 @@
+@@ -1643,6 +1643,16 @@
    registry->RegisterBooleanPref(kSupervisedUserSafeSites, false);
  }
  
 +
-+// Orbit's privacy defaults. They change only the default value, so a person's own choice in
-+// Settings still wins.
++// Orbit's privacy defaults for the browser as a whole. They change only the default value, so a
++// person's own choice in Settings still wins.
++void SetOrbitLocalStateDefaults(PrefRegistrySimple* registry) {
++  registry->SetDefaultPrefValue("dns_over_https.mode", base::Value("secure"));
++  registry->SetDefaultPrefValue(
++      "dns_over_https.templates",
++      base::Value("https://dns.quad9.net/dns-query"));
++}
++
+ }  // namespace
+ 
+ std::string GetCountry() {
+@@ -1985,6 +1995,8 @@
+       policy::policy_prefs::kLocalNetworkAccessPermissionsPolicyDefaultEnabled,
+       false);
+ 
++  SetOrbitLocalStateDefaults(registry);
++
+   // This is intentionally last.
+   RegisterLocalStatePrefsForMigration(registry);
+ }
+diff --git a/chrome/browser/profiles/pref_service_builder_utils.cc b/chrome/browser/profiles/pref_service_builder_utils.cc
+--- a/chrome/browser/profiles/pref_service_builder_utils.cc
++++ b/chrome/browser/profiles/pref_service_builder_utils.cc
+@@ -49,6 +49,66 @@
+     "information and MUST not be extracted, overwritten or modified except "
+     "through %s defined APIs.";
+ 
++// Orbit's privacy defaults for each profile, set once every service has registered its prefs.
++// They change only the default value, so a person's own choice in Settings still wins.
 +base::DictValue OrbitSearchEngine(const char* name,
 +                                  const char* keyword,
 +                                  const char* search_url,
@@ -75,11 +103,14 @@ diff --git a/chrome/browser/prefs/browser_prefs.cc b/chrome/browser/prefs/browse
 +  return engine;
 +}
 +
-+void SetOrbitLocalStateDefaults(PrefRegistrySimple* registry) {
-+  registry->SetDefaultPrefValue("dns_over_https.mode", base::Value("secure"));
-+  registry->SetDefaultPrefValue(
-+      "dns_over_https.templates",
-+      base::Value("https://dns.quad9.net/dns-query"));
++void SetOrbitDefault(user_prefs::PrefRegistrySyncable* registry,
++                     const char* name,
++                     base::Value value) {
++  if (!registry->defaults()->GetValue(name, nullptr)) {
++    LOG(ERROR) << "No Orbit default for unregistered pref " << name;
++    return;
++  }
++  registry->SetDefaultPrefValue(name, std::move(value));
 +}
 +
 +void SetOrbitProfileDefaults(user_prefs::PrefRegistrySyncable* registry) {
@@ -100,44 +131,31 @@ diff --git a/chrome/browser/prefs/browser_prefs.cc b/chrome/browser/prefs/browse
 +      "Ecosia", "ecosia.org", "https://www.ecosia.org/search?q={searchTerms}",
 +      "https://ac.ecosia.org/autocomplete?q={searchTerms}&type=list",
 +      "https://www.ecosia.org/favicon.ico", 101));
-+  registry->SetDefaultPrefValue("search_provider_overrides",
-+                                base::Value(std::move(engines)));
++  SetOrbitDefault(registry, "search_provider_overrides", base::Value(std::move(engines)));
 +
-+  registry->SetDefaultPrefValue("profile.cookie_controls_mode", base::Value(1));
-+  registry->SetDefaultPrefValue("https_only_mode_enabled", base::Value(true));
-+  registry->SetDefaultPrefValue("safebrowsing.enabled", base::Value(false));
-+  registry->SetDefaultPrefValue("search.suggest_enabled", base::Value(false));
-+  registry->SetDefaultPrefValue("net.network_prediction_options",
-+                                base::Value(2));
-+  registry->SetDefaultPrefValue("translate.enabled", base::Value(false));
-+  registry->SetDefaultPrefValue("alternate_error_pages.enabled",
-+                                base::Value(false));
-+  registry->SetDefaultPrefValue("signin.allowed", base::Value(false));
-+  registry->SetDefaultPrefValue("profile.password_manager_leak_detection",
-+                                base::Value(false));
++  SetOrbitDefault(registry, "profile.cookie_controls_mode", base::Value(1));
++  SetOrbitDefault(registry, "https_only_mode_enabled", base::Value(true));
++  SetOrbitDefault(registry, "safebrowsing.enabled", base::Value(false));
++  SetOrbitDefault(registry, "search.suggest_enabled", base::Value(false));
++  SetOrbitDefault(registry, "net.network_prediction_options", base::Value(2));
++  SetOrbitDefault(registry, "translate.enabled", base::Value(false));
++  SetOrbitDefault(registry, "alternate_error_pages.enabled", base::Value(false));
++  SetOrbitDefault(registry, "signin.allowed", base::Value(false));
++  SetOrbitDefault(registry, "profile.password_manager_leak_detection", base::Value(false));
 +}
 +
  }  // namespace
  
- std::string GetCountry() {
-@@ -1985,6 +2047,8 @@
-       policy::policy_prefs::kLocalNetworkAccessPermissionsPolicyDefaultEnabled,
-       false);
- 
-+  SetOrbitLocalStateDefaults(registry);
+ void CreateProfileReadme(const base::FilePath& profile_path) {
+@@ -77,6 +137,8 @@
+       pref_registry);
+   BrowserContextDependencyManager::GetInstance()
+       ->RegisterProfilePrefsForServices(pref_registry);
 +
-   // This is intentionally last.
-   RegisterLocalStatePrefsForMigration(registry);
- }
-@@ -2525,6 +2589,8 @@
- #endif  // BUILDFLAG(IS_ANDROID)
- 
-   registry->RegisterBooleanPref(prefs::kStaticStorageQuotaEnabled, false);
-+
-+  SetOrbitProfileDefaults(registry);
++  SetOrbitProfileDefaults(pref_registry);
  }
  
- void RegisterUserProfilePrefs(user_prefs::PrefRegistrySyncable* registry) {
+ std::unique_ptr<sync_preferences::PrefServiceSyncable> CreateProfilePrefService(
 diff --git a/chrome/browser/ui/startup/infobar_utils.cc b/chrome/browser/ui/startup/infobar_utils.cc
 --- a/chrome/browser/ui/startup/infobar_utils.cc
 +++ b/chrome/browser/ui/startup/infobar_utils.cc
