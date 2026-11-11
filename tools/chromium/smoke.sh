@@ -58,18 +58,30 @@ test -d "$data_dir/Default"
 extension=$(ls ../../chrome/browser/resources/orbit_extensions/*.json | xargs -n1 basename | sed 's/\.json$//')
 ls "$data_dir/Default/Extensions/$extension"
 
-# Privacy defaults, read from the browser's own settings pages.
-timeout 180 "$browser" --headless --user-data-dir="$profile" --dump-dom chrome://prefs-internals > "$RUNNER_TEMP/prefs.txt" 2> "$RUNNER_TEMP/prefs-log.txt"
-if grep "No Orbit default" "$RUNNER_TEMP/prefs-log.txt"; then exit 1; fi
-timeout 180 "$browser" --headless --user-data-dir="$profile" --dump-dom chrome://local-state > "$RUNNER_TEMP/local-state.txt"
-for expected in '"https_only_mode_enabled": true' '"keyword": "duckduckgo.com"' '"network_prediction_options": 2'; do
-  grep -qF "$expected" "$RUNNER_TEMP/prefs.txt" || { echo "missing in profile settings: $expected"; exit 1; }
-done
-grep -qF '"mode": "secure"' "$RUNNER_TEMP/local-state.txt" || { echo "secure DNS is not the default"; exit 1; }
-
-timeout 180 "$browser" --headless --user-data-dir="$profile" --dump-dom chrome://settings/strings.m.js > "$RUNNER_TEMP/settings.txt"
-for expected in '"showAiPage":false' '"showPrivacyGuide":false'; do
-  grep -qF "$expected" "$RUNNER_TEMP/settings.txt" || { echo "missing in Settings data: $expected"; exit 1; }
-done
+# Privacy defaults and Settings data, read from the browser's own pages.
+dump() {
+  timeout 180 "$browser" --headless --user-data-dir="$profile" --dump-dom "$1" 2>> "$RUNNER_TEMP/dump-log.txt" | tr -d ' \t\r\n' > "$RUNNER_TEMP/$2"
+}
+dump chrome://prefs-internals prefs.txt
+dump chrome://local-state local-state.txt
+dump chrome://settings/strings.m.js settings.txt
+missing=0
+expect() {
+  grep -qF "$2" "$RUNNER_TEMP/$1" || { echo "missing in $1: $2"; missing=1; }
+}
+expect prefs.txt '"https_only_mode_enabled":true'
+expect prefs.txt '"keyword":"duckduckgo.com"'
+expect prefs.txt '"network_prediction_options":2'
+expect local-state.txt '"mode":"secure"'
+expect settings.txt '"showAiPage":false'
+expect settings.txt '"showPrivacyGuide":false'
+if grep "No Orbit default" "$RUNNER_TEMP/dump-log.txt"; then missing=1; fi
+if [ "$missing" -ne 0 ]; then
+  for file in prefs.txt local-state.txt settings.txt; do
+    echo "=== $file ($(wc -c < "$RUNNER_TEMP/$file") bytes)"
+    head -c 3000 "$RUNNER_TEMP/$file"; echo
+  done
+  exit 1
+fi
 
 echo "### $product built and ran on free runners ($(uname))" >> "$GITHUB_STEP_SUMMARY"
