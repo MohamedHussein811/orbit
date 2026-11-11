@@ -26,69 +26,83 @@ concurrency:
 jobs:
   stage1:
     uses: ./.github/workflows/chromium-stage.yml
+    secrets: inherit
     with: { stage: 1, runner: xcode-27, targets: chrome, resume_run: "42743786854", resume_state: 3 }
   stage2:
     needs: stage1
     if: needs.stage1.outputs.done != 'true'
     uses: ./.github/workflows/chromium-stage.yml
+    secrets: inherit
     with: { stage: 2, runner: xcode-27, targets: chrome }
   stage3:
     needs: stage2
     if: needs.stage2.outputs.done != 'true'
     uses: ./.github/workflows/chromium-stage.yml
+    secrets: inherit
     with: { stage: 3, runner: xcode-27, targets: chrome }
   stage4:
     needs: stage3
     if: needs.stage3.outputs.done != 'true'
     uses: ./.github/workflows/chromium-stage.yml
+    secrets: inherit
     with: { stage: 4, runner: xcode-27, targets: chrome }
   stage5:
     needs: stage4
     if: needs.stage4.outputs.done != 'true'
     uses: ./.github/workflows/chromium-stage.yml
+    secrets: inherit
     with: { stage: 5, runner: xcode-27, targets: chrome }
   stage6:
     needs: stage5
     if: needs.stage5.outputs.done != 'true'
     uses: ./.github/workflows/chromium-stage.yml
+    secrets: inherit
     with: { stage: 6, runner: xcode-27, targets: chrome }
   stage7:
     needs: stage6
     if: needs.stage6.outputs.done != 'true'
     uses: ./.github/workflows/chromium-stage.yml
+    secrets: inherit
     with: { stage: 7, runner: xcode-27, targets: chrome }
   stage8:
     needs: stage7
     if: needs.stage7.outputs.done != 'true'
     uses: ./.github/workflows/chromium-stage.yml
+    secrets: inherit
     with: { stage: 8, runner: xcode-27, targets: chrome }
   stage9:
     needs: stage8
     if: needs.stage8.outputs.done != 'true'
     uses: ./.github/workflows/chromium-stage.yml
+    secrets: inherit
     with: { stage: 9, runner: xcode-27, targets: chrome }
   stage10:
     needs: stage9
     if: needs.stage9.outputs.done != 'true'
     uses: ./.github/workflows/chromium-stage.yml
+    secrets: inherit
     with: { stage: 10, runner: xcode-27, targets: chrome }
   stage11:
     needs: stage10
     if: needs.stage10.outputs.done != 'true'
     uses: ./.github/workflows/chromium-stage.yml
+    secrets: inherit
     with: { stage: 11, runner: xcode-27, targets: chrome }
   stage12:
     needs: stage11
     if: needs.stage11.outputs.done != 'true'
     uses: ./.github/workflows/chromium-stage.yml
+    secrets: inherit
     with: { stage: 12, runner: xcode-27, targets: chrome }
   stage13:
     needs: stage12
     if: needs.stage12.outputs.done != 'true'
     uses: ./.github/workflows/chromium-stage.yml
+    secrets: inherit
     with: { stage: 13, runner: xcode-27, targets: chrome }
   stage14:
     needs: stage13
     if: needs.stage13.outputs.done != 'true'
     uses: ./.github/workflows/chromium-stage.yml
+    secrets: inherit
     with: { stage: 14, runner: xcode-27, targets: chrome }

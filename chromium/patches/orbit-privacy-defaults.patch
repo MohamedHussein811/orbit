@@ -1,0 +1,164 @@
+diff --git a/chrome/app/chrome_main_delegate.cc b/chrome/app/chrome_main_delegate.cc
+--- a/chrome/app/chrome_main_delegate.cc
++++ b/chrome/app/chrome_main_delegate.cc
+@@ -1189,8 +1189,46 @@
+           std::move(tracing_factory), unwinder_type);
+ }
+ 
++namespace {
++
++// Orbit's default switches and features for the browser process. Other processes get their
++// feature state from the browser.
++void ApplyOrbitSwitches() {
++  base::CommandLine* command_line = base::CommandLine::ForCurrentProcess();
++  if (command_line->HasSwitch(switches::kProcessType)) {
++    return;
++  }
++  for (const char* name :
++       {"disable-domain-reliability", "disable-sync", "no-pings"}) {
++    command_line->AppendSwitch(name);
++  }
++  const auto merge = [command_line](const char* name, const char* values) {
++    std::string merged = command_line->GetSwitchValueASCII(name);
++    if (!merged.empty()) {
++      merged += ",";
++    }
++    command_line->AppendSwitchASCII(name, merged + values);
++  };
++  constexpr char kAiAndAdFeatures[] =
++      "AIPromptAPI,AISummarizationAPI,AIWriterAPI,AIRewriterAPI,"
++      "AIProofreadingAPI,TranslationAPI,LanguageDetectionAPI,Fledge,TopicsAPI,"
++      "SharedStorageAPI,AttributionReporting,FencedFrames,PrivateStateTokens,"
++      "AdInterestGroupAPI";
++  merge("enable-features", "CertificateTransparencyAskBeforeEnabling");
++  merge("disable-features",
++        (std::string("AimEnabled,AimServerEligibilityEnabled,NtpFooter,"
++                     "NetworkTimeServiceQuerying,"
++                     "PrivacySandboxAdsAPIsM1Override,") +
++         kAiAndAdFeatures)
++            .c_str());
++  merge("disable-blink-features", kAiAndAdFeatures);
++}
++
++}  // namespace
++
+ std::optional<int> ChromeMainDelegate::BasicStartupComplete() {
+   crash_reporter::InitializeCrashKeys();
++  ApplyOrbitSwitches();
+ 
+ #if BUILDFLAG(IS_CHROMEOS)
+   ash::BootTimesRecorder::Get()->SaveChromeMainStats();
+diff --git a/chrome/browser/prefs/browser_prefs.cc b/chrome/browser/prefs/browser_prefs.cc
+--- a/chrome/browser/prefs/browser_prefs.cc
++++ b/chrome/browser/prefs/browser_prefs.cc
+@@ -1643,6 +1643,68 @@
+   registry->RegisterBooleanPref(kSupervisedUserSafeSites, false);
+ }
+ 
++
++// Orbit's privacy defaults. They change only the default value, so a person's own choice in
++// Settings still wins.
++base::DictValue OrbitSearchEngine(const char* name,
++                                  const char* keyword,
++                                  const char* search_url,
++                                  const char* suggest_url,
++                                  const char* favicon_url,
++                                  int id) {
++  base::DictValue engine;
++  engine.Set("name", name);
++  engine.Set("keyword", keyword);
++  engine.Set("search_url", search_url);
++  engine.Set("suggest_url", suggest_url);
++  engine.Set("favicon_url", favicon_url);
++  engine.Set("encoding", "UTF-8");
++  engine.Set("id", id);
++  return engine;
++}
++
++void SetOrbitLocalStateDefaults(PrefRegistrySimple* registry) {
++  registry->SetDefaultPrefValue("dns_over_https.mode", base::Value("secure"));
++  registry->SetDefaultPrefValue(
++      "dns_over_https.templates",
++      base::Value("https://dns.quad9.net/dns-query"));
++}
++
++void SetOrbitProfileDefaults(user_prefs::PrefRegistrySyncable* registry) {
++  base::ListValue engines;
++  engines.Append(OrbitSearchEngine(
++      "DuckDuckGo", "duckduckgo.com", "https://duckduckgo.com/?q={searchTerms}",
++      "https://duckduckgo.com/ac/?q={searchTerms}&type=list",
++      "https://duckduckgo.com/favicon.ico", 92));
++  engines.Append(OrbitSearchEngine(
++      "Google", "google.com", "https://www.google.com/search?q={searchTerms}",
++      "https://www.google.com/complete/search?client=chrome&q={searchTerms}",
++      "https://www.google.com/favicon.ico", 1));
++  engines.Append(OrbitSearchEngine(
++      "Bing", "bing.com", "https://www.bing.com/search?q={searchTerms}",
++      "https://www.bing.com/osjson.aspx?query={searchTerms}",
++      "https://www.bing.com/favicon.ico", 3));
++  engines.Append(OrbitSearchEngine(
++      "Ecosia", "ecosia.org", "https://www.ecosia.org/search?q={searchTerms}",
++      "https://ac.ecosia.org/autocomplete?q={searchTerms}&type=list",
++      "https://www.ecosia.org/favicon.ico", 101));
++  registry->SetDefaultPrefValue("search_provider_overrides",
++                                base::Value(std::move(engines)));
++
++  registry->SetDefaultPrefValue("profile.cookie_controls_mode", base::Value(1));
++  registry->SetDefaultPrefValue("https_only_mode_enabled", base::Value(true));
++  registry->SetDefaultPrefValue("safebrowsing.enabled", base::Value(false));
++  registry->SetDefaultPrefValue("search.suggest_enabled", base::Value(false));
++  registry->SetDefaultPrefValue("net.network_prediction_options",
++                                base::Value(2));
++  registry->SetDefaultPrefValue("translate.enabled", base::Value(false));
++  registry->SetDefaultPrefValue("alternate_error_pages.enabled",
++                                base::Value(false));
++  registry->SetDefaultPrefValue("signin.allowed", base::Value(false));
++  registry->SetDefaultPrefValue("profile.password_manager_leak_detection",
++                                base::Value(false));
++}
++
+ }  // namespace
+ 
+ std::string GetCountry() {
+@@ -1985,6 +2047,8 @@
+       policy::policy_prefs::kLocalNetworkAccessPermissionsPolicyDefaultEnabled,
+       false);
+ 
++  SetOrbitLocalStateDefaults(registry);
++
+   // This is intentionally last.
+   RegisterLocalStatePrefsForMigration(registry);
+ }
+@@ -2525,6 +2589,8 @@
+ #endif  // BUILDFLAG(IS_ANDROID)
+ 
+   registry->RegisterBooleanPref(prefs::kStaticStorageQuotaEnabled, false);
++
++  SetOrbitProfileDefaults(registry);
+ }
+ 
+ void RegisterUserProfilePrefs(user_prefs::PrefRegistrySyncable* registry) {
+diff --git a/chrome/browser/ui/startup/infobar_utils.cc b/chrome/browser/ui/startup/infobar_utils.cc
+--- a/chrome/browser/ui/startup/infobar_utils.cc
++++ b/chrome/browser/ui/startup/infobar_utils.cc
+@@ -253,20 +253,6 @@
+   infobars::ContentInfoBarManager* infobar_manager =
+       infobars::ContentInfoBarManager::FromWebContents(web_contents);
+ 
+-  if (!google_apis::HasAPIKeyConfigured()) {
+-    if (infobars::IsInfoBarMigrated(
+-            infobars::InfoBarDelegate::GOOGLE_API_KEYS_INFOBAR_DELEGATE)) {
+-      if (auto* manager =
+-              infobars::BrowserInfoBarManager::From(g_browser_process)) {
+-        manager->Show(
+-            tabs::TabInterface::GetFromContents(web_contents),
+-            infobars::InfoBarDelegate::GOOGLE_API_KEYS_INFOBAR_DELEGATE);
+-      }
+-    } else {
+-      GoogleApiKeysInfoBarDelegate::Create(infobar_manager);
+-    }
+-  }
+-
+   if (ObsoleteSystem::IsObsoleteNowOrSoon()) {
+     PrefService* local_state = g_browser_process->local_state();
+     if (!local_state ||

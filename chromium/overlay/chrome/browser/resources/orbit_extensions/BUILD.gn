@@ -1,0 +1,19 @@
+# Copyright 2026 NovaTech. Use of this source code is governed by the Mozilla Public License 2.0.
+
+# Orbit's built-in extension, installed into each profile from the browser's resources folder.
+orbit_extensions_sources = [
+  "kceipbaiojomdibnboffoieecidpfdck.json",
+  "orbit.crx",
+]
+
+copy("orbit_extensions") {
+  sources = orbit_extensions_sources
+  outputs = [ "$root_out_dir/resources/orbit_extensions/{{source_file_part}}" ]
+}
+
+if (is_mac) {
+  bundle_data("orbit_extensions_bundle") {
+    sources = orbit_extensions_sources
+    outputs = [ "{{bundle_resources_dir}}/orbit_extensions/{{source_file_part}}" ]
+  }
+}
