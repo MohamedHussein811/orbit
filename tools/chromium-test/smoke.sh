@@ -11,6 +11,9 @@ elif [ -f chrome.exe ]; then
   ls -lh chrome.exe chrome.dll
   powershell -NoProfile -Command "(Get-Item chrome.exe).VersionInfo.ProductVersion"
   browser=./chrome.exe
+  # The Windows sandbox runs child processes as app containers, which need read access to the
+  # browser folder. GitHub runner folders do not grant it, unlike a normal install location.
+  MSYS2_ARG_CONV_EXCL="*" icacls "$(cygpath -w "$PWD")" /grant "*S-1-15-2-1:(OI)(CI)(RX)" /grant "*S-1-15-2-2:(OI)(CI)(RX)" /T /Q > /dev/null
   profile=$(cygpath -w "$profile")
 else
   ls -lh chrome

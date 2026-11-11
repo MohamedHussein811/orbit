@@ -144,11 +144,11 @@ jobs:
         run: tools/chromium-test/compile.sh
 
       - name: Save this stage
-        if: steps.compile.outputs.done == 'false'
+        if: steps.compile.outputs.done != ''
         run: tools/chromium-test/save-state.sh
 
       - name: Keep this stage for the next job
-        if: steps.compile.outputs.done == 'false'
+        if: steps.compile.outputs.done != ''
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: chromium-state-${{ steps.compile.outputs.next }}
