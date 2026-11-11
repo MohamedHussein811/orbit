@@ -1,0 +1,161 @@
+name: Chromium build stage
+
+# One slice of the build. A GitHub job can run for 6 hours, so each slice stops in time to save its
+# work for the next one. Source timestamps come from the archive, so ninja can resume from them.
+# A fresh start compiles for one hour first, to show the build speed and any setup failure early.
+# resume_run and resume_state continue from a stage saved by an earlier run.
+
+on:
+  workflow_call:
+    inputs:
+      stage:
+        type: number
+        required: true
+      runner:
+        type: string
+        default: ubuntu-24.04
+      targets:
+        type: string
+        default: chrome chrome_sandbox
+      resume_run:
+        type: string
+        default: ""
+      resume_state:
+        type: number
+        default: 0
+    outputs:
+      done:
+        value: ${{ jobs.build.outputs.done }}
+
+permissions:
+  contents: read
+  actions: read
+
+env:
+  CHROMIUM_VERSION: "157.0.8103.38"
+  TARGETS: ${{ inputs.targets }}
+  # Windows: use the installed Visual Studio, not Google's internal toolchain package.
+  DEPOT_TOOLS_WIN_TOOLCHAIN: "0"
+  vs2026_install: C:\Program Files\Microsoft Visual Studio\18\Enterprise
+
+jobs:
+  build:
+    runs-on: ${{ inputs.runner }}
+    timeout-minutes: 350
+    outputs:
+      done: ${{ steps.compile.outputs.done }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Free disk space and add swap
+        if: runner.os == 'Linux'
+        run: |
+          sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc /usr/local/.ghcup /opt/hostedtoolcache/CodeQL /usr/local/share/boost /usr/local/share/powershell /usr/share/swift
+          sudo docker image prune --all --force > /dev/null
+          sudo fallocate -l 16G /extra-swap
+          sudo chmod 600 /extra-swap
+          sudo mkswap /extra-swap > /dev/null
+          sudo swapon /extra-swap
+          df -h /
+          free -h
+
+      - name: Show the machine and free disk space
+        if: runner.os == 'macOS'
+        run: |
+          sysctl -n machdep.cpu.brand_string hw.ncpu hw.memsize
+          sw_vers
+          in_use=$(cd "$(xcode-select -p)/../.." && pwd -P)
+          echo "Xcode in use: $in_use"
+          for app in /Applications/Xcode_*.app; do
+            real=$(cd "$app" 2>/dev/null && pwd -P) || continue
+            if [ "$real" != "$in_use" ] && [ ! -L "$app" ]; then sudo rm -rf "$app"; fi
+          done
+          sudo rm -rf "$HOME/Library/Android" /usr/local/share/dotnet "$HOME/.dotnet"
+          xcodebuild -version
+          df -h .
+
+      - name: Prepare the Windows machine
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          Add-MpPreference -ExclusionPath $env:GITHUB_WORKSPACE -ErrorAction SilentlyContinue
+          New-ItemProperty -Path HKLM:\SYSTEM\CurrentControlSet\Control\FileSystem -Name LongPathsEnabled -Value 1 -PropertyType DWORD -Force | Out-Null
+          Get-CimInstance Win32_Processor | Select-Object Name, NumberOfLogicalProcessors
+          "{0:N1} GB RAM" -f ((Get-CimInstance Win32_ComputerSystem).TotalPhysicalMemory / 1GB)
+          Get-PSDrive -PSProvider FileSystem | Select-Object Name, @{n='FreeGB';e={[math]::Round($_.Free/1GB)}}
+          "Workspace: $env:GITHUB_WORKSPACE"
+
+      - name: Download and verify the Chromium source
+        run: tools/chromium-test/fetch-source.sh
+
+      - name: Install build packages
+        run: tools/chromium-test/packages.sh
+
+      - name: Install Go for Dawn
+        run: tools/chromium-test/go.sh
+
+      - name: List Linux programs in the source archive
+        if: runner.os == 'macOS' && inputs.stage == 1 && inputs.resume_run == ''
+        continue-on-error: true
+        run: |
+          find src -type f -perm +111 -size +200k -not -path '*/.git/*' -print0 | xargs -0 file | grep ELF | cut -d: -f1 | awk -F/ '{ print $2 "/" $3 "/" $4 }' | sort | uniq -c | sort -rn | head -40
+
+      - name: Prepare the first stage
+        if: inputs.stage == 1 && inputs.resume_run == ''
+        run: tools/chromium-test/prepare.sh
+
+      - name: Build one DevTools file, which needs tools the archive has only for Linux
+        if: runner.os != 'Linux' && inputs.stage == 1 && inputs.resume_run == ''
+        run: ninja -C src/out/Release gen/third_party/devtools-frontend/src/front_end/core/root/root.js
+
+      - name: Restore the previous stage
+        if: inputs.stage != 1 || inputs.resume_run != ''
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: chromium-state-${{ inputs.resume_run != '' && inputs.resume_state || inputs.stage }}
+          path: state
+          run-id: ${{ inputs.resume_run || github.run_id }}
+          github-token: ${{ github.token }}
+
+      - name: Unpack the previous stage
+        if: inputs.stage != 1 || inputs.resume_run != ''
+        run: |
+          set -o pipefail
+          zstd -dc state/state.tar.zst | tar -xf - -C src
+          rm -rf state
+          df -h .
+
+      - name: Retry two steps that failed on Mac before
+        if: runner.os == 'macOS' && inputs.resume_run != ''
+        run: |
+          export PATH="$PWD/src/out/gn:$PATH"
+          ninja -C src/out/Release libvk_swiftshader.dylib gen/v8/metagen/instance-types.h
+
+      - name: Compile
+        id: compile
+        env:
+          STAGE: ${{ inputs.stage }}
+          COMPILE_SECONDS: ${{ inputs.stage == 1 && inputs.resume_run == '' && '3600' || '18600' }}
+        run: tools/chromium-test/compile.sh
+
+      - name: Save this stage
+        if: steps.compile.outputs.done != ''
+        run: tools/chromium-test/save-state.sh
+
+      - name: Keep this stage for the next job
+        if: steps.compile.outputs.done != ''
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: chromium-state-${{ steps.compile.outputs.next }}
+          path: state.tar.zst
+          retention-days: 5
+          compression-level: 0
+
+      - name: Run the finished browser
+        if: steps.compile.outputs.done == 'true'
+        run: tools/chromium-test/smoke.sh

@@ -1,0 +1,87 @@
+name: Chromium build test
+
+# Answers one question: can free GitHub runners compile unmodified Chromium for Linux?
+# It uses a plain release configuration. An official optimized build would need more.
+
+on:
+  push:
+    branches: [chromium-build-test]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: chromium-build-test
+  cancel-in-progress: true
+
+jobs:
+  stage1:
+    uses: ./.github/workflows/chromium-stage.yml
+    with: { stage: 1, resume_run: "42593470726", resume_state: 2 }
+  stage2:
+    needs: stage1
+    if: needs.stage1.outputs.done != 'true'
+    uses: ./.github/workflows/chromium-stage.yml
+    with: { stage: 2 }
+  stage3:
+    needs: stage2
+    if: needs.stage2.outputs.done != 'true'
+    uses: ./.github/workflows/chromium-stage.yml
+    with: { stage: 3 }
+  stage4:
+    needs: stage3
+    if: needs.stage3.outputs.done != 'true'
+    uses: ./.github/workflows/chromium-stage.yml
+    with: { stage: 4 }
+  stage5:
+    needs: stage4
+    if: needs.stage4.outputs.done != 'true'
+    uses: ./.github/workflows/chromium-stage.yml
+    with: { stage: 5 }
+  stage6:
+    needs: stage5
+    if: needs.stage5.outputs.done != 'true'
+    uses: ./.github/workflows/chromium-stage.yml
+    with: { stage: 6 }
+  stage7:
+    needs: stage6
+    if: needs.stage6.outputs.done != 'true'
+    uses: ./.github/workflows/chromium-stage.yml
+    with: { stage: 7 }
+  stage8:
+    needs: stage7
+    if: needs.stage7.outputs.done != 'true'
+    uses: ./.github/workflows/chromium-stage.yml
+    with: { stage: 8 }
+  stage9:
+    needs: stage8
+    if: needs.stage8.outputs.done != 'true'
+    uses: ./.github/workflows/chromium-stage.yml
+    with: { stage: 9 }
+  stage10:
+    needs: stage9
+    if: needs.stage9.outputs.done != 'true'
+    uses: ./.github/workflows/chromium-stage.yml
+    with: { stage: 10 }
+  stage11:
+    needs: stage10
+    if: needs.stage10.outputs.done != 'true'
+    uses: ./.github/workflows/chromium-stage.yml
+    with: { stage: 11 }
+  stage12:
+    needs: stage11
+    if: needs.stage11.outputs.done != 'true'
+    uses: ./.github/workflows/chromium-stage.yml
+    with: { stage: 12 }
+  stage13:
+    needs: stage12
+    if: needs.stage12.outputs.done != 'true'
+    uses: ./.github/workflows/chromium-stage.yml
+    with: { stage: 13 }
+  stage14:
+    needs: stage13
+    if: needs.stage13.outputs.done != 'true'
+    uses: ./.github/workflows/chromium-stage.yml
+    with: { stage: 14 }
