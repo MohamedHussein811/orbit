@@ -7,7 +7,7 @@ name: Orbit browser (Windows)
 
 on:
   push:
-    branches: [fork]
+    branches: [fork, shields]
     paths:
       - chromium/**
       - tools/chromium/**
@@ -20,7 +20,7 @@ permissions:
   actions: read
 
 concurrency:
-  group: browser-windows
+  group: browser-windows-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
