@@ -20,7 +20,8 @@ its renamed message. "The Chromium Authors" and ChromiumOS names stay as they ar
 | `orbit-names.patch` | Orbit's own data folders and Windows registration names, so Orbit and Chromium can be installed side by side |
 | `orbit-builtin-extension.patch` | Installs the extensions in `resources/orbit_extensions` into every profile as built-in extensions: always on, not removable, pinned to the toolbar once, and without the "an extension changed your new tab page" prompt |
 | `orbit-settings.patch` | Removes Settings parts for Google services Orbit does not use: the AI page, Safety Check, Privacy Guide, the Safe Browsing section, the password leak check, sync and Google services rows, and the "Get help" link |
-| `orbit-privacy-defaults.patch` | Default settings (DuckDuckGo search, secure DNS through Quad9, HTTPS only, no Safe Browsing pings to Google, no prediction, translation or sign-in, no extensions that other programs registered for Chrome or Chromium), default switches and disabled AI and advertising web APIs, and no warning about missing Google API keys |
+| `orbit-privacy-defaults.patch` | Default settings (DuckDuckGo search, secure DNS through Quad9, HTTPS only, no Safe Browsing pings to Google, no prediction, translation or sign-in, no extensions that other programs registered for Chrome or Chromium), default switches and disabled AI and advertising web APIs, no warning about missing Google API keys, and the Space theme as the default |
+| `orbit-theme.patch` | Orbit's color palette for the whole browser in place of Chromium's default one (generated into `overlay/ui/color/orbit_palette.inc` by `tools/design/tokens.mjs`), and a Theme choice in Settings: Space (Orbit's dark palette, the default), Dark (grey), Light and the device setting |
 
 Defaults change only the default value. A choice made in Settings still wins.
 

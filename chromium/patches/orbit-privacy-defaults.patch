@@ -91,7 +91,7 @@ diff --git a/chrome/browser/prefs/browser_prefs.cc b/chrome/browser/prefs/browse
 diff --git a/chrome/browser/profiles/pref_service_builder_utils.cc b/chrome/browser/profiles/pref_service_builder_utils.cc
 --- a/chrome/browser/profiles/pref_service_builder_utils.cc
 +++ b/chrome/browser/profiles/pref_service_builder_utils.cc
-@@ -49,6 +49,67 @@
+@@ -49,6 +49,73 @@
      "information and MUST not be extracted, overwritten or modified except "
      "through %s defined APIs.";
  
@@ -154,12 +154,18 @@ diff --git a/chrome/browser/profiles/pref_service_builder_utils.cc b/chrome/brow
 +  SetOrbitDefault(registry, "signin.allowed", base::Value(false));
 +  SetOrbitDefault(registry, "extensions.block_external_extensions", base::Value(true));
 +  SetOrbitDefault(registry, "profile.password_manager_leak_detection", base::Value(false));
++
++  // Space, Orbit's own palette in dark mode.
++  SetOrbitDefault(registry, "browser.theme.color_scheme2", base::Value(2));
++#if BUILDFLAG(IS_LINUX)
++  SetOrbitDefault(registry, "extensions.theme.system_theme", base::Value(0));
++#endif
 +}
 +
  }  // namespace
  
  void CreateProfileReadme(const base::FilePath& profile_path) {
-@@ -77,6 +138,8 @@
+@@ -77,6 +144,8 @@
        pref_registry);
    BrowserContextDependencyManager::GetInstance()
        ->RegisterProfilePrefsForServices(pref_registry);
