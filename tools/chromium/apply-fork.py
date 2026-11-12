@@ -92,8 +92,9 @@ def brand_strings(src):
     for relative in STRING_FILES:
         grd = src / relative
         old_ids = message_ids(grd)
-        if rewrite(grd, lambda text: NAME.sub("Orbit", text)):
-            changed.append(grd)
+        for path in [grd, *grd_parts(grd)]:
+            if rewrite(path, lambda text: NAME.sub("Orbit", text)):
+                changed.append(path)
         new_ids = message_ids(grd)
         if len(old_ids) != len(new_ids):
             sys.exit(f"{relative}: message count changed from {len(old_ids)} to {len(new_ids)}")

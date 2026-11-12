@@ -3,6 +3,7 @@
 //   node tools/chromium/check-browser.mjs <browser> <extension id> [extra browser flags...]
 import { spawn } from "node:child_process";
 import fs from "node:fs";
+import http from "node:http";
 import os from "node:os";
 import path from "node:path";
 import { Cdp } from "../../tests/host/lib/cdp.mjs";
@@ -78,6 +79,12 @@ try {
   expect("Settings AI page", await settingsValue("showAiPage"), false);
   expect("Settings Privacy Guide", await settingsValue("showPrivacyGuide"), false);
 
+  const engines = await page.eval(
+    `import("chrome://resources/js/cr.js").then((cr) => cr.sendWithPromise("getSearchEnginesList")).then((list) => list.defaults.map((e) => ({ name: e.name, isDefault: e.default })))`,
+  );
+  expect("search engines offered", engines.map((e) => e.name), ["DuckDuckGo", "Google", "Bing", "Ecosia"]);
+  expect("default search engine", engines.find((e) => e.isDefault)?.name, "DuckDuckGo");
+
   expect("default color scheme is dark", value(prefs.browser?.theme?.color_scheme2), 2);
   const orbitTheme = () => page.eval(`import("chrome://resources/js/cr.js").then((cr) => cr.sendWithPromise("getOrbitTheme"))`);
   expect("default theme", await orbitTheme(), "space");
@@ -102,6 +109,21 @@ try {
   expect("new tab page", newTab, `${prefix}newtab/newtab.html`);
   const rulesets = await tab.eval("chrome.declarativeNetRequest.getEnabledRulesets().then((ids) => ids.sort())");
   expect("Shields rule lists", rulesets, ["ads", "threats", "trackers"]);
+
+  // A local page that asks for a script from an ad server on the ads list. Shields blocks it before
+  // it reaches the network, and the block must show up in the dashboard's counts.
+  const server = http.createServer((request, response) => {
+    response.setHeader("content-type", "text/html");
+    response.end('<!doctype html><title>Orbit check</title><script src="https://adnxs.com/orbit-check.js"></script>');
+  });
+  await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+  const adPage = await cdp.newPage("about:blank");
+  await adPage.goto(`http://127.0.0.1:${server.address().port}/`, { settleMs: 3000 });
+  server.close();
+  const adsCounted = await tab.eval(
+    "chrome.storage.local.get('stats').then(({ stats }) => Object.values(stats?.days ?? {}).reduce((sum, day) => sum + (day.ads ?? 0), 0))",
+  );
+  expect("Shields counts a blocked ad request", adsCounted > 0, true);
 
   await page.goto("chrome://extensions");
   const listed = await page.eval(

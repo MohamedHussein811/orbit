@@ -1,7 +1,7 @@
 diff --git a/chrome/app/chrome_main_delegate.cc b/chrome/app/chrome_main_delegate.cc
 --- a/chrome/app/chrome_main_delegate.cc
 +++ b/chrome/app/chrome_main_delegate.cc
-@@ -1189,8 +1189,46 @@
+@@ -1189,8 +1189,45 @@
            std::move(tracing_factory), unwinder_type);
  }
  
@@ -28,13 +28,12 @@ diff --git a/chrome/app/chrome_main_delegate.cc b/chrome/app/chrome_main_delegat
 +  constexpr char kAiAndAdFeatures[] =
 +      "AIPromptAPI,AISummarizationAPI,AIWriterAPI,AIRewriterAPI,"
 +      "AIProofreadingAPI,TranslationAPI,LanguageDetectionAPI,Fledge,TopicsAPI,"
-+      "SharedStorageAPI,AttributionReporting,FencedFrames,PrivateStateTokens,"
-+      "AdInterestGroupAPI";
++      "AttributionReporting,FencedFrames,PrivateStateTokens,AdInterestGroupAPI";
 +  merge("enable-features", "CertificateTransparencyAskBeforeEnabling");
 +  merge("disable-features",
 +        (std::string("AimEnabled,AimServerEligibilityEnabled,NtpFooter,"
-+                     "NetworkTimeServiceQuerying,"
-+                     "PrivacySandboxAdsAPIsM1Override,") +
++                     "NetworkTimeServiceQuerying,IgnoreSearchProviderOverrides,"
++                     "PrivacySandboxAdsAPIsM1Override,SharedStorageAPI,") +
 +         kAiAndAdFeatures)
 +            .c_str());
 +  merge("disable-blink-features", kAiAndAdFeatures);
@@ -198,3 +197,17 @@ diff --git a/chrome/browser/ui/startup/infobar_utils.cc b/chrome/browser/ui/star
    if (ObsoleteSystem::IsObsoleteNowOrSoon()) {
      PrefService* local_state = g_browser_process->local_state();
      if (!local_state ||
+diff --git a/components/search_engines/template_url_prepopulate_data.cc b/components/search_engines/template_url_prepopulate_data.cc
+--- a/components/search_engines/template_url_prepopulate_data.cc
++++ b/components/search_engines/template_url_prepopulate_data.cc
+@@ -317,8 +317,9 @@
+     PrefService& prefs,
+     const std::vector<raw_ptr<const PrepopulatedEngine>>&
+         regional_prepopulated_engines) {
++  // Orbit's default search is DuckDuckGo. Without it in the list, the first engine is used.
+   return FindPrepopulatedEngineInternal(prefs, regional_prepopulated_engines,
+-                                        google.id,
++                                        duckduckgo.id,
+                                         /*use_first_as_fallback=*/true);
+ }
+ 
