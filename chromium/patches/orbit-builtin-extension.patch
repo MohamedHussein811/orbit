@@ -91,3 +91,20 @@ diff --git a/chrome/common/chrome_paths.h b/chrome/common/chrome_paths.h
    PATH_END
  };
  
+diff --git a/extensions/browser/crx_installer.cc b/extensions/browser/crx_installer.cc
+--- a/extensions/browser/crx_installer.cc
++++ b/extensions/browser/crx_installer.cc
+@@ -1278,9 +1278,12 @@
+ 
+ base::SequencedTaskRunner* CrxInstaller::GetUnpackerTaskRunner() {
+   if (!unpacker_task_runner_) {
++    // Orbit's built-in extensions provide the new tab page, so they unpack at normal priority
++    // instead of waiting until startup work settles.
+     bool low_priority =
+         (creation_flags_ & Extension::WAS_INSTALLED_BY_DEFAULT) &&
+-        !(creation_flags_ & Extension::WAS_INSTALLED_BY_OEM);
++        !(creation_flags_ & Extension::WAS_INSTALLED_BY_OEM) &&
++        install_source_ != mojom::ManifestLocation::kExternalComponent;
+     unpacker_task_runner_ = GetOneShotFileTaskRunner(
+         low_priority ? base::TaskPriority::BEST_EFFORT
+                      : base::TaskPriority::USER_VISIBLE);

@@ -24,6 +24,15 @@ STRING_FILES = [
 ]
 XTB = re.compile(r'<file path="([^"]+\.xtb)"')
 TRANSLATION_ID = re.compile(r'<translation id="(\d+)"')
+TRANSLATION = re.compile(r'(<translation id=")(\d+)("[^>]*>)(.*?)(</translation>)', re.DOTALL)
+PART = re.compile(r'<part file="([^"]+\.grdp)"')
+# "Chrome" used as the browser's own name in shared strings. Other products and technologies keep
+# their names: Google Chrome (as an import source), Chrome Web Store, ChromeOS, Chrome Apps.
+CHROME = re.compile(
+    r"(?<!Google )(?<!Google&nbsp;)\bChrome\b"
+    r"(?!(?: |&nbsp;)?(?:OS|Web Store|Enterprise|Apps?|apps?|Remote Desktop|Root Store|Cleanup)\b)"
+)
+CHROME_STRING_FILES = ["chrome/app/generated_resources.grd"]
 
 
 def copy_overlay(src):
@@ -107,6 +116,45 @@ def brand_strings(src):
     return changed
 
 
+def grd_parts(grd):
+    return [grd.parent / part for part in PART.findall(grd.read_text(encoding="utf-8"))]
+
+
+def rename_chrome(src):
+    """Renames "Chrome" to "Orbit" in shared strings, and only in the translations of messages
+    whose English text changed."""
+    sys.path.insert(0, str(src / "tools" / "grit"))
+    changed = []
+    for relative in CHROME_STRING_FILES:
+        grd = src / relative
+        old_ids = message_ids(grd)
+        for path in [grd, *grd_parts(grd)]:
+            if rewrite(path, lambda text: CHROME.sub("Orbit", text)):
+                changed.append(path)
+        new_ids = message_ids(grd)
+        if len(old_ids) != len(new_ids):
+            sys.exit(f"{relative}: message count changed from {len(old_ids)} to {len(new_ids)}")
+        renamed = {old: new for old, new in zip(old_ids, new_ids) if old != new}
+        print(f"{relative}: {len(renamed)} of {len(new_ids)} messages renamed")
+
+        def edit(text):
+            def one(m):
+                if m.group(2) not in renamed:
+                    return m.group(0)
+                return m.group(1) + renamed[m.group(2)] + m.group(3) + CHROME.sub("Orbit", m.group(4)) + m.group(5)
+
+            return TRANSLATION.sub(one, text)
+
+        xtbs = XTB.findall(grd.read_text(encoding="utf-8"))
+        if not xtbs:
+            sys.exit(f"{relative}: no translation files listed")
+        for xtb in xtbs:
+            path = grd.parent / xtb
+            if rewrite(path, edit):
+                changed.append(path)
+    return changed
+
+
 def png_width(path):
     return int.from_bytes(path.read_bytes()[16:20], "big")
 
@@ -138,7 +186,7 @@ def mac_icons(src):
 
 def main():
     src = pathlib.Path(sys.argv[1]).resolve()
-    changed = copy_overlay(src) + apply_patches(src) + brand_strings(src)
+    changed = copy_overlay(src) + apply_patches(src) + brand_strings(src) + rename_chrome(src)
     if sys.platform == "darwin":
         changed += mac_icons(src)
     hashes = {

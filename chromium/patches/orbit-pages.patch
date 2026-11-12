@@ -1,3 +1,37 @@
+diff --git a/chrome/browser/resources/new_tab_page_incognito_guest/incognito_tab.css b/chrome/browser/resources/new_tab_page_incognito_guest/incognito_tab.css
+--- a/chrome/browser/resources/new_tab_page_incognito_guest/incognito_tab.css
++++ b/chrome/browser/resources/new_tab_page_incognito_guest/incognito_tab.css
+@@ -322,3 +322,30 @@
+     padding-inline-start: 24px;
+   }
+ }
++
++/* Orbit private window: deep space with a soft accent glow. */
++html:not([hascustombackground='true']) {
++  background:
++    radial-gradient(70rem 32rem at 50% -12rem, rgb(141 155 255 / 0.2), transparent 70%),
++    #070920;
++}
++
++.content {
++  color: #c0c7da;
++}
++
++h1,
++em {
++  color: #e0e2ed;
++}
++
++#cookie-controls {
++  background-color: #121730;
++  border: 1px solid rgb(224 226 237 / 0.1);
++  border-radius: 16px;
++}
++
++.learn-more-button,
++#cookie-controls-description a {
++  color: #9eacff;
++}
 diff --git a/components/security_interstitials/core/common/resources/interstitial_core.css b/components/security_interstitials/core/common/resources/interstitial_core.css
 --- a/components/security_interstitials/core/common/resources/interstitial_core.css
 +++ b/components/security_interstitials/core/common/resources/interstitial_core.css
