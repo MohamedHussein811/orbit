@@ -50,29 +50,59 @@
   "background": {
     "message": "Background"
   },
-  "backgroundSpace": {
-    "message": "Space"
-  },
   "backgroundPlain": {
     "message": "Plain"
   },
-  "chooseImage": {
-    "message": "Choose an image"
+  "backgroundDefault": {
+    "message": "Black hole"
   },
-  "changeImage": {
-    "message": "Change image"
+  "backgroundCustom": {
+    "message": "Your own"
   },
-  "removeImage": {
-    "message": "Remove image"
+  "chooseMedia": {
+    "message": "Choose image or video"
   },
-  "imageTooLarge": {
-    "message": "Choose an image smaller than 12 MB."
+  "removeMedia": {
+    "message": "Remove your file"
+  },
+  "mediaHint": {
+    "message": "PNG, JPEG, WebP, AVIF, WebM or MP4, up to 200 MB. It stays on this device."
+  },
+  "mediaUnsupported": {
+    "message": "Orbit can't use this file type. Choose a PNG, JPEG, WebP or AVIF image, or a WebM or MP4 video."
+  },
+  "mediaTooLarge": {
+    "message": "This file is larger than 200 MB. Choose a smaller one."
+  },
+  "mediaNotSaved": {
+    "message": "Orbit couldn't save this file. Free up disk space and try again."
+  },
+  "mediaUnplayable": {
+    "message": "Orbit can't play this file, so the black hole is showing instead. Try another image or video."
+  },
+  "showClock": {
+    "message": "Show clock"
+  },
+  "playVideoSetting": {
+    "message": "Play background video"
+  },
+  "reducedMotionNote": {
+    "message": "Your device is set to reduce motion, so the background stays still."
+  },
+  "pauseVideo": {
+    "message": "Pause background video"
+  },
+  "playVideo": {
+    "message": "Play background video"
+  },
+  "videoCredit": {
+    "message": "Video: NASA's Goddard Space Flight Center/Jeremy Schnittman"
   },
   "browserTheme": {
-    "message": "Theme and colors"
+    "message": "Theme"
   },
   "browserThemeExplained": {
-    "message": "This page follows the browser theme. Choose Space, Dark, Light or your device setting, and an accent color, in Settings."
+    "message": "The plain background and this panel follow the browser's light or dark mode. You can change it in Settings."
   },
   "openThemeSettings": {
     "message": "Open theme settings"
@@ -130,6 +160,12 @@
   },
   "bookmarkCollections": {
     "message": "Bookmark collections"
+  },
+  "shortcutsBack": {
+    "message": "Previous shortcuts"
+  },
+  "shortcutsForward": {
+    "message": "More shortcuts"
   },
   "addShortcut": {
     "message": "Add shortcut"

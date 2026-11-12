@@ -42,7 +42,7 @@ async function main(): Promise<void> {
   });
 }
 
-document.documentElement.dataset.theme = matchMedia("(prefers-color-scheme: dark)").matches ? "space" : "light";
+document.documentElement.dataset.theme = matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
 localizePage();
 
 byId("privacy").addEventListener("click", () => {

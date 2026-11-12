@@ -140,7 +140,7 @@ const BOOKMARKS_BAR = "1";
 function faviconUrl(pageUrl: string): string {
   const url = new URL(chrome.runtime.getURL("/_favicon/"));
   url.searchParams.set("pageUrl", pageUrl);
-  url.searchParams.set("size", "32");
+  url.searchParams.set("size", "64");
   return url.toString();
 }
 
@@ -161,7 +161,15 @@ function validBookmarkUrl(text: string): string | null {
   }
 }
 
-function bookmarkEditor(options: { title: string; url?: string; isFolder: boolean; heading: string; onSave: (title: string, url?: string) => Promise<void>; onDelete?: () => Promise<void> }): void {
+function bookmarkEditor(options: {
+  title: string;
+  url?: string;
+  isFolder: boolean;
+  heading: string;
+  onSave: (title: string, url?: string) => Promise<void>;
+  onDelete?: () => Promise<void>;
+  alternative?: { label: string; open: () => void };
+}): void {
   const titleInput = h("input", { type: "text", value: options.title, "aria-label": t("fieldName") });
   const urlInput = options.isFolder ? null : h("input", { type: "text", inputmode: "url", dir: "ltr", value: options.url ?? "", "aria-label": t("fieldAddress"), placeholder: "example.com", spellcheck: "false" });
   const error = h("p", { class: "notice", role: "alert" });
@@ -211,6 +219,20 @@ function bookmarkEditor(options: { title: string; url?: string; isFolder: boolea
             },
             t("delete"),
           ),
+        options.alternative &&
+          h(
+            "button",
+            {
+              type: "button",
+              class: "button quiet",
+              onclick: () => {
+                close();
+                options.alternative!.open();
+              },
+            },
+            icon("folder-plus"),
+            options.alternative.label,
+          ),
         h("span", { class: "spacer" }),
         h("button", { type: "button", class: "button quiet", onclick: close }, t("cancel")),
         h("button", { type: "submit", class: "button primary" }, t("save")),
@@ -227,7 +249,26 @@ export function mountBookmarks(root: HTMLElement, context: WidgetContext): void 
   const newFolder = iconButton("folder-plus", t("newFolder"), () => editNew(true));
   const bar = h("div", { class: "shortcuts-bar" });
   const body = h("div", { class: "shortcuts-body" });
-  root.append(h("div", { class: "shortcuts" }, bar, body));
+  const railBack = iconButton("back", t("shortcutsBack"), () => scrollRail(-1), { class: "icon-button rail-arrow", "data-edge": "start", tabindex: "-1" });
+  const railForward = iconButton("forward", t("shortcutsForward"), () => scrollRail(1), { class: "icon-button rail-arrow", "data-edge": "end", tabindex: "-1" });
+  const rail = h("div", { class: "rail" }, railBack, body, railForward);
+  root.append(h("div", { class: "shortcuts" }, bar, rail));
+  let list: HTMLUListElement | null = null;
+  const railSize = new ResizeObserver(() => updateRail());
+
+  function scrollRail(step: 1 | -1): void {
+    if (!list) return;
+    const rtl = getComputedStyle(list).direction === "rtl";
+    const smooth = !matchMedia("(prefers-reduced-motion: reduce)").matches;
+    list.scrollBy({ left: step * (rtl ? -1 : 1) * list.clientWidth * 0.8, behavior: smooth ? "smooth" : "auto" });
+  }
+
+  function updateRail(): void {
+    const max = list ? list.scrollWidth - list.clientWidth : 0;
+    const position = list ? Math.abs(list.scrollLeft) : 0;
+    rail.toggleAttribute("data-more-start", position > 1);
+    rail.toggleAttribute("data-more-end", position < max - 1);
+  }
 
   let current = context.settings().bookmarksFolder ?? BOOKMARKS_BAR;
   let dragId: string | null = null;
@@ -240,6 +281,7 @@ export function mountBookmarks(root: HTMLElement, context: WidgetContext): void 
       onSave: async (title, url) => {
         await chrome.bookmarks.create({ parentId: current, title, url });
       },
+      alternative: isFolder ? undefined : { label: t("newFolder"), open: () => editNew(true) },
     });
   }
 
@@ -271,7 +313,7 @@ export function mountBookmarks(root: HTMLElement, context: WidgetContext): void 
       { class: "icon-button edit" },
     );
     const iconBox = h("span", { class: "tile-icon" });
-    iconBox.append(isFolder ? icon("folder") : h("img", { src: faviconUrl(node.url!), alt: "", width: 24, height: 24, loading: "lazy" }));
+    iconBox.append(isFolder ? icon("folder") : h("img", { src: faviconUrl(node.url!), alt: "", width: 28, height: 28, loading: "lazy" }));
     const label = h("span", { class: "tile-title", dir: "auto" }, name);
     const open = isFolder
       ? h("button", { type: "button", class: "open-folder", onclick: () => openFolder(node.id) }, iconBox, label)
@@ -307,10 +349,9 @@ export function mountBookmarks(root: HTMLElement, context: WidgetContext): void 
     return item;
   }
 
-  function addTile(isFolder: boolean): HTMLElement {
-    const iconBox = h("span", { class: "tile-icon" }, icon(isFolder ? "folder-plus" : "plus"));
-    const label = t(isFolder ? "newFolder" : "addShortcut");
-    return h("li", { class: "tile" }, h("button", { type: "button", class: "add-tile", onclick: () => editNew(isFolder) }, iconBox, h("span", { class: "tile-title" }, label)));
+  function addTile(): HTMLElement {
+    const iconBox = h("span", { class: "tile-icon" }, icon("plus"));
+    return h("li", { class: "tile" }, h("button", { type: "button", class: "add-tile", onclick: () => editNew(false) }, iconBox, h("span", { class: "tile-title" }, t("addShortcut"))));
   }
 
   async function render(): Promise<void> {
@@ -330,7 +371,10 @@ export function mountBookmarks(root: HTMLElement, context: WidgetContext): void 
     bar.hidden = !barItems.length;
 
     const children = folder.children ?? [];
-    const list = h("ul", { class: "tiles" }, ...children.map((node, index) => tile(node, folder, index)), addTile(false), ...(children.length ? [addTile(true)] : []));
+    list = h("ul", { class: "tiles" }, ...children.map((node, index) => tile(node, folder, index)), addTile());
+    list.addEventListener("scroll", updateRail, { passive: true });
+    railSize.disconnect();
+    railSize.observe(list);
     const hint = children.length
       ? null
       : h(
@@ -341,6 +385,7 @@ export function mountBookmarks(root: HTMLElement, context: WidgetContext): void 
           h("button", { type: "button", class: "link", onclick: () => void chrome.tabs.create({ url: "chrome://settings/importData" }) }, t("importBookmarks")),
         );
     body.replaceChildren(list, ...(hint ? [hint] : []));
+    updateRail();
     context.relayout();
   }
 
@@ -353,10 +398,11 @@ export function mountBookmarks(root: HTMLElement, context: WidgetContext): void 
 // Weather
 export function mountWeather(root: HTMLElement, context: WidgetContext): void {
   root.classList.add("pane");
-  const body = h("div", {});
+  const body = h("div", { class: "weather-body" });
   const credit = h("a", { href: WEATHER_PROVIDER.url, class: "link" }, t("weatherBy", WEATHER_PROVIDER.name));
   const unit = h("button", { type: "button", class: "link", onclick: () => toggleUnit() });
-  root.append(h("div", { class: "widget-head" }, h("h2", {}, t("widgetWeather")), unit), body, h("div", { class: "foot" }, credit));
+  const action = h("span", {});
+  root.append(h("div", { class: "widget-head" }, h("h2", {}, t("widgetWeather")), unit), body, h("div", { class: "foot" }, action, credit));
 
   async function load(): Promise<{ place: WeatherPlace | null; report: WeatherReport | null }> {
     const { weatherPlace, weatherReport } = await chrome.storage.local.get(["weatherPlace", "weatherReport"]);
@@ -370,7 +416,9 @@ export function mountWeather(root: HTMLElement, context: WidgetContext): void {
     await render();
   }
 
-  function showPlaceForm(message?: string): void {
+  function showPlaceForm(message?: string, canCancel = false): void {
+    body.classList.remove("has-report");
+    action.replaceChildren(...(canCancel ? [h("button", { type: "button", class: "link", onclick: () => void render() }, t("cancel"))] : []));
     const input = h("input", { type: "text", placeholder: t("cityName"), "aria-label": t("cityName") });
     const results = h("ul", { class: "place-results" });
     const form = h(
@@ -456,9 +504,10 @@ export function mountWeather(root: HTMLElement, context: WidgetContext): void {
   }
 
   function showReport(place: WeatherPlace, report: WeatherReport | null, failed: boolean): void {
-    const change = h("button", { type: "button", class: "link", onclick: () => showPlaceForm() }, t("changeCity"));
+    action.replaceChildren(h("button", { type: "button", class: "link", onclick: () => showPlaceForm(undefined, true) }, t("changeCity")));
+    body.classList.toggle("has-report", Boolean(report));
     if (!report) {
-      body.replaceChildren(h("p", { class: "weather-place" }, place.name), h("p", { class: "notice" }, t("weatherUnavailable")), change);
+      body.replaceChildren(h("p", { class: "weather-place" }, place.name), h("p", { class: "notice" }, t("weatherUnavailable")));
       context.relayout();
       return;
     }
@@ -469,11 +518,14 @@ export function mountWeather(root: HTMLElement, context: WidgetContext): void {
     const degrees = (value: number) => `⁦${number(value)}°⁩`;
     body.replaceChildren(
       h("div", { class: "weather-now" }, glyph, h("span", { class: "weather-temp", dir: "ltr" }, `${number(report.temperature)}${symbol}`)),
-      h("p", { class: "weather-place" }, place.name),
-      h("p", { class: "weather-condition" }, t(weatherConditionKey(report.code))),
-      h("p", { class: "weather-range" }, t("highLow", degrees(report.high), degrees(report.low))),
+      h(
+        "div",
+        { class: "weather-about" },
+        h("p", { class: "weather-place" }, place.name),
+        h("p", { class: "weather-condition" }, t(weatherConditionKey(report.code))),
+        h("p", { class: "weather-range" }, t("highLow", degrees(report.high), degrees(report.low))),
+      ),
       ...(failed ? [h("p", { class: "notice" }, t("weatherStale", new Date(report.fetchedAt).toLocaleTimeString(locale(), { hour: "numeric", minute: "2-digit" })))] : []),
-      h("p", { style: "margin-top: 0.6rem" }, change),
     );
     context.relayout();
   }

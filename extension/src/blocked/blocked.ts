@@ -3,7 +3,7 @@
 import { localizePage, t } from "../shared/i18n.ts";
 import { siteOf, type Message } from "../shared/shields.ts";
 
-document.documentElement.dataset.theme = matchMedia("(prefers-color-scheme: dark)").matches ? "space" : "light";
+document.documentElement.dataset.theme = matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
 localizePage();
 
 const target = location.hash.slice(1);

@@ -19,6 +19,9 @@ export function localizePage(root: ParentNode = document): void {
   for (const element of root.querySelectorAll<HTMLElement>("[data-i18n-label]")) {
     element.setAttribute("aria-label", t(element.dataset.i18nLabel!));
   }
+  for (const element of root.querySelectorAll<HTMLElement>("[data-i18n-title]")) {
+    element.title = t(element.dataset.i18nTitle!);
+  }
   for (const element of root.querySelectorAll<HTMLInputElement>("[data-i18n-placeholder]")) {
     element.placeholder = t(element.dataset.i18nPlaceholder!);
   }

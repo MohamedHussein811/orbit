@@ -1,0 +1,53 @@
+diff --git a/components/omnibox/browser/autocomplete_input.cc b/components/omnibox/browser/autocomplete_input.cc
+--- a/components/omnibox/browser/autocomplete_input.cc
++++ b/components/omnibox/browser/autocomplete_input.cc
+@@ -186,6 +186,16 @@
+     AdjustCursorPositionIfNecessary(text.length() - text_.length(),
+                                     &cursor_position_);
+ 
++  // The address bar shows Orbit's internal pages as orbit://, so a typed
++  // orbit:// address means the chrome:// page. Only typed input is mapped.
++  if (base::StartsWith(text_, u"orbit://",
++                       base::CompareCase::INSENSITIVE_ASCII)) {
++    text_.replace(0, 5, u"chrome");
++    if (cursor_position_ != std::u16string::npos && cursor_position_ >= 5) {
++      ++cursor_position_;
++    }
++  }
++
+   GURL canonicalized_url;
+   type_ = Parse(text_, desired_tld_, scheme_classifier, &parts_, &scheme_,
+                 &canonicalized_url);
+diff --git a/components/omnibox/browser/location_bar_model_impl.cc b/components/omnibox/browser/location_bar_model_impl.cc
+--- a/components/omnibox/browser/location_bar_model_impl.cc
++++ b/components/omnibox/browser/location_bar_model_impl.cc
+@@ -10,6 +10,7 @@
+ #include "base/feature_list.h"
+ #include "base/metrics/field_trial_params.h"
+ #include "base/notreached.h"
++#include "base/strings/string_util.h"
+ #include "base/strings/utf_string_conversions.h"
+ #include "base/time/time.h"
+ #include "build/build_config.h"
+@@ -147,12 +148,20 @@
+   // Note that we can't unescape spaces here, because if the user copies this
+   // and pastes it into another program, that program may think the URL ends at
+   // the space.
+-  const std::u16string formatted_text =
++  std::u16string formatted_text =
+       delegate_->FormattedStringWithEquivalentMeaning(
+           url, url_formatter::FormatUrl(url, format_types,
+                                         base::UnescapeRule::NORMAL, nullptr,
+                                         nullptr, nullptr));
+ 
++  // Orbit shows its internal chrome:// pages as orbit://. AutocompleteInput
++  // turns a typed orbit:// address back into the chrome:// page.
++  if (url.SchemeIs("chrome") &&
++      base::StartsWith(formatted_text, u"chrome://",
++                       base::CompareCase::INSENSITIVE_ASCII)) {
++    formatted_text.replace(0, 6, u"orbit");
++  }
++
+   // Truncating the URL breaks editing and then pressing enter, but hopefully
+   // people won't try to do much with such enormous URLs anyway. If this becomes
+   // a real problem, we could perhaps try to keep some sort of different "elided

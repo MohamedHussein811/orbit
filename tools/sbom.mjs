@@ -14,6 +14,8 @@ export function createSbom() {
   const engine = readJson("engine/engine.json");
   const filters = readJson("filters/rules/meta.json");
   const font = path.join(ROOT, "extension", "src", "shared", "fonts", "ReadexPro.ttf");
+  const media = path.join(ROOT, "extension", "src", "newtab", "media");
+  const sha256 = (file) => crypto.createHash("sha256").update(fs.readFileSync(file)).digest("hex");
 
   const components = [
     {
@@ -35,8 +37,20 @@ export function createSbom() {
       type: "library",
       name: "Readex Pro",
       licenses: [{ license: { id: "OFL-1.1" } }],
-      hashes: [{ alg: "SHA-256", content: crypto.createHash("sha256").update(fs.readFileSync(font)).digest("hex") }],
+      hashes: [{ alg: "SHA-256", content: sha256(font) }],
     },
+    ...[
+      ["blackhole.webm", "Re-encoded video, the new tab page's default background."],
+      ["blackhole.jpg", "One frame of the video, shown until it plays and when motion is reduced."],
+    ].map(([file, description]) => ({
+      type: "data",
+      name: `Black Hole Accretion Disk Visualization (${file})`,
+      "bom-ref": `background-${file}`,
+      description: `${description} Credit: NASA's Goddard Space Flight Center/Jeremy Schnittman.`,
+      licenses: [{ license: { name: "Public domain (NASA media guidelines)" } }],
+      externalReferences: [{ type: "website", url: "https://svs.gsfc.nasa.gov/13326/" }],
+      hashes: [{ alg: "SHA-256", content: sha256(path.join(media, file)) }],
+    })),
     ...Object.entries(filters.lists).map(([id, list]) => ({
       type: "data",
       name: list.name,

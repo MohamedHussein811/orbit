@@ -1,10 +1,15 @@
-// Dashboard page: loads settings and layout, draws the widgets, and runs the Customize panel.
+// Dashboard page: background, layout, widgets and the Customize panel.
 
 import { ALLOWED_SIZES, defaultLayout, moveWidget, sanitizeLayout, updateWidget, type Layout, type WidgetId, type WidgetSize } from "../shared/layout.ts";
 import { localizePage, t } from "../shared/i18n.ts";
 import { BACKGROUNDS, resolveTheme, sanitizeSettings, type Background, type Settings } from "../shared/settings.ts";
 import { h, icon, iconButton } from "./dom.ts";
+import { loadCustomMedia, MAX_MEDIA_BYTES, MEDIA_TYPES, removeCustomMedia, saveCustomMedia } from "./media-store.ts";
 import { mountBookmarks, mountNotes, mountSearch, mountStats, mountWeather, type WidgetContext } from "./widgets.ts";
+
+const DEFAULT_VIDEO = "media/blackhole.webm";
+const DEFAULT_POSTER = "media/blackhole.jpg";
+const VIDEO_SOURCE = "https://svs.gsfc.nasa.gov/13326/";
 
 const WIDGET_NAMES: Record<WidgetId, string> = {
   search: "widgetSearch",
@@ -14,18 +19,28 @@ const WIDGET_NAMES: Record<WidgetId, string> = {
   notes: "widgetNotes",
 };
 const SIZE_NAMES: Record<WidgetSize, string> = { small: "sizeSmall", medium: "sizeMedium", large: "sizeLarge" };
-const BACKGROUND_NAMES: Record<Background, string> = { scene: "backgroundSpace", plain: "backgroundPlain" };
-const MAX_WALLPAPER_BYTES = 12 * 1024 * 1024;
-/** Widgets that sit above the planet's edge. The rest rest on the planet below it. */
-const ABOVE_HORIZON = new Set<WidgetId>(["search", "bookmarks"]);
+const BACKGROUND_NAMES: Record<Background, string> = { default: "backgroundDefault", custom: "backgroundCustom", plain: "backgroundPlain" };
+const DOCK = new Set<WidgetId>(["stats", "weather", "notes"]);
 
 let settings: Settings;
 let layout: Layout;
+let customMedia: Blob | null = null;
+let customUrl: string | null = null;
+let customFailed = false;
+let mediaNotice = "";
 
 const root = document.documentElement;
-const board = document.getElementById("board")!;
+const top = document.getElementById("top")!;
+const searchSlot = document.getElementById("search")!;
+const dock = document.getElementById("dock")!;
+const credit = document.getElementById("credit")!;
+const motion = document.getElementById("motion") as HTMLButtonElement;
+const video = document.getElementById("backdrop-video") as HTMLVideoElement;
+const image = document.getElementById("backdrop-image") as HTMLImageElement;
 const drawer = document.getElementById("customize") as HTMLDialogElement;
+const openButton = document.getElementById("open-customize") as HTMLButtonElement;
 const prefersDark = matchMedia("(prefers-color-scheme: dark)");
+const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)");
 
 // Theme and background
 function applyTheme(): void {
@@ -38,24 +53,75 @@ function applyTheme(): void {
   }
 }
 
-async function applyWallpaper(): Promise<void> {
-  const { wallpaper } = await chrome.storage.local.get("wallpaper");
-  const has = typeof wallpaper === "string" && wallpaper.startsWith("data:image/");
-  document.body.classList.toggle("has-wallpaper", has);
-  if (has) document.body.style.setProperty("--wallpaper", `url("${wallpaper}")`);
-  else document.body.style.removeProperty("--wallpaper");
+const isVideo = (blob: Blob) => blob.type.startsWith("video/");
+
+function setCustomMedia(blob: Blob | null): void {
+  if (customUrl) URL.revokeObjectURL(customUrl);
+  customMedia = blob;
+  customUrl = blob ? URL.createObjectURL(blob) : null;
+  customFailed = false;
 }
 
-/** Puts the planet's edge in the gap above the first widget that rests on it. */
-function placeHorizon(): void {
-  const gap = board.querySelector<HTMLElement>(".horizon-gap");
-  if (!gap) {
-    root.style.setProperty("--horizon", "80vh");
-    return;
+function hasVideo(): boolean {
+  return !video.hidden && Boolean(video.getAttribute("src"));
+}
+
+function syncPlayback(): void {
+  motion.hidden = !hasVideo() || reducedMotion.matches;
+  if (!hasVideo()) return;
+  if (settings.videoPaused || reducedMotion.matches || document.hidden) video.pause();
+  else void video.play().catch(() => {});
+  const label = t(settings.videoPaused ? "playVideo" : "pauseVideo");
+  motion.replaceChildren(icon(settings.videoPaused ? "play" : "pause"));
+  motion.setAttribute("aria-label", label);
+  motion.title = label;
+}
+
+function showVideo(src: string, poster: string | null): void {
+  image.hidden = true;
+  image.removeAttribute("src");
+  video.hidden = false;
+  if (poster) video.poster = poster;
+  else video.removeAttribute("poster");
+  if (video.getAttribute("src") !== src) video.src = src;
+}
+
+function showImage(src: string): void {
+  video.pause();
+  video.removeAttribute("src");
+  video.hidden = true;
+  image.hidden = false;
+  image.src = src;
+}
+
+function showNoMedia(): void {
+  video.pause();
+  video.removeAttribute("src");
+  video.hidden = true;
+  image.hidden = true;
+  image.removeAttribute("src");
+}
+
+function applyBackground(): void {
+  credit.replaceChildren();
+  if (settings.background === "plain") {
+    showNoMedia();
+  } else if (settings.background === "custom" && customMedia && customUrl && !customFailed) {
+    if (isVideo(customMedia)) showVideo(customUrl, null);
+    else showImage(customUrl);
+  } else {
+    showVideo(DEFAULT_VIDEO, DEFAULT_POSTER);
+    credit.append(h("a", { href: VIDEO_SOURCE }, t("videoCredit")));
   }
-  const rect = gap.getBoundingClientRect();
-  const middle = rect.top + scrollY + rect.height / 2;
-  root.style.setProperty("--horizon", `${Math.round(Math.max(middle, innerHeight * 0.4))}px`);
+  syncPlayback();
+}
+
+function customMediaFailed(): void {
+  if (!customUrl || settings.background !== "custom") return;
+  customFailed = true;
+  mediaNotice = t("mediaUnplayable");
+  applyBackground();
+  if (drawer.open) drawDrawer();
 }
 
 async function saveSettings(patch: Partial<Settings>): Promise<void> {
@@ -63,7 +129,35 @@ async function saveSettings(patch: Partial<Settings>): Promise<void> {
   await chrome.storage.local.set({ settings });
 }
 
-const context: WidgetContext = { settings: () => settings, saveSettings, relayout: () => placeHorizon() };
+async function chooseBackground(background: Background): Promise<void> {
+  mediaNotice = "";
+  await saveSettings({ background });
+  applyTheme();
+  applyBackground();
+  drawDrawer();
+}
+
+async function useFile(chosen: File): Promise<void> {
+  if (!MEDIA_TYPES.includes(chosen.type)) {
+    mediaNotice = t("mediaUnsupported");
+  } else if (chosen.size > MAX_MEDIA_BYTES) {
+    mediaNotice = t("mediaTooLarge");
+  } else {
+    try {
+      await saveCustomMedia(chosen);
+    } catch {
+      mediaNotice = t("mediaNotSaved");
+      drawDrawer();
+      return;
+    }
+    setCustomMedia(chosen);
+    await chooseBackground("custom");
+    return;
+  }
+  drawDrawer();
+}
+
+const context: WidgetContext = { settings: () => settings, saveSettings, relayout: () => {} };
 
 // Board
 const MOUNT: Record<WidgetId, (frame: HTMLElement) => void> = {
@@ -74,16 +168,19 @@ const MOUNT: Record<WidgetId, (frame: HTMLElement) => void> = {
   notes: (frame) => mountNotes(frame),
 };
 
+function slotFor(id: WidgetId): HTMLElement {
+  if (id === "search") return searchSlot;
+  if (id === "bookmarks") return top;
+  return dock;
+}
+
 function drawBoard(): void {
-  board.replaceChildren();
-  let gapPlaced = false;
+  top.replaceChildren();
+  searchSlot.replaceChildren();
+  dock.replaceChildren();
   for (const widget of layout.widgets) {
-    if (!gapPlaced && widget.visible && !ABOVE_HORIZON.has(widget.id)) {
-      board.append(h("div", { class: "horizon-gap", "aria-hidden": "true" }));
-      gapPlaced = true;
-    }
-    const frame = h("section", { class: `widget size-${widget.size}`, "data-id": widget.id, "aria-label": t(WIDGET_NAMES[widget.id]), hidden: !widget.visible });
-    board.append(frame);
+    const frame = h("div", { class: `widget size-${widget.size}`, "data-id": widget.id, role: "region", "aria-label": t(WIDGET_NAMES[widget.id]), hidden: !widget.visible });
+    slotFor(widget.id).append(frame);
     if (widget.visible) {
       try {
         MOUNT[widget.id](frame);
@@ -93,9 +190,9 @@ function drawBoard(): void {
         frame.textContent = t("widgetFailed", t(WIDGET_NAMES[widget.id]));
       }
     }
-    attachDrag(frame, widget.id);
+    if (DOCK.has(widget.id)) attachDrag(frame, widget.id);
   }
-  requestAnimationFrame(placeHorizon);
+  dock.hidden = ![...dock.children].some((child) => !(child as HTMLElement).hidden);
 }
 
 function attachDrag(frame: HTMLElement, id: WidgetId): void {
@@ -113,8 +210,7 @@ function attachDrag(frame: HTMLElement, id: WidgetId): void {
     const moved = event.dataTransfer?.getData("application/x-orbit-widget") as WidgetId | undefined;
     if (!moved || moved === id) return;
     event.preventDefault();
-    const target = layout.widgets.findIndex((widget) => widget.id === id);
-    void setLayout(moveWidget(layout, moved, target));
+    void setLayout(moveWidget(layout, moved, layout.widgets.findIndex((widget) => widget.id === id)));
   });
 }
 
@@ -123,143 +219,202 @@ async function setLayout(next: Layout): Promise<void> {
   await chrome.storage.local.set({ layout });
   drawBoard();
   markEditable(drawer.open);
-  drawDrawer();
+  if (drawer.open) drawDrawer();
 }
 
 function markEditable(editing: boolean): void {
   document.body.classList.toggle("editing", editing);
-  for (const frame of board.querySelectorAll<HTMLElement>(".widget")) {
-    frame.draggable = editing;
-  }
+  for (const frame of dock.querySelectorAll<HTMLElement>(".widget")) frame.draggable = editing;
+}
+
+/** Index of the next dock widget before or after this one, or -1 at either end. */
+function dockNeighbor(id: WidgetId, step: -1 | 1): number {
+  const order = layout.widgets.filter((widget) => DOCK.has(widget.id)).map((widget) => widget.id);
+  const neighbor = order[order.indexOf(id) + step];
+  return neighbor ? layout.widgets.findIndex((widget) => widget.id === neighbor) : -1;
 }
 
 // Customize panel
+function backgroundThumb(background: Background): HTMLElement {
+  const thumb = h("span", { class: "bg-thumb", "data-kind": background });
+  if (background === "default") {
+    thumb.append(h("img", { src: DEFAULT_POSTER, alt: "", decoding: "async" }));
+  } else if (background === "custom" && customMedia && customUrl && !customFailed) {
+    thumb.append(isVideo(customMedia) ? h("video", { src: `${customUrl}#t=0.1`, muted: true, playsinline: true, preload: "auto" }) : h("img", { src: customUrl, alt: "", decoding: "async" }));
+  } else if (background === "custom") {
+    thumb.append(icon("upload"));
+  }
+  thumb.append(h("span", { class: "bg-check" }, icon("check")));
+  return thumb;
+}
+
+function toggleRow(label: string, input: HTMLInputElement, note?: string): HTMLElement {
+  return h("label", { class: "toggle-row" }, h("span", {}, label, note ? h("small", {}, note) : null), input);
+}
+
 function drawDrawer(): void {
-  const backgroundRow = h(
+  const focused = (document.activeElement as HTMLElement | null)?.dataset?.focusKey;
+  const usable = Boolean(customMedia && !customFailed);
+
+  const file = h("input", {
+    type: "file",
+    class: "visually-hidden",
+    accept: MEDIA_TYPES.join(","),
+    tabindex: "-1",
+    "aria-hidden": "true",
+    onchange: () => {
+      const chosen = file.files?.[0];
+      if (chosen) void useFile(chosen);
+    },
+  });
+
+  const options = h(
     "div",
-    { class: "segmented", role: "group", "aria-label": t("background") },
+    { class: "bg-options", role: "group", "aria-label": t("background") },
     ...BACKGROUNDS.map((background) =>
       h(
         "button",
         {
           type: "button",
+          class: "bg-option",
+          "data-focus-key": `bg-${background}`,
           "aria-pressed": String(settings.background === background),
-          onclick: async () => {
-            await saveSettings({ background });
-            applyTheme();
-            drawDrawer();
+          onclick: () => {
+            if (background === "custom" && !usable) file.click();
+            else void chooseBackground(background);
           },
         },
-        t(BACKGROUND_NAMES[background]),
+        backgroundThumb(background),
+        h("span", { class: "bg-label" }, t(BACKGROUND_NAMES[background])),
       ),
     ),
   );
 
-  const wallpaperNotice = h("p", { class: "notice", role: "status" });
-  const file = h("input", {
-    type: "file",
-    accept: "image/png,image/jpeg,image/webp",
-    "aria-label": t("chooseImage"),
-    onchange: () => {
-      const chosen = file.files?.[0];
-      if (!chosen) return;
-      if (chosen.size > MAX_WALLPAPER_BYTES) {
-        wallpaperNotice.textContent = t("imageTooLarge");
-        return;
-      }
-      const reader = new FileReader();
-      reader.onload = async () => {
-        await chrome.storage.local.set({ wallpaper: String(reader.result) });
-        wallpaperNotice.textContent = "";
-        await applyWallpaper();
-        drawDrawer();
-      };
-      reader.readAsDataURL(chosen);
+  const clock = h("input", {
+    type: "checkbox",
+    class: "switch",
+    "data-focus-key": "clock",
+    checked: settings.showClock,
+    onchange: async () => {
+      await saveSettings({ showClock: clock.checked });
+      applyClock();
     },
   });
-  const hasWallpaper = document.body.classList.contains("has-wallpaper");
+
+  const playback = h("input", {
+    type: "checkbox",
+    class: "switch",
+    "data-focus-key": "playback",
+    checked: !settings.videoPaused && !reducedMotion.matches,
+    disabled: reducedMotion.matches,
+    onchange: async () => {
+      await saveSettings({ videoPaused: !playback.checked });
+      syncPlayback();
+    },
+  });
 
   const widgetList = h(
     "ul",
     { class: "widget-list" },
-    ...layout.widgets.map((widget, index) => {
+    ...layout.widgets.map((widget) => {
       const name = t(WIDGET_NAMES[widget.id]);
       const visible = h("input", {
         type: "checkbox",
         class: "switch",
+        "data-focus-key": `${widget.id}-visible`,
         checked: widget.visible,
         onchange: () => void setLayout(updateWidget(layout, widget.id, { visible: visible.checked })),
       });
       const sizes = ALLOWED_SIZES[widget.id];
+      const inDock = DOCK.has(widget.id);
       const size =
-        sizes.length > 1
+        inDock && sizes.length > 1
           ? h(
               "select",
-              { "aria-label": t("widgetSize", name), onchange: () => void setLayout(updateWidget(layout, widget.id, { size: size!.value as WidgetSize })) },
+              { "aria-label": t("widgetSize", name), "data-focus-key": `${widget.id}-size`, onchange: () => void setLayout(updateWidget(layout, widget.id, { size: size!.value as WidgetSize })) },
               ...sizes.map((option) => h("option", { value: option }, t(SIZE_NAMES[option]))),
             )
           : null;
       if (size) size.value = widget.size;
+      const before = dockNeighbor(widget.id, -1);
+      const after = dockNeighbor(widget.id, 1);
       return h(
         "li",
         {},
-        h("label", {}, visible, name),
+        h("label", {}, visible, h("span", {}, name)),
         size,
-        iconButton("up", t("moveUp", name), () => void setLayout(moveWidget(layout, widget.id, index - 1)), { disabled: index === 0 }),
-        iconButton("down", t("moveDown", name), () => void setLayout(moveWidget(layout, widget.id, index + 1)), { disabled: index === layout.widgets.length - 1 }),
+        inDock && iconButton("up", t("moveUp", name), () => void setLayout(moveWidget(layout, widget.id, before)), { disabled: before < 0, "data-focus-key": `${widget.id}-up` }),
+        inDock && iconButton("down", t("moveDown", name), () => void setLayout(moveWidget(layout, widget.id, after)), { disabled: after < 0, "data-focus-key": `${widget.id}-down` }),
       );
     }),
   );
 
   drawer.replaceChildren(
-    h("div", { class: "drawer-head" }, h("h2", { id: "customize-title" }, t("customize")), iconButton("close", t("close"), () => drawer.close())),
+    h("div", { class: "drawer-head" }, h("h2", { id: "customize-title" }, t("customize")), iconButton("close", t("close"), () => drawer.close(), { "data-focus-key": "close" })),
     h(
       "section",
       {},
       h("h3", {}, t("background")),
-      h("div", { class: "drawer-row" }, backgroundRow),
+      options,
+      file,
       h(
         "div",
-        { class: "drawer-row", style: "margin-top: 0.75rem" },
-        h("label", { class: "button quiet file-button" }, icon("image"), hasWallpaper ? t("changeImage") : t("chooseImage"), file),
-        hasWallpaper &&
+        { class: "drawer-row" },
+        h("button", { type: "button", class: "button quiet", "data-focus-key": "media-choose", onclick: () => file.click() }, icon("upload"), t("chooseMedia")),
+        customMedia &&
           h(
             "button",
             {
               type: "button",
               class: "button quiet",
+              "data-focus-key": "media-remove",
               onclick: async () => {
-                await chrome.storage.local.remove("wallpaper");
-                await applyWallpaper();
-                drawDrawer();
+                await removeCustomMedia();
+                setCustomMedia(null);
+                await chooseBackground(settings.background === "custom" ? "default" : settings.background);
               },
             },
-            t("removeImage"),
+            t("removeMedia"),
           ),
       ),
-      wallpaperNotice,
+      h("p", { class: "notice" }, t("mediaHint")),
+      h("p", { class: "notice alert", role: "status" }, mediaNotice),
     ),
+    h("section", {}, toggleRow(t("showClock"), clock), toggleRow(t("playVideoSetting"), playback, reducedMotion.matches ? t("reducedMotionNote") : undefined)),
     h(
       "section",
       {},
       h("h3", {}, t("browserTheme")),
       h("p", { class: "notice" }, t("browserThemeExplained")),
-      h("button", { type: "button", class: "button quiet", onclick: () => void chrome.tabs.update({ url: "chrome://settings/appearance" }) }, t("openThemeSettings")),
+      h("button", { type: "button", class: "button quiet", "data-focus-key": "theme", onclick: () => void chrome.tabs.update({ url: "chrome://settings/appearance" }) }, t("openThemeSettings")),
     ),
     h(
       "section",
       {},
       h("h3", {}, t("widgets")),
       widgetList,
-      h("p", { class: "notice", style: "margin-top: 0.5rem" }, t("dragHint")),
-      h("button", { type: "button", class: "link", onclick: () => void setLayout(defaultLayout()) }, t("restoreLayout")),
+      h("p", { class: "notice" }, t("dragHint")),
+      h("button", { type: "button", class: "link", "data-focus-key": "restore", onclick: () => void setLayout(defaultLayout()) }, t("restoreLayout")),
     ),
   );
+  if (focused) drawer.querySelector<HTMLElement>(`[data-focus-key="${focused}"]`)?.focus();
+}
+
+async function openDrawer(): Promise<void> {
+  if (!customMedia) setCustomMedia(await loadCustomMedia());
+  drawDrawer();
+  drawer.show();
+  openButton.setAttribute("aria-expanded", "true");
+  markEditable(true);
+  drawer.querySelector<HTMLElement>(".bg-option[aria-pressed='true']")?.focus();
 }
 
 // Clock
 const timeElement = document.getElementById("time") as HTMLTimeElement;
-const dateElement = document.getElementById("date")!;
+
+function applyClock(): void {
+  timeElement.hidden = !settings.showClock;
+}
 
 function tick(): void {
   const now = new Date();
@@ -267,9 +422,13 @@ function tick(): void {
   timeElement.dateTime = now.toISOString();
   const parts = new Intl.DateTimeFormat(locale, { hour: "numeric", minute: "2-digit" }).formatToParts(now);
   timeElement.replaceChildren(
-    ...parts.map((part) => (part.type === "dayPeriod" ? h("span", { class: "period" }, part.value) : part.type === "literal" && /^s+$/.test(part.value) ? "" : part.value)),
+    h(
+      "span",
+      { class: "time" },
+      ...parts.map((part) => (part.type === "dayPeriod" ? h("span", { class: "period" }, part.value) : part.type === "literal" && /^\s+$/.test(part.value) ? "" : part.value)),
+    ),
+    h("span", { class: "date" }, now.toLocaleDateString(locale, { weekday: "long", month: "long", day: "numeric" })),
   );
-  dateElement.textContent = now.toLocaleDateString(locale, { weekday: "long", month: "long", day: "numeric" });
   setTimeout(tick, 60_000 - (now.getSeconds() * 1000 + now.getMilliseconds()));
 }
 
@@ -279,26 +438,52 @@ async function main(): Promise<void> {
   settings = sanitizeSettings(stored.settings);
   layout = sanitizeLayout(stored.layout);
   applyTheme();
+  applyClock();
   tick();
-  await applyWallpaper();
-  drawBoard();
-  drawDrawer();
-  prefersDark.addEventListener("change", applyTheme);
-  addEventListener("resize", placeHorizon);
-  document.getElementById("open-customize")!.addEventListener("click", () => {
-    drawDrawer();
-    drawer.show();
-    markEditable(true);
-    drawer.querySelector<HTMLElement>("button")?.focus();
+  if (settings.background === "custom") setCustomMedia(await loadCustomMedia());
+  video.addEventListener("error", () => {
+    if (customUrl && video.getAttribute("src") === customUrl) customMediaFailed();
   });
-  drawer.addEventListener("close", () => markEditable(false));
+  image.addEventListener("error", () => {
+    if (customUrl && image.getAttribute("src") === customUrl) customMediaFailed();
+  });
+  applyBackground();
+  drawBoard();
+  prefersDark.addEventListener("change", applyTheme);
+  reducedMotion.addEventListener("change", () => {
+    syncPlayback();
+    if (drawer.open) drawDrawer();
+  });
+  document.addEventListener("visibilitychange", syncPlayback);
+  motion.addEventListener("click", async () => {
+    await saveSettings({ videoPaused: !settings.videoPaused });
+    syncPlayback();
+    if (drawer.open) drawDrawer();
+  });
+  openButton.addEventListener("click", () => {
+    if (drawer.open) drawer.close();
+    else void openDrawer();
+  });
+  drawer.addEventListener("close", () => {
+    markEditable(false);
+    openButton.setAttribute("aria-expanded", "false");
+    openButton.focus();
+  });
   document.addEventListener("keydown", (event) => {
     if (event.key === "Escape" && drawer.open) drawer.close();
   });
-  chrome.storage.onChanged.addListener((changes, area) => {
-    if (area === "local" && changes.settings) {
-      settings = sanitizeSettings(changes.settings.newValue);
-      applyTheme();
+  chrome.storage.onChanged.addListener(async (changes, area) => {
+    if (area !== "local" || !changes.settings) return;
+    const next = sanitizeSettings(changes.settings.newValue);
+    const backgroundChanged = next.background !== settings.background;
+    settings = next;
+    applyTheme();
+    applyClock();
+    if (backgroundChanged) {
+      setCustomMedia(await loadCustomMedia());
+      applyBackground();
+    } else {
+      syncPlayback();
     }
   });
 }

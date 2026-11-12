@@ -86,13 +86,6 @@ try {
   expect("default search engine", engines.find((e) => e.isDefault)?.name, "DuckDuckGo");
 
   expect("default color scheme is dark", value(prefs.browser?.theme?.color_scheme2), 2);
-  const orbitTheme = () => page.eval(`import("chrome://resources/js/cr.js").then((cr) => cr.sendWithPromise("getOrbitTheme"))`);
-  expect("default theme", await orbitTheme(), "space");
-  for (const theme of ["dark", "light", "system", "space"]) {
-    await page.eval(`chrome.send("setOrbitTheme", [${JSON.stringify(theme)}])`);
-    await sleep(500);
-    expect(`theme choice ${theme}`, await orbitTheme(), theme);
-  }
 
   const prefix = `chrome-extension://${extensionId}/`;
   // The extension installs about 20 seconds after a first start. Opening new tab pages every few

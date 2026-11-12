@@ -44,14 +44,14 @@ test("corrupted layouts become usable layouts", () => {
   const partial = sanitizeLayout({ widgets: [{ id: "notes", visible: false, size: "large" }, { id: "nope" }, { id: "notes" }, { id: "weather", size: "large" }] });
   assert.deepEqual(partial.widgets.map((w) => w.id), ["notes", "weather", "search", "bookmarks", "stats"]);
   assert.equal(partial.widgets[0]!.visible, false);
-  assert.equal(partial.widgets[1]!.size, "medium");
+  assert.equal(partial.widgets[1]!.size, "small");
 });
 
 test("layouts move and resize widgets within their allowed sizes", () => {
   const layout = moveWidget(defaultLayout(), "notes", 0);
   assert.equal(layout.widgets[0]!.id, "notes");
   assert.equal(moveWidget(layout, "notes", 99).widgets.at(-1)!.id, "notes");
-  assert.equal(updateWidget(layout, "weather", { size: "large" }).widgets.find((w) => w.id === "weather")!.size, "medium");
+  assert.equal(updateWidget(layout, "weather", { size: "large" }).widgets.find((w) => w.id === "weather")!.size, "small");
   assert.equal(updateWidget(layout, "stats", { size: "large" }).widgets.find((w) => w.id === "stats")!.size, "large");
 });
 
@@ -78,15 +78,19 @@ test("note edits ignore invalid values", () => {
 
 test("settings fall back to safe defaults", () => {
   const settings = sanitizeSettings({ background: "neon", statsPeriod: "never", temperatureUnit: "kelvin", bookmarksFolder: 4 });
-  assert.equal(settings.background, "scene");
+  assert.equal(settings.background, "default");
+  assert.equal(settings.videoPaused, false);
+  assert.equal(settings.showClock, true);
   assert.equal(settings.statsPeriod, "7d");
   assert.equal(settings.temperatureUnit, "celsius");
   assert.equal(settings.bookmarksFolder, null);
   assert.equal(sanitizeSettings({ background: "plain" }).background, "plain");
+  assert.equal(sanitizeSettings({ background: "custom", videoPaused: true }).videoPaused, true);
+  assert.equal(sanitizeSettings({ videoPaused: "yes", showClock: 0 }).videoPaused, false);
 });
 
 test("the dashboard follows the browser theme", () => {
-  assert.equal(resolveTheme(true), "space");
+  assert.equal(resolveTheme(true), "dark");
   assert.equal(resolveTheme(false), "light");
 });
 

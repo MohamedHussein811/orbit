@@ -70,7 +70,10 @@ def message_ids(grd):
     from grit import grd_reader
     from grit.node import message
 
-    conditions = " ".join(re.findall(r'<if expr="([^"]*)"', grd.read_text(encoding="utf-8")))
+    sources = [grd, *grd_parts(grd)]
+    conditions = " ".join(
+        expr for path in sources for expr in re.findall(r'<if expr="([^"]*)"', path.read_text(encoding="utf-8"))
+    )
     defines = {name: False for name in re.findall(r"[A-Za-z_]\w*", conditions)}
     root = grd_reader.Parse(str(grd), dir=str(grd.parent), debug=False, defines=defines)
     return [
@@ -121,7 +124,17 @@ def brand_strings(src):
 
 
 def grd_parts(grd):
-    return [grd.parent / part for part in PART.findall(grd.read_text(encoding="utf-8"))]
+    """The part files a grd includes, including parts of parts."""
+    found = []
+    pending = [grd]
+    while pending:
+        current = pending.pop()
+        for part in PART.findall(current.read_text(encoding="utf-8")):
+            path = current.parent / part
+            if path not in found:
+                found.append(path)
+                pending.append(path)
+    return found
 
 
 def rename_messages(src, relative, english, translation):

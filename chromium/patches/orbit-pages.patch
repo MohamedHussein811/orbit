@@ -6,24 +6,24 @@ diff --git a/chrome/browser/resources/new_tab_page_incognito_guest/incognito_tab
    }
  }
 +
-+/* Orbit private window: deep space with a soft accent glow. */
++/* Orbit private window. */
 +html:not([hascustombackground='true']) {
 +  background:
 +    radial-gradient(70rem 32rem at 50% -12rem, rgb(141 155 255 / 0.2), transparent 70%),
-+    #070920;
++    #131418;
 +}
 +
 +.content {
-+  color: #c0c7da;
++  color: #c4c6ce;
 +}
 +
 +h1,
 +em {
-+  color: #e0e2ed;
++  color: #e1e3e7;
 +}
 +
 +#cookie-controls {
-+  background-color: #121730;
++  background-color: #24252c;
 +  border: 1px solid rgb(224 226 237 / 0.1);
 +  border-radius: 16px;
 +}
@@ -61,21 +61,21 @@ diff --git a/components/security_interstitials/core/common/resources/interstitia
 +
 +@media (prefers-color-scheme: dark) {
 +  body {
-+    --background-color: #0b0e27;
-+    --error-code-color: #8891aa;
-+    --heading-color: #e0e2ed;
++    --background-color: #1a1c22;
++    --error-code-color: #8e9099;
++    --heading-color: #e1e3e7;
 +    --link-color: #9eacff;
 +    --primary-button-fill-color-active: #b8c2ff;
 +    --primary-button-fill-color: #9eacff;
 +    --primary-button-text-color: #261e84;
-+    --quiet-background-color: #0b0e27;
-+    --secondary-button-border-color: #343a5c;
-+    --secondary-button-fill-color: #0b0e27;
-+    --secondary-button-hover-border-color: #4c5378;
-+    --secondary-button-hover-fill-color: #1a1f38;
++    --quiet-background-color: #1a1c22;
++    --secondary-button-border-color: #44464e;
++    --secondary-button-fill-color: #1a1c22;
++    --secondary-button-hover-border-color: #5d6068;
++    --secondary-button-hover-fill-color: #282930;
 +    --secondary-button-text-color: #9eacff;
 +    --small-link-color: #9eacff;
-+    --text-color: #c0c7da;
++    --text-color: #c4c6ce;
 +  }
 +}
 +
@@ -90,7 +90,7 @@ diff --git a/components/security_interstitials/core/common/resources/interstitia
 +  html:has(body:not(.safe-browsing):not(.ssl):not(.lookalike-url):not(.enterprise-block)) {
 +    background:
 +      radial-gradient(60rem 28rem at 50% -12rem, rgb(141 155 255 / 0.14), transparent 70%),
-+      #0b0e27;
++      #1a1c22;
 +  }
 +}
 +
@@ -110,7 +110,7 @@ diff --git a/ui/webui/resources/cr_elements/icons.html.ts b/ui/webui/resources/c
        </g>
        <g id="chrome-product">
 -        <path d="M9.45 14.574c.698.7 1.55 1.051 2.55 1.051 1 0 1.852-.352 2.55-1.05.7-.7 1.052-1.552 1.052-2.552s-.352-1.847-1.051-2.546C13.85 8.773 13 8.426 12 8.426c-1 0-1.852.347-2.55 1.05-.7.7-1.052 1.547-1.052 2.547 0 1 .352 1.852 1.051 2.551ZM12 17.426c.184 0 .371-.004.563-.012.19-.012.378-.039.562-.09l-2.45 4.2c-2.402-.266-4.378-1.31-5.937-3.126-1.558-1.816-2.34-3.941-2.34-6.375 0-.714.082-1.418.239-2.109.16-.691.398-1.371.715-2.039l4 6.852A4.988 4.988 0 0 0 9.3 16.71a5.346 5.346 0 0 0 2.699.715Zm0-10.801a5.114 5.114 0 0 0-3.164 1.05 5.499 5.499 0 0 0-1.938 2.7L4.45 6.125a8.93 8.93 0 0 1 3.313-2.738A9.61 9.61 0 0 1 12 2.426c1.582 0 3.074.375 4.477 1.125a9.739 9.739 0 0 1 3.449 3.074Zm8.898 1.8c.25.583.43 1.177.54 1.774.109.602.164 1.211.164 1.824 0 2.586-.836 4.754-2.5 6.516-1.668 1.758-3.793 2.777-6.375 3.063l3.921-6.875c.235-.418.418-.852.551-1.301a5.058 5.058 0 0 0-.176-3.324A5.943 5.943 0 0 0 16 8.426Zm0 0"></path>
-+        <path d="M20.86 10.44A9 9 0 1 1 13.56 3.14L13.09 5.80A6.3 6.3 0 1 0 18.20 10.91ZM15.40 6.20a2.4 2.4 0 1 0 4.80 0a2.4 2.4 0 1 0 -4.80 0Z"></path>
++        <path d="M23.37 8.95A11.775 11.775 0 1 1 15.05 0.63A1.73 1.73 0 0 1 14.15 3.96A8.325 8.325 0 1 0 20.04 9.85A1.73 1.73 0 0 1 23.37 8.95ZM16.86 4.89a2.25 2.25 0 1 0 4.5 0a2.25 2.25 0 1 0 -4.5 0Z"></path>
        </g>
        <g id="close">
          <path d="m12 13.273-4.102 4.102a.816.816 0 0 1-.625.262.91.91 0 0 1-.625-.285.879.879 0 0 1 0-1.278L10.727 12 6.625 7.898a.83.83 0 0 1-.262-.636.914.914 0 0 1 .285-.637.879.879 0 0 1 1.278 0L12 10.727l4.102-4.102a.87.87 0 0 1 .636-.273.87.87 0 0 1 .637.273.87.87 0 0 1 .273.637.87.87 0 0 1-.273.636L13.273 12l4.102 4.102c.184.183.273.39.273.625 0 .23-.09.441-.273.625a.87.87 0 0 1-.637.273.87.87 0 0 1-.636-.273Zm0 0"></path>
@@ -121,7 +121,7 @@ diff --git a/ui/webui/resources/cr_elements/icons.html.ts b/ui/webui/resources/c
 -      <g id="chrome-product" viewBox="0 -960 960 960">
 -        <path d="M336-479q0 60 42 102t102 42q60 0 102-42t42-102q0-60-42-102t-102-42q-60 0-102 42t-42 102Zm144 216q11 0 22.5-.5T525-267L427-99q-144-16-237.5-125T96-479q0-43 9.5-84.5T134-645l160 274q28 51 78 79.5T480-263Zm0-432q-71 0-126.5 42T276-545l-98-170q53-71 132.5-109.5T480-863q95 0 179 45t138 123H480Zm356 72q15 35 21.5 71t6.5 73q0 155-100 260.5T509-96l157-275q14-25 22-52t8-56q0-40-15-77t-41-67h196Z">
 +      <g id="chrome-product" viewBox="0 0 24 24">
-+        <path d="M20.86 10.44A9 9 0 1 1 13.56 3.14L13.09 5.80A6.3 6.3 0 1 0 18.20 10.91ZM15.40 6.20a2.4 2.4 0 1 0 4.80 0a2.4 2.4 0 1 0 -4.80 0Z">
++        <path d="M23.37 8.95A11.775 11.775 0 1 1 15.05 0.63A1.73 1.73 0 0 1 14.15 3.96A8.325 8.325 0 1 0 20.04 9.85A1.73 1.73 0 0 1 23.37 8.95ZM16.86 4.89a2.25 2.25 0 1 0 4.5 0a2.25 2.25 0 1 0 -4.5 0Z">
          </path>
        </g>
        <g id="close">

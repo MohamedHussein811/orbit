@@ -1,7 +1,7 @@
 // Screenshots of a built Orbit's real window (Windows only), for design review. Starts Orbit with a
 // new profile in a temporary folder and captures only Orbit's own windows, never the screen.
 //   node tools/chromium/window-shots.mjs <chrome.exe> <out dir> <language> <scene,...>
-// Scenes: space, dark, light (Settings and the new tab page in that theme), error, history,
+// Scenes: dark, light (Settings and the new tab page in that theme), error, history,
 // privacy. Private windows come out blank this way. Loading two news sites first makes the
 // Shields counts real.
 import { execFileSync, spawn } from "node:child_process";
@@ -101,15 +101,29 @@ try {
     await browse.goto(url, { timeoutMs: 45000, settleMs: 6000 }).catch((error) => console.log("browse:", error.message));
   }
 
+  // Chooses the theme through the Mode menu in Settings > Appearance (Light, Dark, Device).
   const setTheme = async (theme) => {
     const settings = await cdp.newPage("about:blank");
-    await settings.goto("chrome://settings/appearance", { settleMs: 1000 });
-    await settings.eval(`chrome.send("setOrbitTheme", [${JSON.stringify(theme)}])`);
+    await settings.goto("chrome://settings/appearance", { settleMs: 1500 });
+    await settings.eval(`(() => {
+      const find = (root) => {
+        const hit = root.querySelector("#colorSchemeModeSelect");
+        if (hit) return hit;
+        for (const element of root.querySelectorAll("*")) {
+          const found = element.shadowRoot && find(element.shadowRoot);
+          if (found) return found;
+        }
+        return null;
+      };
+      const select = find(document);
+      select.selectedIndex = ${JSON.stringify({ light: 0, dark: 1, system: 2 })}[${JSON.stringify(theme)}];
+      select.dispatchEvent(new Event("change", { bubbles: true }));
+    })()`);
     await sleep(1500);
   };
 
   for (const scene of scenes) {
-    if (["space", "dark", "light"].includes(scene)) {
+    if (["dark", "light"].includes(scene)) {
       await setTheme(scene);
       await showTabs(["https://duckduckgo.com/", "chrome://settings/appearance"]);
       shoot(`${scene}-settings`);

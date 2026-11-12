@@ -50,29 +50,59 @@
   "background": {
     "message": "الخلفية"
   },
-  "backgroundSpace": {
-    "message": "الفضاء"
-  },
   "backgroundPlain": {
     "message": "سادة"
   },
-  "chooseImage": {
-    "message": "اختيار صورة"
+  "backgroundDefault": {
+    "message": "ثقب أسود"
   },
-  "changeImage": {
-    "message": "تغيير الصورة"
+  "backgroundCustom": {
+    "message": "من اختيارك"
   },
-  "removeImage": {
-    "message": "إزالة الصورة"
+  "chooseMedia": {
+    "message": "اختيار صورة أو فيديو"
   },
-  "imageTooLarge": {
-    "message": "اختر صورة أصغر من 12 ميغابايت."
+  "removeMedia": {
+    "message": "إزالة ملفك"
+  },
+  "mediaHint": {
+    "message": "PNG أو JPEG أو WebP أو AVIF أو WebM أو MP4، حتى 200 ميغابايت. يبقى الملف على هذا الجهاز."
+  },
+  "mediaUnsupported": {
+    "message": "لا يمكن لـ Orbit استخدام هذا النوع من الملفات. اختر صورة PNG أو JPEG أو WebP أو AVIF، أو فيديو WebM أو MP4."
+  },
+  "mediaTooLarge": {
+    "message": "هذا الملف أكبر من 200 ميغابايت. اختر ملفًا أصغر."
+  },
+  "mediaNotSaved": {
+    "message": "تعذّر على Orbit حفظ هذا الملف. وفّر مساحة على القرص وحاول مرة أخرى."
+  },
+  "mediaUnplayable": {
+    "message": "لا يستطيع Orbit تشغيل هذا الملف، لذا يظهر الثقب الأسود بدلًا منه. جرّب صورة أو فيديو آخر."
+  },
+  "showClock": {
+    "message": "إظهار الساعة"
+  },
+  "playVideoSetting": {
+    "message": "تشغيل فيديو الخلفية"
+  },
+  "reducedMotionNote": {
+    "message": "جهازك مضبوط على تقليل الحركة، لذا تبقى الخلفية ثابتة."
+  },
+  "pauseVideo": {
+    "message": "إيقاف فيديو الخلفية مؤقتًا"
+  },
+  "playVideo": {
+    "message": "تشغيل فيديو الخلفية"
+  },
+  "videoCredit": {
+    "message": "الفيديو: مركز غودارد لرحلات الفضاء التابع لناسا/جيريمي شنيتمان"
   },
   "browserTheme": {
-    "message": "المظهر والألوان"
+    "message": "المظهر"
   },
   "browserThemeExplained": {
-    "message": "تتبع هذه الصفحة مظهر المتصفح. اختر الفضاء أو الداكن أو الفاتح أو إعداد جهازك، ولون التمييز، من الإعدادات."
+    "message": "تتبع الخلفية السادة وهذه اللوحة الوضع الفاتح أو الداكن للمتصفح. يمكنك تغييره من الإعدادات."
   },
   "openThemeSettings": {
     "message": "فتح إعدادات المظهر"
@@ -130,6 +160,12 @@
   },
   "bookmarkCollections": {
     "message": "مجموعات الإشارات المرجعية"
+  },
+  "shortcutsBack": {
+    "message": "الاختصارات السابقة"
+  },
+  "shortcutsForward": {
+    "message": "مزيد من الاختصارات"
   },
   "addShortcut": {
     "message": "إضافة اختصار"

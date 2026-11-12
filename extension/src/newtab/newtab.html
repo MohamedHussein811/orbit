@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" data-theme="space" data-background="scene">
+<html lang="en" data-theme="dark" data-background="default">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -12,24 +12,31 @@
 <script src="theme-boot.js"></script>
 </head>
 <body>
-<div class="sky" aria-hidden="true">
-  <div class="nebula"></div>
-  <div class="stars"></div>
-  <div class="stars stars-far"></div>
-  <div class="planet"></div>
+<div class="backdrop" aria-hidden="true">
+  <video id="backdrop-video" class="backdrop-media" muted loop playsinline preload="auto" poster="media/blackhole.jpg" disablepictureinpicture disableremoteplayback></video>
+  <img id="backdrop-image" class="backdrop-media" alt="" hidden>
+  <div class="scrim"></div>
 </div>
 
-<button id="open-customize" class="customize-button" type="button" aria-haspopup="dialog" aria-controls="customize">
-  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg>
-  <span data-i18n="customize">Customize</span>
-</button>
-
 <main class="page">
-  <header class="hero">
+  <div id="top" class="top"></div>
+
+  <button id="open-customize" class="corner-button" type="button" aria-haspopup="dialog" aria-controls="customize" aria-expanded="false" data-i18n-label="customize" data-i18n-title="customize">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h8.5M17.5 8H20M4 16h2.5M11.5 16H20"/><circle cx="15" cy="8" r="2.5"/><circle cx="9" cy="16" r="2.5"/></svg>
+  </button>
+
+  <div class="center">
     <time id="time" class="clock"></time>
-    <p id="date" class="date"></p>
-  </header>
-  <div id="board" class="board"></div>
+    <div id="search" class="search-slot"></div>
+  </div>
+
+  <div class="bottom">
+    <div id="dock" class="dock"></div>
+    <div class="page-foot">
+      <button id="motion" class="chip-button" type="button" hidden></button>
+      <p id="credit" class="credit"></p>
+    </div>
+  </div>
 </main>
 
 <dialog id="customize" class="drawer" aria-labelledby="customize-title"></dialog>

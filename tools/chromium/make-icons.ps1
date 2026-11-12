@@ -12,7 +12,7 @@ $work = Join-Path ([IO.Path]::GetTempPath()) "orbit-icons-$PID"
 New-Item -ItemType Directory -Force $work, $macIcons | Out-Null
 
 $mark = (Get-Content "$root\branding\orbit-mark.svg" -Raw) -replace '<svg ', '<svg width="100%" height="100%" '
-$mono = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="80 80 352 352" width="100%" height="100%"><path d="M357.6 136.2 A 158 158 0 1 0 391.8 215.4" fill="none" stroke="#0c0c0c" stroke-width="52" stroke-linecap="round"/><circle cx="389" cy="125" r="42" fill="#0c0c0c"/></svg>'
+$mono = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="96 96 320 320" width="100%" height="100%"><path d="M385.43 221.32 A134 134 0 1 1 290.68 126.57" fill="none" stroke="#0c0c0c" stroke-width="46" stroke-linecap="round"/><circle cx="350.75" cy="161.25" r="30" fill="#0c0c0c"/></svg>'
 
 function Render($svg, $canvas, $size, $file) {
   $offset = [math]::Floor(($canvas - $size) / 2)
