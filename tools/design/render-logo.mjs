@@ -1,7 +1,7 @@
 // Renders branding/orbit-mark.svg into branding/icons: PNG sizes, orbit.ico and orbit.icns. Then
 // run tools/chromium/make-icons.ps1 to place them in the Chromium overlay.
-//   NODE_PATH=node_modules.gecko node tools/design/render-logo.mjs
-// Needs @resvg/resvg-js, installed in node_modules.gecko (the rest of the build does not).
+//   node tools/design/render-logo.mjs
+// Needs @resvg/resvg-js in .cache/node_modules (the rest of the build does not).
 import fs from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
@@ -9,7 +9,7 @@ import { fileURLToPath } from "node:url";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const require = createRequire(import.meta.url);
-const { Resvg } = require(path.join(ROOT, "node_modules.gecko", "@resvg", "resvg-js"));
+const { Resvg } = require(path.join(ROOT, ".cache", "node_modules", "@resvg", "resvg-js"));
 const OUT = path.join(ROOT, "branding", "icons");
 const svg = fs.readFileSync(path.join(ROOT, "branding", "orbit-mark.svg"), "utf8");
 

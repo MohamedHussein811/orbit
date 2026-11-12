@@ -16,13 +16,29 @@ should confirm with the licensors, or a lawyer, before shipping H.264 or AAC.
 | B. Operating system decoders | Build with `proprietary_codecs = true` but keep Chromium's FFmpeg branding, so MP4 and H.264/AAC parsing are built in and decoding goes to Windows Media Foundation and macOS VideoToolbox / AudioToolbox; Linux uses VA-API hardware where present | Decoding is done by the operating system, which carries its own licenses. Orbit still ships the MP4 parsing code, which needs a licensing check | Likely none, to be confirmed | Chromium's build has a check against this combination that must be relaxed; machines without hardware H.264 decoding (some Linux PCs, virtual machines) still fail; needs testing on each system |
 | C. Full software decoders | `proprietary_codecs = true` and `ffmpeg_branding = "Chrome"`, the setup Chrome and most Chromium forks use | Orbit ships H.264 and AAC decoders and needs patent licenses: Via LA's AVC terms list no royalty for the first 100,000 units a year, then $0.20 a unit; AAC is a separate license | H.264 free under 100,000 copies a year; AAC terms to be obtained | Clear legal obligations once distribution grows |
 
-## Recommendation
+## Decision
 
-Option B, if a test build confirms it works: it gives most people H.264 and AAC through their own
-operating system without Orbit shipping the decoders. Then option C only if NovaTech obtains the
-licenses. Until then, option A stays, and `docs/KNOWN_LIMITS.md` keeps saying so.
+The owner asked for the best option (2026-11-12). Orbit goes with option B, and option C only if
+NovaTech obtains the licenses. Until a build with B is tested on each system, option A stays, and
+`docs/KNOWN_LIMITS.md` keeps saying so.
 
-The owner decides. Work on B starts only after that decision.
+## What option B needs (research, 2026-11-13)
+
+- Video: Chromium refuses `proprietary_codecs = true` with Chromium's FFmpeg branding through
+  an assert in `media/BUILD.gn` ("proprietary codecs and ffmpeg_branding set to Chromium are
+  incompatible"). CEF tested that combination with the assert removed (issue 3559, Chromium 117):
+  H.264 in MP4 played on Windows 10 and macOS 13 through hardware decoding. Machines without a
+  hardware H.264 decoder cannot play it, because no software decoder ships.
+- Audio: in the same test, AAC tracks were skipped ("skipping invalid or unsupported audio track"),
+  so most MP4 files would play without sound. AAC needs its own work on each system:
+  - Windows: Media Foundation has an AAC decoder. Cromite (a Chromium fork) routes AAC to it with
+    an `enable_platform_aac_audio` flag and small changes in `ffmpeg_audio_decoder.cc`,
+    `media_foundation_audio_decoder.cc` and `mf_helpers.cc` (ADTS framing). Cromite still uses
+    Chrome's FFmpeg branding, so this must be redone for Chromium's branding and tested.
+  - macOS: no tested way to reach AudioToolbox for AAC from Chromium's media stack was found.
+  - Linux: there is no system AAC decoder Chromium can use.
+- Order of work: remove the assert and test H.264 video on Windows and macOS; then Windows AAC;
+  then decide what to tell people on macOS and Linux. Each step is a full rebuild of media code.
 
 ## Sources
 
@@ -30,3 +46,4 @@ The owner decides. Work on B starts only after that decision.
 - Chromium audio and video: https://www.chromium.org/audio-video/
 - CEF issue on platform decoders without FFmpeg branding: https://github.com/chromiumembedded/cef/issues/3559
 - Cromite (a Chromium fork) change using platform decoders: https://github.com/uazo/cromite/pull/856
+- Chromium's assert: `media/BUILD.gn` in Chromium 157

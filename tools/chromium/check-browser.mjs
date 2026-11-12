@@ -6,7 +6,7 @@ import fs from "node:fs";
 import http from "node:http";
 import os from "node:os";
 import path from "node:path";
-import { Cdp } from "../../tests/host/lib/cdp.mjs";
+import { Cdp } from "./lib/cdp.mjs";
 
 const [browser, extensionId, ...extraFlags] = process.argv.slice(2);
 if (!browser || !extensionId) {

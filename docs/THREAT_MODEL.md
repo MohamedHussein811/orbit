@@ -28,17 +28,16 @@ No browser is fully secure, and no browser makes a person impossible to track. T
 
 ## What Orbit itself must not do
 
-Each of these has a test, or a reason it cannot happen:
+Each of these has a reason it cannot happen, or says that it is not checked on the Chromium fork yet:
 
 | Rule | Check |
 | --- | --- |
 | No analytics, ads or accounts | No such code exists. Reporting preferences are off |
-| No record of blocked addresses | A test searches stored data for blocked hosts |
-| No traffic to the weather service before a city is set | A test checks the dashboard's network entries |
-| Private window choices are not saved | A test checks that a private window's site switch stays out of the profile |
-| Websites cannot reach the host | A test calls the host API from a website |
-| The sandbox stays on | The build fails without it on Windows. Tests read the sandbox state on each system |
-| A switch cannot weaken the release build | A test passes `--no-sandbox` and `--disable-web-security`, and checks child processes |
+| No record of blocked addresses | Shields stores daily counts only, never addresses (`extension/src/shared/stats.ts`) |
+| No traffic to the weather service before a city is set | The new tab page fetches weather only after a city is saved (`extension/src/newtab/widgets.ts`) |
+| Private window choices are not saved | Not checked on the fork yet |
+| The sandbox stays on | Orbit does not change Chromium's sandbox code. Not checked on each system yet |
+| A switch cannot weaken the release build | Not true yet: like Chromium, the fork accepts command-line switches. Not checked |
 
 ## Known network traffic
 

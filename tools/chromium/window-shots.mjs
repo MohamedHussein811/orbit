@@ -9,12 +9,12 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { Cdp } from "../../tests/host/lib/cdp.mjs";
+import { Cdp } from "./lib/cdp.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
-const SHOT = path.join(ROOT, "tests/host/lib/window-shot.ps1");
+const SHOT = path.join(ROOT, "tools/chromium/lib/window-shot.ps1");
 const ID = "kceipbaiojomdibnboffoieecidpfdck";
-const [browser, outDir, lang = "en", scenesArg = "space"] = process.argv.slice(2);
+const [browser, outDir, lang = "en", scenesArg = "dark"] = process.argv.slice(2);
 if (!browser || !outDir) {
   console.error("usage: window-shots.mjs <chrome.exe> <out dir> <language> <scene,...>");
   process.exit(2);

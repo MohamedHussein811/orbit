@@ -4,51 +4,37 @@ This describes the process as it stands. Steps marked "not built" do not exist y
 
 ## Build
 
-```sh
-npm ci                      # type checker only. The build itself has no npm dependencies
-node tools/engine.mjs fetch # download and verify the pinned CEF
-node tools/build-host.mjs   # build orbit and orbit_test, then the extension
-```
+Builds run on GitHub's runners through `.github/workflows/browser-windows.yml`, `browser-mac.yml` and `browser-linux.yml`, on pushes to the `fork` and `design` branches that touch the browser. Each workflow chains stages of `chromium-stage.yml`, because one runner job is limited in time. A stage can continue from a stage saved by an earlier run (`resume_run`), so a small change recompiles only what depends on it.
+
+Each stage downloads and verifies the Chromium source, builds and signs the built-in extension, applies Orbit's changes with `tools/chromium/apply-fork.py`, compiles, and saves its state. The last stage runs `tools/chromium/smoke.sh`, which starts the browser and runs `tools/chromium/check-browser.mjs`.
 
 ## Test
 
 ```sh
 npm run typecheck
 npm run test:unit
-npm run test:host
+node tools/chromium/check-browser.mjs <path to a built Orbit> kceipbaiojomdibnboffoieecidpfdck
+node tools/chromium/window-shots.mjs <chrome.exe> <out folder> en dark,light
 ```
 
-`tests/package/install-smoke.mjs` installs system-wide and only runs on CI.
+`window-shots.mjs` captures Orbit's own windows on Windows for design review.
 
-## Package
+## Chromium updates
 
-```sh
-node tools/package.mjs
-```
-
-Output goes to `out/package`, with `SHA256SUMS.txt`. Windows needs Inno Setup 7. Set `ORBIT_ISCC` if it is not in a standard folder.
-
-## Engine updates
-
-`.github/workflows/engine-watch.yml` runs daily. When CEF publishes a newer stable build, it opens a pull request that changes `engine/engine.json`, and starts CI on it. Read the Chromium release notes, then merge when CI passes. Security fixes should ship within days.
-
-To update by hand: `node tools/engine.mjs check`, then `node tools/engine.mjs pin`.
-
-If the engine update changes Chromium's logos, the build stops with a message about `branding/engine-logos.json`. Find the new logo hashes through `chrome://theme/current-channel-logo` and `chrome://theme/IDR_PRODUCT_LOGO`.
+The Chromium version is pinned in `.github/workflows/chromium-stage.yml` (`CHROMIUM_VERSION`). To update it, change the version, run the patch series against the new source, and fix any patch that no longer applies. Security fixes should ship within days. **Automatic watching for new versions is not built.**
 
 ## Filter list updates
 
 `.github/workflows/filters-update.yml` runs weekly and opens a pull request with new rules in `filters/rules`. It refuses a list that looks truncated. Check the rule counts in `filters/rules/meta.json` for a large unexplained drop, then merge when CI passes.
 
-## Signing and release
+## Packaging, signing and release
 
 **Not built.** These need decisions and accounts from the owner:
 
 | Step | What it needs |
 | --- | --- |
+| Installers | Packaging the built browser for each system |
 | Windows signing | A SignPath Foundation application, which is open to open source projects |
 | macOS signing and notarization | A Developer ID certificate and an App Store Connect API key from the existing Apple membership, stored as GitHub secrets |
 | Public downloads | Approval to publish GitHub Releases |
-| Automatic updates | An EdDSA key pair kept offline, and public hosting for the update feed |
-
-`tools/package.mjs` reads `ORBIT_MAC_IDENTITY` for signing. With no identity it applies an ad-hoc signature, which only works on the machine that made it or after a person overrides Gatekeeper.
+| Automatic updates | Signed update feeds and public hosting for them |

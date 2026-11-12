@@ -1,59 +1,48 @@
 # Orbit
 
-Orbit is a free, privacy-focused desktop browser by NovaTech, built on the Chromium Embedded Framework (CEF). It has no ads, no analytics and no AI features.
+Orbit is a free, privacy-focused desktop browser by NovaTech, built as a fork of Chromium. It has no ads, no analytics and no AI features.
 
 **Status: early development. There is no release yet, and Orbit is not ready for everyday use.**
 
 ## What exists today
 
-- A native host that opens Chromium's full tabbed browser through CEF, with Chromium's sandbox and site isolation left on.
-- Privacy defaults applied once per profile: DuckDuckGo search, third-party cookies blocked, HTTPS-only mode, DNS over HTTPS through Quad9, reporting and prediction off.
-- Web APIs for AI and advertising switched off.
-- Session restore after a clean exit and after a crash, with a guard against crash loops.
-- A pinned engine with SHA-256 checks, and a daily job that proposes an update when CEF ships a newer stable build.
-- A built-in extension with the dashboard (search, bookmarks, protection counts, weather, notes, themes and layout) and Shields, which blocks ads, trackers and listed threats with Chromium's own rule engine.
+- Chromium 157 built from Google's source archive with Orbit's changes on top (`chromium/`), on GitHub's free runners for Windows, macOS and Linux.
+- Orbit's name, logo, color palette, pill-shaped tabs and toolbar icons, and `orbit://` addresses for internal pages.
+- Privacy defaults: DuckDuckGo search, secure DNS through Quad9, HTTPS-only mode, no prediction, translation or sign-in, AI and advertising web APIs off.
+- A built-in extension with the new tab page (black hole video or the person's own background, search, shortcuts, protection counts, weather, notes) and Shields, which blocks ads, trackers and listed threats with Chromium's own rule engine.
 - A privacy page for fingerprinting protection levels, WebRTC handling, clearing data at startup and history cleanup.
-- Installers and archives for each system, tested by installing them on CI. They are unsigned, so there are no public downloads yet.
-
-The automated tests in [`tests/host`](tests/host) define what counts as working. CI runs them on each system listed in [`.github/workflows/ci.yml`](.github/workflows/ci.yml).
 
 ## Known limits
 
-- **Video:** official CEF binaries have no H.264, AAC or HEVC. Sites that need those formats fail. YouTube plays through VP9. This is an open release blocker.
-- **Safe Browsing:** not available in this engine build. A replacement threat feed is planned and not built.
-- **Blocking:** guest windows have no extensions, so no Shields. Details are in [docs/KNOWN_LIMITS.md](docs/KNOWN_LIMITS.md).
-- **Not built yet:** updater and signed packages.
+- **Video:** no H.264, AAC or HEVC yet. The plan is in [docs/VIDEO.md](docs/VIDEO.md).
+- **Not built yet:** installers, signing and automatic updates.
+- More in [docs/KNOWN_LIMITS.md](docs/KNOWN_LIMITS.md).
 
 ## Build
 
-You need Node.js 22 or newer, CMake, Ninja and a C++ toolchain (Visual Studio 2022 on Windows, Xcode on macOS, GCC or Clang on Linux).
-
-```sh
-node tools/engine.mjs fetch      # download and verify the pinned CEF
-node tools/build-host.mjs        # build the orbit and orbit_test variants
-```
-
-On Windows the build goes to `%LOCALAPPDATA%\NovaTech\orbit-build`. Elsewhere it goes to `out/host`. Set `ORBIT_BUILD_DIR` to change it.
+Chromium is too large to compile on a typical PC, so it builds on CI in chained stages (`.github/workflows/browser-*.yml`). How the changes are applied is described in [chromium/README.md](chromium/README.md), the design in [chromium/DESIGN.md](chromium/DESIGN.md).
 
 ## Test
 
 ```sh
+npm ci
+npm run typecheck
 npm run test:unit
-npm run test:host
+node tools/chromium/check-browser.mjs <path to a built Orbit> kceipbaiojomdibnboffoieecidpfdck
 ```
 
-Tests start `orbit_test` on a temporary profile. That build refuses to run without `ORBIT_USER_DATA_DIR`, so it cannot touch a real profile.
+`check-browser.mjs` starts the built browser on a temporary profile and checks its defaults, the built-in extension and the new tab page through the DevTools protocol. CI runs it after each build.
 
 ## Layout
 
 | Path | Contents |
 | --- | --- |
-| `host/` | Native host. The only code that names CEF |
-| `engine/engine.json` | Pinned CEF version and hashes |
-| `extension/` | Built-in extension: dashboard and Shields |
+| `chromium/` | Orbit's Chromium changes: overlay files, patches, design system |
+| `extension/` | Built-in extension: new tab page, Shields, privacy page |
 | `filters/` | Filter list sources and the compiled blocking rules |
-| `tools/` | Engine, filter, branding and build scripts |
-| `tests/` | Unit tests and end-to-end tests of the built host |
+| `branding/` | The logo and its icon sizes |
+| `tools/` | Build, filter, design and check scripts |
+| `tests/` | Unit tests for the tools |
 
 ## Security
 

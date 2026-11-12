@@ -11,7 +11,8 @@ const readJson = (file) => JSON.parse(fs.readFileSync(path.join(ROOT, file), "ut
 
 export function createSbom() {
   const pkg = readJson("package.json");
-  const engine = readJson("engine/engine.json");
+  const workflow = fs.readFileSync(path.join(ROOT, ".github", "workflows", "chromium-stage.yml"), "utf8");
+  const chromiumVersion = workflow.match(/CHROMIUM_VERSION: "([^"]+)"/)[1];
   const filters = readJson("filters/rules/meta.json");
   const font = path.join(ROOT, "extension", "src", "shared", "fonts", "ReadexPro.ttf");
   const media = path.join(ROOT, "extension", "src", "newtab", "media");
@@ -19,19 +20,12 @@ export function createSbom() {
 
   const components = [
     {
-      type: "framework",
-      name: "Chromium Embedded Framework",
-      version: engine.cefVersion,
-      licenses: [{ license: { id: "BSD-3-Clause" } }],
-      externalReferences: [{ type: "distribution", url: engine.source }],
-      hashes: Object.values(engine.packages).map((entry) => ({ alg: "SHA-256", content: entry.sha256 })),
-    },
-    {
       type: "application",
       name: "Chromium",
-      version: engine.chromiumVersion,
+      version: chromiumVersion,
       licenses: [{ license: { id: "BSD-3-Clause" } }],
-      description: "Included in CEF. Its own third-party components are listed in CREDITS.html.",
+      description: "Orbit is built from this Chromium release with the changes in chromium/. Its own third-party components are listed in CREDITS.html.",
+      externalReferences: [{ type: "vcs", url: "https://chromium.googlesource.com/chromium/src" }],
     },
     {
       type: "library",

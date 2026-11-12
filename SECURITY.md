@@ -15,7 +15,6 @@ Include the steps to reproduce, the affected system and what an attacker could g
 
 ## Engine vulnerabilities
 
-Orbit tracks stable CEF builds, which follow Chromium. A vulnerability in Chromium or CEF itself should go to those projects first:
+Orbit is built from stable Chromium releases. A vulnerability in Chromium itself should go to the Chromium project first:
 
 - Chromium: https://www.chromium.org/Home/chromium-security/reporting-security-bugs/
-- CEF: https://github.com/chromiumembedded/cef/security
