@@ -544,7 +544,6 @@ body.editing .widget.is-dragging {
 }
 
 :root[dir="rtl"] .meter .fill {
-  margin-inline-start: auto;
   background: linear-gradient(270deg, color-mix(in oklab, var(--accent) 55%, transparent), var(--accent));
 }
 
