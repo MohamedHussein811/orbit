@@ -1,53 +1,61 @@
 // Dashboard page: loads settings and layout, draws the widgets, and runs the Customize panel.
 
 import { ALLOWED_SIZES, defaultLayout, moveWidget, sanitizeLayout, updateWidget, type Layout, type WidgetId, type WidgetSize } from "../shared/layout.ts";
-import { ACCENTS, resolveTheme, sanitizeSettings, THEME_MODES, type Settings, type ThemeMode } from "../shared/settings.ts";
-import { h, iconButton } from "./dom.ts";
+import { localizePage, t } from "../shared/i18n.ts";
+import { BACKGROUNDS, resolveTheme, sanitizeSettings, type Background, type Settings } from "../shared/settings.ts";
+import { h, icon, iconButton } from "./dom.ts";
 import { mountBookmarks, mountNotes, mountSearch, mountStats, mountWeather, type WidgetContext } from "./widgets.ts";
 
-const WIDGET_NAMES: Record<WidgetId, string> = { search: "Search", stats: "Protection", bookmarks: "Bookmarks", weather: "Weather", notes: "Notes" };
-const SIZE_NAMES: Record<WidgetSize, string> = { small: "Small", medium: "Medium", large: "Large" };
-const THEME_NAMES: Record<ThemeMode, string> = { system: "System", light: "Light", dark: "Dark", space: "Space" };
+const WIDGET_NAMES: Record<WidgetId, string> = {
+  search: "widgetSearch",
+  stats: "widgetProtection",
+  bookmarks: "widgetShortcuts",
+  weather: "widgetWeather",
+  notes: "widgetNotes",
+};
+const SIZE_NAMES: Record<WidgetSize, string> = { small: "sizeSmall", medium: "sizeMedium", large: "sizeLarge" };
+const BACKGROUND_NAMES: Record<Background, string> = { scene: "backgroundSpace", plain: "backgroundPlain" };
 const MAX_WALLPAPER_BYTES = 12 * 1024 * 1024;
+/** Widgets that sit above the planet's edge. The rest rest on the planet below it. */
+const ABOVE_HORIZON = new Set<WidgetId>(["search", "bookmarks"]);
 
 let settings: Settings;
 let layout: Layout;
 
+const root = document.documentElement;
 const board = document.getElementById("board")!;
 const drawer = document.getElementById("customize") as HTMLDialogElement;
 const prefersDark = matchMedia("(prefers-color-scheme: dark)");
 
-// Theme
+// Theme and background
 function applyTheme(): void {
-  const theme = resolveTheme(settings.theme, prefersDark.matches);
-  document.documentElement.dataset.theme = theme;
-  document.documentElement.style.setProperty("--accent", settings.accent);
+  root.dataset.theme = resolveTheme(prefersDark.matches);
+  root.dataset.background = settings.background;
   try {
-    localStorage.setItem("orbit-theme", theme);
-    localStorage.setItem("orbit-accent", settings.accent);
+    localStorage.setItem("orbit-background", settings.background);
   } catch {
-    // Only the fast first paint depends on this cache.
+    // Only the first paint depends on this cache.
   }
-}
-
-/** Asks the host to color the browser window to match. The dashboard works without it. */
-function applyBrowserTheme(): void {
-  void fetch("https://orbit.invalid/theme", {
-    method: "POST",
-    credentials: "omit",
-    body: JSON.stringify({ mode: settings.theme, accent: settings.accent }),
-  }).catch(() => {});
 }
 
 async function applyWallpaper(): Promise<void> {
   const { wallpaper } = await chrome.storage.local.get("wallpaper");
-  if (typeof wallpaper === "string" && wallpaper.startsWith("data:image/")) {
-    document.body.style.setProperty("--wallpaper", `url("${wallpaper}")`);
-    document.body.classList.add("has-wallpaper");
-  } else {
-    document.body.style.removeProperty("--wallpaper");
-    document.body.classList.remove("has-wallpaper");
+  const has = typeof wallpaper === "string" && wallpaper.startsWith("data:image/");
+  document.body.classList.toggle("has-wallpaper", has);
+  if (has) document.body.style.setProperty("--wallpaper", `url("${wallpaper}")`);
+  else document.body.style.removeProperty("--wallpaper");
+}
+
+/** Puts the planet's edge in the gap above the first widget that rests on it. */
+function placeHorizon(): void {
+  const gap = board.querySelector<HTMLElement>(".horizon-gap");
+  if (!gap) {
+    root.style.setProperty("--horizon", "80vh");
+    return;
   }
+  const rect = gap.getBoundingClientRect();
+  const middle = rect.top + scrollY + rect.height / 2;
+  root.style.setProperty("--horizon", `${Math.round(Math.max(middle, innerHeight * 0.4))}px`);
 }
 
 async function saveSettings(patch: Partial<Settings>): Promise<void> {
@@ -55,21 +63,26 @@ async function saveSettings(patch: Partial<Settings>): Promise<void> {
   await chrome.storage.local.set({ settings });
 }
 
-const context: WidgetContext = { settings: () => settings, saveSettings };
+const context: WidgetContext = { settings: () => settings, saveSettings, relayout: () => placeHorizon() };
 
 // Board
-const MOUNT: Record<WidgetId, (root: HTMLElement) => void> = {
-  search: (root) => mountSearch(root),
-  stats: (root) => mountStats(root, context),
-  bookmarks: (root) => mountBookmarks(root, context),
-  weather: (root) => mountWeather(root, context),
-  notes: (root) => mountNotes(root),
+const MOUNT: Record<WidgetId, (frame: HTMLElement) => void> = {
+  search: (frame) => mountSearch(frame),
+  stats: (frame) => mountStats(frame, context),
+  bookmarks: (frame) => mountBookmarks(frame, context),
+  weather: (frame) => mountWeather(frame, context),
+  notes: (frame) => mountNotes(frame),
 };
 
 function drawBoard(): void {
   board.replaceChildren();
+  let gapPlaced = false;
   for (const widget of layout.widgets) {
-    const frame = h("section", { class: `widget size-${widget.size}`, "data-id": widget.id, "aria-label": WIDGET_NAMES[widget.id], hidden: !widget.visible });
+    if (!gapPlaced && widget.visible && !ABOVE_HORIZON.has(widget.id)) {
+      board.append(h("div", { class: "horizon-gap", "aria-hidden": "true" }));
+      gapPlaced = true;
+    }
+    const frame = h("section", { class: `widget size-${widget.size}`, "data-id": widget.id, "aria-label": t(WIDGET_NAMES[widget.id]), hidden: !widget.visible });
     board.append(frame);
     if (widget.visible) {
       try {
@@ -77,11 +90,12 @@ function drawBoard(): void {
       } catch (error) {
         console.error(`widget ${widget.id} failed`, error);
         frame.classList.add("pane");
-        frame.textContent = `${WIDGET_NAMES[widget.id]} could not load. The rest of the page still works.`;
+        frame.textContent = t("widgetFailed", t(WIDGET_NAMES[widget.id]));
       }
     }
     attachDrag(frame, widget.id);
   }
+  requestAnimationFrame(placeHorizon);
 }
 
 function attachDrag(frame: HTMLElement, id: WidgetId): void {
@@ -121,54 +135,36 @@ function markEditable(editing: boolean): void {
 
 // Customize panel
 function drawDrawer(): void {
-  const themeRow = h(
+  const backgroundRow = h(
     "div",
-    { class: "choice-row", role: "group", "aria-label": "Theme" },
-    ...THEME_MODES.map((mode) =>
+    { class: "segmented", role: "group", "aria-label": t("background") },
+    ...BACKGROUNDS.map((background) =>
       h(
         "button",
         {
           type: "button",
-          "aria-pressed": String(settings.theme === mode),
+          "aria-pressed": String(settings.background === background),
           onclick: async () => {
-            await saveSettings({ theme: mode });
+            await saveSettings({ background });
             applyTheme();
-            applyBrowserTheme();
             drawDrawer();
           },
         },
-        THEME_NAMES[mode],
+        t(BACKGROUND_NAMES[background]),
       ),
     ),
   );
 
-  const setAccent = async (accent: string) => {
-    await saveSettings({ accent });
-    applyTheme();
-    applyBrowserTheme();
-    drawDrawer();
-  };
-  const picker = h("input", { type: "color", value: settings.accent, "aria-label": "Custom accent color", onchange: () => void setAccent(picker.value) });
-  const accentRow = h(
-    "div",
-    { class: "accent-row" },
-    ...ACCENTS.map((accent) => {
-      const swatch = h("button", { type: "button", class: "swatch", "aria-label": `Accent ${accent}`, "aria-pressed": String(settings.accent === accent), onclick: () => void setAccent(accent) });
-      swatch.style.setProperty("--swatch", accent);
-      return swatch;
-    }),
-    picker,
-  );
-
+  const wallpaperNotice = h("p", { class: "notice", role: "status" });
   const file = h("input", {
     type: "file",
     accept: "image/png,image/jpeg,image/webp",
-    "aria-label": "Choose a wallpaper",
+    "aria-label": t("chooseImage"),
     onchange: () => {
       const chosen = file.files?.[0];
       if (!chosen) return;
       if (chosen.size > MAX_WALLPAPER_BYTES) {
-        wallpaperNotice.textContent = "Choose an image smaller than 12 MB.";
+        wallpaperNotice.textContent = t("imageTooLarge");
         return;
       }
       const reader = new FileReader();
@@ -176,83 +172,109 @@ function drawDrawer(): void {
         await chrome.storage.local.set({ wallpaper: String(reader.result) });
         wallpaperNotice.textContent = "";
         await applyWallpaper();
+        drawDrawer();
       };
       reader.readAsDataURL(chosen);
     },
   });
-  const wallpaperNotice = h("p", { class: "notice", role: "status" });
+  const hasWallpaper = document.body.classList.contains("has-wallpaper");
 
   const widgetList = h(
     "ul",
     { class: "widget-list" },
     ...layout.widgets.map((widget, index) => {
+      const name = t(WIDGET_NAMES[widget.id]);
       const visible = h("input", {
         type: "checkbox",
+        class: "switch",
         checked: widget.visible,
         onchange: () => void setLayout(updateWidget(layout, widget.id, { visible: visible.checked })),
       });
       const sizes = ALLOWED_SIZES[widget.id];
-      const size = h(
-        "select",
-        { "aria-label": `${WIDGET_NAMES[widget.id]} size`, disabled: sizes.length < 2, onchange: () => void setLayout(updateWidget(layout, widget.id, { size: size.value as WidgetSize })) },
-        ...sizes.map((option) => h("option", { value: option }, SIZE_NAMES[option])),
-      );
-      size.value = widget.size;
+      const size =
+        sizes.length > 1
+          ? h(
+              "select",
+              { "aria-label": t("widgetSize", name), onchange: () => void setLayout(updateWidget(layout, widget.id, { size: size!.value as WidgetSize })) },
+              ...sizes.map((option) => h("option", { value: option }, t(SIZE_NAMES[option]))),
+            )
+          : null;
+      if (size) size.value = widget.size;
       return h(
         "li",
         {},
-        h("label", {}, visible, WIDGET_NAMES[widget.id]),
+        h("label", {}, visible, name),
         size,
-        iconButton("up", `Move ${WIDGET_NAMES[widget.id]} up`, () => void setLayout(moveWidget(layout, widget.id, index - 1)), { disabled: index === 0 }),
-        iconButton("down", `Move ${WIDGET_NAMES[widget.id]} down`, () => void setLayout(moveWidget(layout, widget.id, index + 1)), { disabled: index === layout.widgets.length - 1 }),
+        iconButton("up", t("moveUp", name), () => void setLayout(moveWidget(layout, widget.id, index - 1)), { disabled: index === 0 }),
+        iconButton("down", t("moveDown", name), () => void setLayout(moveWidget(layout, widget.id, index + 1)), { disabled: index === layout.widgets.length - 1 }),
       );
     }),
   );
 
   drawer.replaceChildren(
-    h("div", { class: "drawer-head" }, h("h2", { id: "customize-title" }, "Customize"), iconButton("close", "Close", () => drawer.close())),
-    h("h3", {}, "Theme"),
-    themeRow,
-    h("h3", {}, "Accent color"),
-    accentRow,
-    h("h3", {}, "Wallpaper"),
-    file,
-    wallpaperNotice,
+    h("div", { class: "drawer-head" }, h("h2", { id: "customize-title" }, t("customize")), iconButton("close", t("close"), () => drawer.close())),
     h(
-      "p",
+      "section",
       {},
+      h("h3", {}, t("background")),
+      h("div", { class: "drawer-row" }, backgroundRow),
       h(
-        "button",
-        {
-          type: "button",
-          class: "link",
-          onclick: async () => {
-            await chrome.storage.local.remove("wallpaper");
-            await applyWallpaper();
-          },
-        },
-        "Remove wallpaper",
+        "div",
+        { class: "drawer-row", style: "margin-top: 0.75rem" },
+        h("label", { class: "button quiet file-button" }, icon("image"), hasWallpaper ? t("changeImage") : t("chooseImage"), file),
+        hasWallpaper &&
+          h(
+            "button",
+            {
+              type: "button",
+              class: "button quiet",
+              onclick: async () => {
+                await chrome.storage.local.remove("wallpaper");
+                await applyWallpaper();
+                drawDrawer();
+              },
+            },
+            t("removeImage"),
+          ),
       ),
+      wallpaperNotice,
     ),
-    h("h3", {}, "Widgets"),
-    widgetList,
-    h("p", { class: "notice" }, "While this panel is open, you can also drag widgets on the page."),
-    h("div", { class: "foot" }, h("button", { type: "button", class: "link", onclick: () => void setLayout(defaultLayout()) }, "Restore default layout")),
+    h(
+      "section",
+      {},
+      h("h3", {}, t("browserTheme")),
+      h("p", { class: "notice" }, t("browserThemeExplained")),
+      h("button", { type: "button", class: "button quiet", onclick: () => void chrome.tabs.update({ url: "chrome://settings/appearance" }) }, t("openThemeSettings")),
+    ),
+    h(
+      "section",
+      {},
+      h("h3", {}, t("widgets")),
+      widgetList,
+      h("p", { class: "notice", style: "margin-top: 0.5rem" }, t("dragHint")),
+      h("button", { type: "button", class: "link", onclick: () => void setLayout(defaultLayout()) }, t("restoreLayout")),
+    ),
   );
 }
 
 // Clock
-const timeElement = document.getElementById("time")!;
+const timeElement = document.getElementById("time") as HTMLTimeElement;
 const dateElement = document.getElementById("date")!;
 
 function tick(): void {
   const now = new Date();
-  timeElement.textContent = now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-  dateElement.textContent = now.toLocaleDateString([], { weekday: "long", month: "long", day: "numeric" });
+  const locale = chrome.i18n.getUILanguage();
+  timeElement.dateTime = now.toISOString();
+  const parts = new Intl.DateTimeFormat(locale, { hour: "numeric", minute: "2-digit" }).formatToParts(now);
+  timeElement.replaceChildren(
+    ...parts.map((part) => (part.type === "dayPeriod" ? h("span", { class: "period" }, part.value) : part.type === "literal" && /^s+$/.test(part.value) ? "" : part.value)),
+  );
+  dateElement.textContent = now.toLocaleDateString(locale, { weekday: "long", month: "long", day: "numeric" });
   setTimeout(tick, 60_000 - (now.getSeconds() * 1000 + now.getMilliseconds()));
 }
 
 async function main(): Promise<void> {
+  localizePage();
   const stored = await chrome.storage.local.get(["settings", "layout"]);
   settings = sanitizeSettings(stored.settings);
   layout = sanitizeLayout(stored.layout);
@@ -262,6 +284,7 @@ async function main(): Promise<void> {
   drawBoard();
   drawDrawer();
   prefersDark.addEventListener("change", applyTheme);
+  addEventListener("resize", placeHorizon);
   document.getElementById("open-customize")!.addEventListener("click", () => {
     drawDrawer();
     drawer.show();

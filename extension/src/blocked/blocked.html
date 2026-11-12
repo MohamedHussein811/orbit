@@ -1,22 +1,29 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="space">
 <head>
 <meta charset="utf-8">
-<title>Dangerous site blocked</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark light">
+<title data-i18n="blockedTitle">Dangerous site blocked</title>
 <link rel="icon" href="../icons/orbit-32.png">
+<link rel="stylesheet" href="../shared/tokens.css">
+<link rel="stylesheet" href="../shared/base.css">
 <link rel="stylesheet" href="blocked.css">
+<script src="../newtab/theme-boot.js"></script>
 </head>
 <body>
-<main>
-  <img src="../icons/orbit-48.png" alt="" width="48" height="48">
-  <h1>Orbit stopped this page</h1>
-  <p id="host"></p>
-  <p>This address is on a public list of sites known for malware or phishing. Such a site can steal passwords or install harmful software.</p>
-  <div class="actions">
-    <button id="back" class="primary" type="button">Go back</button>
-    <button id="continue" type="button">Continue to the site</button>
+<main class="warning">
+  <div class="mark" aria-hidden="true">
+    <svg viewBox="0 0 24 24"><path d="M12 3 5 6v5.5c0 4.3 3 8 7 9.5 4-1.5 7-5.2 7-9.5V6l-7-3Z"/><path d="M12 8v4.5M12 16h.01"/></svg>
   </div>
-  <p class="note">If you continue, Orbit allows this site until you close the browser.</p>
+  <h1 data-i18n="blockedHeading">Orbit stopped this page</h1>
+  <p id="host" class="host" dir="ltr"></p>
+  <p class="explain" data-i18n="blockedExplain">This address is on a public list of sites known for malware or phishing. Such a site can steal passwords or install harmful software.</p>
+  <div class="actions">
+    <button id="back" class="button primary" type="button" data-i18n="goBack">Go back</button>
+    <button id="continue" class="button quiet" type="button" data-i18n="continueToSite">Continue to the site</button>
+  </div>
+  <p class="note" data-i18n="continueNote">If you continue, Orbit allows this site until you close the browser.</p>
 </main>
 <script type="module" src="blocked.js"></script>
 </body>

@@ -1,29 +1,36 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="space">
 <head>
 <meta charset="utf-8">
-<title>Shields</title>
+<meta name="color-scheme" content="dark light">
+<title data-i18n="shields">Shields</title>
+<link rel="stylesheet" href="../shared/tokens.css">
+<link rel="stylesheet" href="../shared/base.css">
 <link rel="stylesheet" href="popup.css">
+<script src="../newtab/theme-boot.js"></script>
 </head>
 <body>
-<header>
-  <p id="host"></p>
-  <label id="switch-row" class="switch">
-    <span id="switch-label">Shields on</span>
-    <input id="switch" type="checkbox" role="switch">
-  </label>
+<header class="head">
+  <div class="shield" aria-hidden="true">
+    <svg viewBox="0 0 24 24"><path d="M12 3 5 6v5.5c0 4.3 3 8 7 9.5 4-1.5 7-5.2 7-9.5V6l-7-3Z"/><path id="shield-check" d="m9 12 2.2 2.2L15.5 10"/></svg>
+  </div>
+  <div class="head-text">
+    <p id="host" class="host" dir="ltr"></p>
+    <p id="switch-label" class="state"></p>
+  </div>
+  <input id="switch" class="switch" type="checkbox" role="switch" data-i18n-label="shieldsForSite">
 </header>
-<section aria-label="Blocked on this page">
+<section class="counts" data-i18n-label="blockedOnPage">
   <dl>
-    <div><dd id="ads">0</dd><dt>Ads</dt></div>
-    <div><dd id="trackers">0</dd><dt>Trackers</dt></div>
-    <div><dd id="threats">0</dd><dt>Threats</dt></div>
+    <div><dd id="ads">0</dd><dt data-i18n="ads">Ads</dt></div>
+    <div><dd id="trackers">0</dd><dt data-i18n="trackers">Trackers</dt></div>
+    <div><dd id="threats">0</dd><dt data-i18n="threats">Threats</dt></div>
   </dl>
-  <p class="caption">Blocked on this page</p>
+  <p class="caption" data-i18n="blockedOnPage">Blocked on this page</p>
 </section>
-<footer>
-  <button id="privacy" type="button">Privacy settings</button>
-  <button id="siteSettings" type="button">Site settings</button>
+<footer class="links">
+  <button id="privacy" class="row-button" type="button" data-i18n="privacySettings">Privacy settings</button>
+  <button id="siteSettings" class="row-button" type="button" data-i18n="siteSettings">Site settings</button>
 </footer>
 <script type="module" src="popup.js"></script>
 </body>

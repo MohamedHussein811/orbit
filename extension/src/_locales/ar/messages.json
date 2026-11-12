@@ -1,0 +1,485 @@
+{
+  "extDescription": {
+    "message": "لوحة Orbit والدروع."
+  },
+  "newTabTitle": {
+    "message": "علامة تبويب جديدة"
+  },
+  "customize": {
+    "message": "تخصيص"
+  },
+  "close": {
+    "message": "إغلاق"
+  },
+  "widgetSearch": {
+    "message": "البحث"
+  },
+  "widgetProtection": {
+    "message": "الحماية"
+  },
+  "widgetShortcuts": {
+    "message": "الاختصارات"
+  },
+  "widgetWeather": {
+    "message": "الطقس"
+  },
+  "widgetNotes": {
+    "message": "الملاحظات"
+  },
+  "widgetFailed": {
+    "message": "تعذّر تحميل $1. باقي الصفحة يعمل كالمعتاد."
+  },
+  "sizeSmall": {
+    "message": "صغير"
+  },
+  "sizeMedium": {
+    "message": "متوسط"
+  },
+  "sizeLarge": {
+    "message": "كبير"
+  },
+  "widgetSize": {
+    "message": "حجم $1"
+  },
+  "moveUp": {
+    "message": "نقل $1 لأعلى"
+  },
+  "moveDown": {
+    "message": "نقل $1 لأسفل"
+  },
+  "background": {
+    "message": "الخلفية"
+  },
+  "backgroundSpace": {
+    "message": "الفضاء"
+  },
+  "backgroundPlain": {
+    "message": "سادة"
+  },
+  "chooseImage": {
+    "message": "اختيار صورة"
+  },
+  "changeImage": {
+    "message": "تغيير الصورة"
+  },
+  "removeImage": {
+    "message": "إزالة الصورة"
+  },
+  "imageTooLarge": {
+    "message": "اختر صورة أصغر من 12 ميغابايت."
+  },
+  "browserTheme": {
+    "message": "المظهر والألوان"
+  },
+  "browserThemeExplained": {
+    "message": "تتبع هذه الصفحة مظهر المتصفح. اختر الفضاء أو الداكن أو الفاتح أو إعداد جهازك، ولون التمييز، من الإعدادات."
+  },
+  "openThemeSettings": {
+    "message": "فتح إعدادات المظهر"
+  },
+  "widgets": {
+    "message": "الأدوات"
+  },
+  "dragHint": {
+    "message": "يمكنك أيضًا سحب الأدوات على الصفحة ما دامت هذه اللوحة مفتوحة."
+  },
+  "restoreLayout": {
+    "message": "استعادة الترتيب الافتراضي"
+  },
+  "searchPlaceholder": {
+    "message": "ابحث أو أدخل عنوانًا"
+  },
+  "reportingPeriod": {
+    "message": "فترة التقرير"
+  },
+  "periodToday": {
+    "message": "اليوم"
+  },
+  "period7d": {
+    "message": "آخر 7 أيام"
+  },
+  "period30d": {
+    "message": "آخر 30 يومًا"
+  },
+  "periodAll": {
+    "message": "كل الوقت"
+  },
+  "statAds": {
+    "message": "إعلانات محجوبة"
+  },
+  "statTrackers": {
+    "message": "متتبعات محجوبة"
+  },
+  "statThreats": {
+    "message": "تهديدات موقوفة"
+  },
+  "countedLocally": {
+    "message": "تُحسب على هذا الجهاز فقط ولا يُرسل منها شيء."
+  },
+  "resetCounts": {
+    "message": "تصفير العدادات"
+  },
+  "resetCountsConfirm": {
+    "message": "تصفير كل العدادات؟"
+  },
+  "reset": {
+    "message": "تصفير"
+  },
+  "keep": {
+    "message": "إبقاء"
+  },
+  "bookmarkCollections": {
+    "message": "مجموعات الإشارات المرجعية"
+  },
+  "addShortcut": {
+    "message": "إضافة اختصار"
+  },
+  "newFolder": {
+    "message": "مجلد جديد"
+  },
+  "editItem": {
+    "message": "تعديل $1"
+  },
+  "editFolder": {
+    "message": "تعديل المجلد"
+  },
+  "editShortcut": {
+    "message": "تعديل الاختصار"
+  },
+  "backToParent": {
+    "message": "العودة إلى المجلد الأعلى"
+  },
+  "shortcutsEmpty": {
+    "message": "شريط الإشارات المرجعية فارغ. أضف اختصارًا، أو"
+  },
+  "importBookmarks": {
+    "message": "استورد الإشارات المرجعية من متصفح آخر"
+  },
+  "fieldName": {
+    "message": "الاسم"
+  },
+  "fieldAddress": {
+    "message": "العنوان"
+  },
+  "untitled": {
+    "message": "بلا عنوان"
+  },
+  "invalidAddress": {
+    "message": "أدخل عنوان ويب صالحًا، مثل example.com."
+  },
+  "delete": {
+    "message": "حذف"
+  },
+  "cancel": {
+    "message": "إلغاء"
+  },
+  "save": {
+    "message": "حفظ"
+  },
+  "weatherBy": {
+    "message": "الطقس من $1"
+  },
+  "weatherIntro": {
+    "message": "أدخل مدينتك لعرض الطقس. يُرسل بحثك إلى $1."
+  },
+  "cityName": {
+    "message": "اسم المدينة"
+  },
+  "find": {
+    "message": "بحث"
+  },
+  "searching": {
+    "message": "جارٍ البحث..."
+  },
+  "noPlaceFound": {
+    "message": "لم يُعثر على مكان بهذا الاسم. تحقق من الإملاء."
+  },
+  "weatherUnreachable": {
+    "message": "تعذّر الوصول إلى خدمة الطقس. تحقق من اتصالك وحاول مرة أخرى."
+  },
+  "weatherLoading": {
+    "message": "جارٍ تحميل الطقس..."
+  },
+  "weatherUnavailable": {
+    "message": "الطقس غير متاح الآن. تحقق من اتصالك."
+  },
+  "weatherStale": {
+    "message": "يُعرض آخر تحديث، من الساعة $1."
+  },
+  "showFahrenheit": {
+    "message": "العرض بالفهرنهايت"
+  },
+  "showCelsius": {
+    "message": "العرض بالمئوية"
+  },
+  "changeCity": {
+    "message": "تغيير المدينة"
+  },
+  "highLow": {
+    "message": "العظمى $1، الصغرى $2"
+  },
+  "weatherClear": {
+    "message": "سماء صافية"
+  },
+  "weatherMainlyClear": {
+    "message": "صافٍ غالبًا"
+  },
+  "weatherPartlyCloudy": {
+    "message": "غائم جزئيًا"
+  },
+  "weatherOvercast": {
+    "message": "غائم"
+  },
+  "weatherFog": {
+    "message": "ضباب"
+  },
+  "weatherDrizzle": {
+    "message": "رذاذ"
+  },
+  "weatherRain": {
+    "message": "مطر"
+  },
+  "weatherSnow": {
+    "message": "ثلج"
+  },
+  "weatherRainShowers": {
+    "message": "زخات مطر"
+  },
+  "weatherSnowShowers": {
+    "message": "زخات ثلج"
+  },
+  "weatherThunderstorm": {
+    "message": "عاصفة رعدية"
+  },
+  "weatherThunderstormHail": {
+    "message": "عاصفة رعدية مع برد"
+  },
+  "weatherUnknown": {
+    "message": "حالة غير معروفة"
+  },
+  "addNote": {
+    "message": "إضافة ملاحظة"
+  },
+  "noteText": {
+    "message": "نص الملاحظة"
+  },
+  "notePlaceholder": {
+    "message": "اكتب ملاحظة"
+  },
+  "noteColor": {
+    "message": "اللون: $1"
+  },
+  "colorBlue": {
+    "message": "أزرق"
+  },
+  "colorAmber": {
+    "message": "كهرماني"
+  },
+  "colorRose": {
+    "message": "وردي"
+  },
+  "colorMint": {
+    "message": "نعناعي"
+  },
+  "colorSlate": {
+    "message": "رمادي"
+  },
+  "pinNote": {
+    "message": "تثبيت الملاحظة"
+  },
+  "unpinNote": {
+    "message": "إلغاء تثبيت الملاحظة"
+  },
+  "deleteNote": {
+    "message": "حذف الملاحظة"
+  },
+  "privacyPageTitle": {
+    "message": "إعدادات الخصوصية في Orbit"
+  },
+  "privacyTitle": {
+    "message": "الخصوصية"
+  },
+  "privacyIntro": {
+    "message": "حمايات يضيفها Orbit فوق إعدادات المتصفح نفسه."
+  },
+  "fpTitle": {
+    "message": "الحماية من البصمة الرقمية"
+  },
+  "fpDetail": {
+    "message": "تستطيع المواقع التمييز بين المتصفحات بقراءة تفاصيل تقنية. يجعل هذا الخيار تلك التفاصيل أقل فائدة في تتبعك. لا يوجد إعداد يمنع التتبع تمامًا، ولا يشمل هذا لوحات الرسم داخل عمّال الويب."
+  },
+  "fpStandard": {
+    "message": "قياسي"
+  },
+  "fpStandardDetail": {
+    "message": "تختلف قراءات الرسم والصوت والرسوميات من موقع لآخر، وتُقرّب تفاصيل العتاد. هذا الخيار الأقل تأثيرًا على عمل المواقع."
+  },
+  "fpStrict": {
+    "message": "صارم"
+  },
+  "fpStrictDetail": {
+    "message": "يُقرّب أيضًا حجم الشاشة ويغيّر قياسات النص قليلًا. قد يختلف شكل بعض المواقع أو سلوكها."
+  },
+  "fpOff": {
+    "message": "متوقف"
+  },
+  "fpOffDetail": {
+    "message": "تقرأ المواقع قيمك الحقيقية."
+  },
+  "rtcTitle": {
+    "message": "WebRTC"
+  },
+  "rtcDetail": {
+    "message": "تعتمد مكالمات الفيديو على WebRTC، وقد يكشف عناوين الشبكة للمواقع."
+  },
+  "rtcHide": {
+    "message": "إخفاء عناوين الشبكة المحلية"
+  },
+  "rtcHideDetail": {
+    "message": "تعمل المكالمات كالمعتاد، ولا ترى المواقع عناوينك داخل شبكتك."
+  },
+  "rtcProxy": {
+    "message": "استخدام الوكيل فقط"
+  },
+  "rtcProxyDetail": {
+    "message": "إن لم يُضبط وكيل، فقد لا تتصل مكالمات الفيديو."
+  },
+  "rtcDefault": {
+    "message": "الإعداد الافتراضي للمتصفح"
+  },
+  "rtcDefaultDetail": {
+    "message": "أقل مشكلات اتصال، وأقل حماية."
+  },
+  "clearTitle": {
+    "message": "مسح البيانات عند بدء Orbit"
+  },
+  "clearDetail": {
+    "message": "في كل مرة يبدأ فيها Orbit، يحذف ما تختاره هنا."
+  },
+  "clearCookies": {
+    "message": "ملفات تعريف الارتباط وبيانات المواقع"
+  },
+  "clearCache": {
+    "message": "الصور والملفات المخزنة مؤقتًا"
+  },
+  "clearHistory": {
+    "message": "سجل التصفح"
+  },
+  "clearDownloads": {
+    "message": "سجل التنزيلات"
+  },
+  "clearFormData": {
+    "message": "بيانات الملء التلقائي للنماذج"
+  },
+  "historyTitle": {
+    "message": "حذف السجل القديم تلقائيًا"
+  },
+  "historyDetail": {
+    "message": "يعمل عند بدء Orbit."
+  },
+  "historyKeep": {
+    "message": "الاحتفاظ به حتى أحذفه"
+  },
+  "historyYear": {
+    "message": "سنة واحدة"
+  },
+  "historyDays": {
+    "message": "$1 يومًا"
+  },
+  "sitesOffTitle": {
+    "message": "مواقع أُوقفت لها الدروع"
+  },
+  "turnShieldsOn": {
+    "message": "تشغيل الدروع"
+  },
+  "shieldsOnEverywhere": {
+    "message": "الدروع تعمل على كل المواقع."
+  },
+  "listsTitle": {
+    "message": "قوائم الحجب"
+  },
+  "listsDetail": {
+    "message": "$1 قاعدة، آخر تحديث $2. تصل القواعد الجديدة مع تحديثات Orbit."
+  },
+  "listName": {
+    "message": "القائمة"
+  },
+  "listLicense": {
+    "message": "الترخيص"
+  },
+  "moreTitle": {
+    "message": "المزيد في إعدادات المتصفح"
+  },
+  "moreDns": {
+    "message": "مزوّد DNS الآمن"
+  },
+  "moreCookies": {
+    "message": "ملفات تعريف الارتباط التابعة لجهات خارجية"
+  },
+  "morePermissions": {
+    "message": "أذونات المواقع"
+  },
+  "moreClear": {
+    "message": "حذف بيانات التصفح الآن"
+  },
+  "shields": {
+    "message": "الدروع"
+  },
+  "shieldsForSite": {
+    "message": "الدروع لهذا الموقع"
+  },
+  "blockedOnPage": {
+    "message": "ما حُجب في هذه الصفحة"
+  },
+  "ads": {
+    "message": "إعلانات"
+  },
+  "trackers": {
+    "message": "متتبعات"
+  },
+  "threats": {
+    "message": "تهديدات"
+  },
+  "privacySettings": {
+    "message": "إعدادات الخصوصية"
+  },
+  "siteSettings": {
+    "message": "إعدادات المواقع"
+  },
+  "shieldsOn": {
+    "message": "الدروع تعمل"
+  },
+  "shieldsOffForSite": {
+    "message": "الدروع متوقفة لهذا الموقع"
+  },
+  "thisPage": {
+    "message": "هذه الصفحة"
+  },
+  "shieldsWebsitesOnly": {
+    "message": "تعمل الدروع على المواقع فقط"
+  },
+  "blockedTitle": {
+    "message": "حُجب موقع خطير"
+  },
+  "blockedHeading": {
+    "message": "أوقف Orbit هذه الصفحة"
+  },
+  "blockedExplain": {
+    "message": "هذا العنوان مدرج في قائمة عامة لمواقع معروفة بالبرمجيات الخبيثة أو التصيد. قد يسرق موقع كهذا كلمات المرور أو يثبّت برامج ضارة."
+  },
+  "goBack": {
+    "message": "رجوع"
+  },
+  "continueToSite": {
+    "message": "المتابعة إلى الموقع"
+  },
+  "continueNote": {
+    "message": "إن تابعت، يسمح Orbit بهذا الموقع حتى تغلق المتصفح."
+  },
+  "thisAddress": {
+    "message": "هذا العنوان"
+  },
+  "notesEmpty": {
+    "message": "لا توجد ملاحظات بعد. تبقى الملاحظات على هذا الجهاز."
+  }
+}

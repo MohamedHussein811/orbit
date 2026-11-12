@@ -13,7 +13,7 @@ export function createSbom() {
   const pkg = readJson("package.json");
   const engine = readJson("engine/engine.json");
   const filters = readJson("filters/rules/meta.json");
-  const font = path.join(ROOT, "extension", "src", "newtab", "fonts", "RedHatDisplay.ttf");
+  const font = path.join(ROOT, "extension", "src", "shared", "fonts", "ReadexPro.ttf");
 
   const components = [
     {
@@ -33,7 +33,7 @@ export function createSbom() {
     },
     {
       type: "library",
-      name: "Red Hat Display",
+      name: "Readex Pro",
       licenses: [{ license: { id: "OFL-1.1" } }],
       hashes: [{ alg: "SHA-256", content: crypto.createHash("sha256").update(fs.readFileSync(font)).digest("hex") }],
     },

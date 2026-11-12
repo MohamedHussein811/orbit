@@ -3,10 +3,10 @@ import { test } from "node:test";
 import { defaultLayout, moveWidget, sanitizeLayout, updateWidget } from "../src/shared/layout.ts";
 import { createNote, patchNote, sanitizeNotes, sortNotes } from "../src/shared/notes.ts";
 import { excludeMatches, historyCutoff, removalOptions, sanitizePrivacy } from "../src/shared/privacy.ts";
-import { DEFAULT_ACCENT, resolveTheme, sanitizeSettings } from "../src/shared/settings.ts";
+import { resolveTheme, sanitizeSettings } from "../src/shared/settings.ts";
 import { allowRule, ALLOW_ID_BASE, categoryOfMatch, cosmeticCss, cosmeticShard, hostSuffixes, normalizeHosts, siteOf } from "../src/shared/shields.ts";
 import { addCount, dayKey, emptyStats, pruneStats, sanitizeStats, summarize } from "../src/shared/stats.ts";
-import { describeWeather, forecastUrl, isFresh, parseForecast, parsePlaces, roundCoordinate, WEATHER_CACHE_MS } from "../src/shared/weather.ts";
+import { forecastUrl, geocodeUrl, weatherConditionKey, isFresh, parseForecast, parsePlaces, roundCoordinate, WEATHER_CACHE_MS } from "../src/shared/weather.ts";
 
 const NOW = new Date(2026, 10, 9, 12).getTime();
 const DAY = 86_400_000;
@@ -44,14 +44,14 @@ test("corrupted layouts become usable layouts", () => {
   const partial = sanitizeLayout({ widgets: [{ id: "notes", visible: false, size: "large" }, { id: "nope" }, { id: "notes" }, { id: "weather", size: "large" }] });
   assert.deepEqual(partial.widgets.map((w) => w.id), ["notes", "weather", "search", "bookmarks", "stats"]);
   assert.equal(partial.widgets[0]!.visible, false);
-  assert.equal(partial.widgets[1]!.size, "small");
+  assert.equal(partial.widgets[1]!.size, "medium");
 });
 
 test("layouts move and resize widgets within their allowed sizes", () => {
   const layout = moveWidget(defaultLayout(), "notes", 0);
   assert.equal(layout.widgets[0]!.id, "notes");
   assert.equal(moveWidget(layout, "notes", 99).widgets.at(-1)!.id, "notes");
-  assert.equal(updateWidget(layout, "weather", { size: "large" }).widgets.find((w) => w.id === "weather")!.size, "small");
+  assert.equal(updateWidget(layout, "weather", { size: "large" }).widgets.find((w) => w.id === "weather")!.size, "medium");
   assert.equal(updateWidget(layout, "stats", { size: "large" }).widgets.find((w) => w.id === "stats")!.size, "large");
 });
 
@@ -77,19 +77,17 @@ test("note edits ignore invalid values", () => {
 });
 
 test("settings fall back to safe defaults", () => {
-  const settings = sanitizeSettings({ theme: "neon", accent: "red", statsPeriod: "never", temperatureUnit: "kelvin", bookmarksFolder: 4 });
-  assert.equal(settings.theme, "space");
-  assert.equal(settings.accent, DEFAULT_ACCENT);
+  const settings = sanitizeSettings({ background: "neon", statsPeriod: "never", temperatureUnit: "kelvin", bookmarksFolder: 4 });
+  assert.equal(settings.background, "scene");
   assert.equal(settings.statsPeriod, "7d");
   assert.equal(settings.temperatureUnit, "celsius");
   assert.equal(settings.bookmarksFolder, null);
-  assert.equal(sanitizeSettings({ accent: "#ABCDEF" }).accent, "#abcdef");
+  assert.equal(sanitizeSettings({ background: "plain" }).background, "plain");
 });
 
-test("the system theme follows the operating system", () => {
-  assert.equal(resolveTheme("system", true), "dark");
-  assert.equal(resolveTheme("system", false), "light");
-  assert.equal(resolveTheme("space", false), "space");
+test("the dashboard follows the browser theme", () => {
+  assert.equal(resolveTheme(true), "space");
+  assert.equal(resolveTheme(false), "light");
 });
 
 test("only block rules count as blocks", () => {
@@ -178,8 +176,10 @@ test("weather parsing rejects incomplete answers", () => {
   assert.equal(parseForecast({ current: {} }, NOW), null);
   assert.equal(parseForecast(null, NOW), null);
   assert.deepEqual(parsePlaces({ results: [{ name: "Cairo", latitude: 30, longitude: 31, country: "Egypt" }, { name: "x" }] }), [{ name: "Cairo", detail: "Egypt", latitude: 30, longitude: 31 }]);
-  assert.equal(describeWeather(0), "Clear sky");
-  assert.equal(describeWeather(1234), "Unknown conditions");
+  assert.equal(weatherConditionKey(0), "weatherClear");
+  assert.equal(weatherConditionKey(1234), "weatherUnknown");
+  assert.equal(new URL(geocodeUrl("Cairo", "ar")).searchParams.get("language"), "ar");
+  assert.equal(new URL(geocodeUrl("Cairo", "../x")).searchParams.get("language"), "en");
 });
 
 test("weather reports expire", () => {

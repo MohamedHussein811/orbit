@@ -44,11 +44,12 @@ export function forecastUrl(place: Pick<WeatherPlace, "latitude" | "longitude">,
   return url.toString();
 }
 
-export function geocodeUrl(query: string): string {
+export function geocodeUrl(query: string, language = "en"): string {
   const url = new URL("https://geocoding-api.open-meteo.com/v1/search");
   url.searchParams.set("name", query.trim().slice(0, 100));
   url.searchParams.set("count", "6");
   url.searchParams.set("format", "json");
+  url.searchParams.set("language", /^[a-z]{2}$/.test(language) ? language : "en");
   return url.toString();
 }
 
@@ -90,20 +91,21 @@ export function parsePlaces(raw: unknown): WeatherPlace[] {
 }
 
 /** WMO weather interpretation codes, as documented by Open-Meteo. */
-export function describeWeather(code: number): string {
-  if (code === 0) return "Clear sky";
-  if (code === 1) return "Mainly clear";
-  if (code === 2) return "Partly cloudy";
-  if (code === 3) return "Overcast";
-  if (code === 45 || code === 48) return "Fog";
-  if (code >= 51 && code <= 57) return "Drizzle";
-  if (code >= 61 && code <= 67) return "Rain";
-  if (code >= 71 && code <= 77) return "Snow";
-  if (code >= 80 && code <= 82) return "Rain showers";
-  if (code === 85 || code === 86) return "Snow showers";
-  if (code === 95) return "Thunderstorm";
-  if (code === 96 || code === 99) return "Thunderstorm with hail";
-  return "Unknown conditions";
+/** The message name (in _locales) that describes a WMO weather code. */
+export function weatherConditionKey(code: number): string {
+  if (code === 0) return "weatherClear";
+  if (code === 1) return "weatherMainlyClear";
+  if (code === 2) return "weatherPartlyCloudy";
+  if (code === 3) return "weatherOvercast";
+  if (code === 45 || code === 48) return "weatherFog";
+  if (code >= 51 && code <= 57) return "weatherDrizzle";
+  if (code >= 61 && code <= 67) return "weatherRain";
+  if (code >= 71 && code <= 77) return "weatherSnow";
+  if (code >= 80 && code <= 82) return "weatherRainShowers";
+  if (code === 85 || code === 86) return "weatherSnowShowers";
+  if (code === 95) return "weatherThunderstorm";
+  if (code === 96 || code === 99) return "weatherThunderstormHail";
+  return "weatherUnknown";
 }
 
 export type WeatherIcon = "clear" | "partly" | "cloud" | "fog" | "rain" | "snow" | "storm";

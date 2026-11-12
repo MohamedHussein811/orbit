@@ -1,0 +1,485 @@
+{
+  "extDescription": {
+    "message": "Orbit's dashboard and Shields."
+  },
+  "newTabTitle": {
+    "message": "New Tab"
+  },
+  "customize": {
+    "message": "Customize"
+  },
+  "close": {
+    "message": "Close"
+  },
+  "widgetSearch": {
+    "message": "Search"
+  },
+  "widgetProtection": {
+    "message": "Protection"
+  },
+  "widgetShortcuts": {
+    "message": "Shortcuts"
+  },
+  "widgetWeather": {
+    "message": "Weather"
+  },
+  "widgetNotes": {
+    "message": "Notes"
+  },
+  "widgetFailed": {
+    "message": "$1 could not load. The rest of the page still works."
+  },
+  "sizeSmall": {
+    "message": "Small"
+  },
+  "sizeMedium": {
+    "message": "Medium"
+  },
+  "sizeLarge": {
+    "message": "Large"
+  },
+  "widgetSize": {
+    "message": "$1 size"
+  },
+  "moveUp": {
+    "message": "Move $1 up"
+  },
+  "moveDown": {
+    "message": "Move $1 down"
+  },
+  "background": {
+    "message": "Background"
+  },
+  "backgroundSpace": {
+    "message": "Space"
+  },
+  "backgroundPlain": {
+    "message": "Plain"
+  },
+  "chooseImage": {
+    "message": "Choose an image"
+  },
+  "changeImage": {
+    "message": "Change image"
+  },
+  "removeImage": {
+    "message": "Remove image"
+  },
+  "imageTooLarge": {
+    "message": "Choose an image smaller than 12 MB."
+  },
+  "browserTheme": {
+    "message": "Theme and colors"
+  },
+  "browserThemeExplained": {
+    "message": "This page follows the browser theme. Choose Space, Dark, Light or your device setting, and an accent color, in Settings."
+  },
+  "openThemeSettings": {
+    "message": "Open theme settings"
+  },
+  "widgets": {
+    "message": "Widgets"
+  },
+  "dragHint": {
+    "message": "While this panel is open, you can also drag widgets on the page."
+  },
+  "restoreLayout": {
+    "message": "Restore default layout"
+  },
+  "searchPlaceholder": {
+    "message": "Search or enter an address"
+  },
+  "reportingPeriod": {
+    "message": "Reporting period"
+  },
+  "periodToday": {
+    "message": "Today"
+  },
+  "period7d": {
+    "message": "Last 7 days"
+  },
+  "period30d": {
+    "message": "Last 30 days"
+  },
+  "periodAll": {
+    "message": "All time"
+  },
+  "statAds": {
+    "message": "Ads blocked"
+  },
+  "statTrackers": {
+    "message": "Trackers blocked"
+  },
+  "statThreats": {
+    "message": "Threats stopped"
+  },
+  "countedLocally": {
+    "message": "Counted on this device. Nothing is sent anywhere."
+  },
+  "resetCounts": {
+    "message": "Reset counts"
+  },
+  "resetCountsConfirm": {
+    "message": "Reset all counts?"
+  },
+  "reset": {
+    "message": "Reset"
+  },
+  "keep": {
+    "message": "Keep"
+  },
+  "bookmarkCollections": {
+    "message": "Bookmark collections"
+  },
+  "addShortcut": {
+    "message": "Add shortcut"
+  },
+  "newFolder": {
+    "message": "New folder"
+  },
+  "editItem": {
+    "message": "Edit $1"
+  },
+  "editFolder": {
+    "message": "Edit folder"
+  },
+  "editShortcut": {
+    "message": "Edit shortcut"
+  },
+  "backToParent": {
+    "message": "Back to the parent folder"
+  },
+  "shortcutsEmpty": {
+    "message": "Your bookmarks bar is empty. Add a shortcut, or"
+  },
+  "importBookmarks": {
+    "message": "import bookmarks from another browser"
+  },
+  "fieldName": {
+    "message": "Name"
+  },
+  "fieldAddress": {
+    "message": "Address"
+  },
+  "untitled": {
+    "message": "Untitled"
+  },
+  "invalidAddress": {
+    "message": "Enter a valid web address, such as example.com."
+  },
+  "delete": {
+    "message": "Delete"
+  },
+  "cancel": {
+    "message": "Cancel"
+  },
+  "save": {
+    "message": "Save"
+  },
+  "weatherBy": {
+    "message": "Weather by $1"
+  },
+  "weatherIntro": {
+    "message": "Enter your city to see the weather. Your search goes to $1."
+  },
+  "cityName": {
+    "message": "City name"
+  },
+  "find": {
+    "message": "Find"
+  },
+  "searching": {
+    "message": "Searching..."
+  },
+  "noPlaceFound": {
+    "message": "No place found with that name. Check the spelling."
+  },
+  "weatherUnreachable": {
+    "message": "Could not reach the weather service. Check your connection and try again."
+  },
+  "weatherLoading": {
+    "message": "Loading the weather..."
+  },
+  "weatherUnavailable": {
+    "message": "Weather is unavailable right now. Check your connection."
+  },
+  "weatherStale": {
+    "message": "Showing the last update, from $1."
+  },
+  "showFahrenheit": {
+    "message": "Show in °F"
+  },
+  "showCelsius": {
+    "message": "Show in °C"
+  },
+  "changeCity": {
+    "message": "Change city"
+  },
+  "highLow": {
+    "message": "High $1, low $2"
+  },
+  "weatherClear": {
+    "message": "Clear sky"
+  },
+  "weatherMainlyClear": {
+    "message": "Mainly clear"
+  },
+  "weatherPartlyCloudy": {
+    "message": "Partly cloudy"
+  },
+  "weatherOvercast": {
+    "message": "Overcast"
+  },
+  "weatherFog": {
+    "message": "Fog"
+  },
+  "weatherDrizzle": {
+    "message": "Drizzle"
+  },
+  "weatherRain": {
+    "message": "Rain"
+  },
+  "weatherSnow": {
+    "message": "Snow"
+  },
+  "weatherRainShowers": {
+    "message": "Rain showers"
+  },
+  "weatherSnowShowers": {
+    "message": "Snow showers"
+  },
+  "weatherThunderstorm": {
+    "message": "Thunderstorm"
+  },
+  "weatherThunderstormHail": {
+    "message": "Thunderstorm with hail"
+  },
+  "weatherUnknown": {
+    "message": "Unknown conditions"
+  },
+  "addNote": {
+    "message": "Add note"
+  },
+  "noteText": {
+    "message": "Note text"
+  },
+  "notePlaceholder": {
+    "message": "Write a note"
+  },
+  "noteColor": {
+    "message": "Color: $1"
+  },
+  "colorBlue": {
+    "message": "Blue"
+  },
+  "colorAmber": {
+    "message": "Amber"
+  },
+  "colorRose": {
+    "message": "Rose"
+  },
+  "colorMint": {
+    "message": "Mint"
+  },
+  "colorSlate": {
+    "message": "Slate"
+  },
+  "pinNote": {
+    "message": "Pin note"
+  },
+  "unpinNote": {
+    "message": "Unpin note"
+  },
+  "deleteNote": {
+    "message": "Delete note"
+  },
+  "privacyPageTitle": {
+    "message": "Orbit privacy settings"
+  },
+  "privacyTitle": {
+    "message": "Privacy"
+  },
+  "privacyIntro": {
+    "message": "Protections Orbit adds on top of the browser's own settings."
+  },
+  "fpTitle": {
+    "message": "Fingerprinting protection"
+  },
+  "fpDetail": {
+    "message": "Sites can tell browsers apart by reading technical details. This makes those details less useful for tracking you. No setting can make you impossible to track, and canvases in web workers are not covered."
+  },
+  "fpStandard": {
+    "message": "Standard"
+  },
+  "fpStandardDetail": {
+    "message": "Canvas, audio and graphics readings differ from site to site. Hardware details are rounded. This is the least likely to affect how sites work."
+  },
+  "fpStrict": {
+    "message": "Strict"
+  },
+  "fpStrictDetail": {
+    "message": "Also rounds screen size and changes text measurements slightly. Some sites may look or behave differently."
+  },
+  "fpOff": {
+    "message": "Off"
+  },
+  "fpOffDetail": {
+    "message": "Sites read your real values."
+  },
+  "rtcTitle": {
+    "message": "WebRTC"
+  },
+  "rtcDetail": {
+    "message": "WebRTC powers video calls, and it can reveal network addresses to sites."
+  },
+  "rtcHide": {
+    "message": "Hide local network addresses"
+  },
+  "rtcHideDetail": {
+    "message": "Calls work normally. Sites do not see your addresses inside your network."
+  },
+  "rtcProxy": {
+    "message": "Only use a proxy"
+  },
+  "rtcProxyDetail": {
+    "message": "With no proxy set, video calls may not connect."
+  },
+  "rtcDefault": {
+    "message": "Browser default"
+  },
+  "rtcDefaultDetail": {
+    "message": "Fewest connection problems, and the least protection."
+  },
+  "clearTitle": {
+    "message": "Clear data when Orbit starts"
+  },
+  "clearDetail": {
+    "message": "Each time Orbit starts, it deletes what you choose here."
+  },
+  "clearCookies": {
+    "message": "Cookies and site data"
+  },
+  "clearCache": {
+    "message": "Cached images and files"
+  },
+  "clearHistory": {
+    "message": "Browsing history"
+  },
+  "clearDownloads": {
+    "message": "Download history"
+  },
+  "clearFormData": {
+    "message": "Autofill form data"
+  },
+  "historyTitle": {
+    "message": "Delete old history automatically"
+  },
+  "historyDetail": {
+    "message": "Runs when Orbit starts."
+  },
+  "historyKeep": {
+    "message": "Keep until I delete it"
+  },
+  "historyYear": {
+    "message": "1 year"
+  },
+  "historyDays": {
+    "message": "$1 days"
+  },
+  "sitesOffTitle": {
+    "message": "Sites with Shields off"
+  },
+  "turnShieldsOn": {
+    "message": "Turn Shields on"
+  },
+  "shieldsOnEverywhere": {
+    "message": "Shields is on for every site."
+  },
+  "listsTitle": {
+    "message": "Blocking lists"
+  },
+  "listsDetail": {
+    "message": "$1 rules, updated $2. New rules arrive with Orbit updates."
+  },
+  "listName": {
+    "message": "List"
+  },
+  "listLicense": {
+    "message": "License"
+  },
+  "moreTitle": {
+    "message": "More in browser settings"
+  },
+  "moreDns": {
+    "message": "Secure DNS provider"
+  },
+  "moreCookies": {
+    "message": "Third-party cookies"
+  },
+  "morePermissions": {
+    "message": "Site permissions"
+  },
+  "moreClear": {
+    "message": "Delete browsing data now"
+  },
+  "shields": {
+    "message": "Shields"
+  },
+  "shieldsForSite": {
+    "message": "Shields for this site"
+  },
+  "blockedOnPage": {
+    "message": "Blocked on this page"
+  },
+  "ads": {
+    "message": "Ads"
+  },
+  "trackers": {
+    "message": "Trackers"
+  },
+  "threats": {
+    "message": "Threats"
+  },
+  "privacySettings": {
+    "message": "Privacy settings"
+  },
+  "siteSettings": {
+    "message": "Site settings"
+  },
+  "shieldsOn": {
+    "message": "Shields on"
+  },
+  "shieldsOffForSite": {
+    "message": "Shields off for this site"
+  },
+  "thisPage": {
+    "message": "This page"
+  },
+  "shieldsWebsitesOnly": {
+    "message": "Shields only apply to websites"
+  },
+  "blockedTitle": {
+    "message": "Dangerous site blocked"
+  },
+  "blockedHeading": {
+    "message": "Orbit stopped this page"
+  },
+  "blockedExplain": {
+    "message": "This address is on a public list of sites known for malware or phishing. Such a site can steal passwords or install harmful software."
+  },
+  "goBack": {
+    "message": "Go back"
+  },
+  "continueToSite": {
+    "message": "Continue to the site"
+  },
+  "continueNote": {
+    "message": "If you continue, Orbit allows this site until you close the browser."
+  },
+  "thisAddress": {
+    "message": "This address"
+  },
+  "notesEmpty": {
+    "message": "No notes yet. Notes stay on this device."
+  }
+}

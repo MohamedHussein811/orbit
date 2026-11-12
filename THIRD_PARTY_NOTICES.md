@@ -16,7 +16,7 @@ Shields ships rules compiled from these lists. `filters/rules/meta.json` records
 
 ## Fonts
 
-The dashboard uses Red Hat Display, copyright The Red Hat Project Authors, under the SIL Open Font License 1.1. The license is in `extension/src/newtab/fonts/OFL.txt`.
+Orbit's built-in pages use Readex Pro, copyright 2018 The Readex Pro Project Authors (https://github.com/ThomasJockin/readexpro), under the SIL Open Font License 1.1. The license is in `extension/src/shared/fonts/OFL.txt`.
 
 ## Weather
 

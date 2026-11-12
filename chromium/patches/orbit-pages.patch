@@ -1,0 +1,57 @@
+diff --git a/components/security_interstitials/core/common/resources/interstitial_core.css b/components/security_interstitials/core/common/resources/interstitial_core.css
+--- a/components/security_interstitials/core/common/resources/interstitial_core.css
++++ b/components/security_interstitials/core/common/resources/interstitial_core.css
+@@ -81,3 +81,53 @@
+     --text-color: var(--google-gray-500);
+   }
+ }
++
++/* Orbit's palette, shared by error pages and security warnings. */
++body {
++  --background-color: #f6f7fd;
++  --error-code-color: #6f778b;
++  --heading-color: #171b2c;
++  --link-color: #4c52ba;
++  --primary-button-fill-color-active: #3d43a3;
++  --primary-button-fill-color: #4c52ba;
++  --primary-button-text-color: #fff;
++  --quiet-background-color: #f6f7fd;
++  --secondary-button-border-color: #c6cadb;
++  --secondary-button-fill-color: #fff;
++  --secondary-button-hover-border-color: #8b91a8;
++  --secondary-button-hover-fill-color: #eef0fb;
++  --secondary-button-text-color: #4c52ba;
++  --small-link-color: #4c52ba;
++  --text-color: #3f465e;
++}
++
++@media (prefers-color-scheme: dark) {
++  body {
++    --background-color: #0b0e27;
++    --error-code-color: #8891aa;
++    --heading-color: #e0e2ed;
++    --link-color: #9eacff;
++    --primary-button-fill-color-active: #b8c2ff;
++    --primary-button-fill-color: #9eacff;
++    --primary-button-text-color: #261e84;
++    --quiet-background-color: #0b0e27;
++    --secondary-button-border-color: #343a5c;
++    --secondary-button-fill-color: #0b0e27;
++    --secondary-button-hover-border-color: #4c5378;
++    --secondary-button-hover-fill-color: #1a1f38;
++    --secondary-button-text-color: #9eacff;
++    --small-link-color: #9eacff;
++    --text-color: #c0c7da;
++  }
++}
++
++body:not(.safe-browsing):not(.ssl):not(.lookalike-url):not(.enterprise-block) {
++  background:
++    radial-gradient(60rem 28rem at 50% -12rem, rgb(141 155 255 / 0.14), transparent 70%),
++    var(--background-color);
++}
++
++h1 {
++  font-weight: 400;
++  letter-spacing: -0.01em;
++}

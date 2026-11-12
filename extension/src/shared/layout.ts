@@ -33,8 +33,8 @@ export function defaultLayout(): Layout {
     widgets: [
       { id: "search", visible: true, size: "large" },
       { id: "bookmarks", visible: true, size: "large" },
-      { id: "stats", visible: true, size: "medium" },
-      { id: "weather", visible: true, size: "small" },
+      { id: "stats", visible: true, size: "small" },
+      { id: "weather", visible: true, size: "medium" },
       { id: "notes", visible: true, size: "medium" },
     ],
   };

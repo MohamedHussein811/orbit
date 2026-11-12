@@ -1,26 +1,36 @@
 <!doctype html>
-<html lang="en" data-theme="space">
+<html lang="en" data-theme="space" data-background="scene">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>New Tab</title>
+<meta name="color-scheme" content="dark light">
+<title data-i18n="newTabTitle">New Tab</title>
 <link rel="icon" href="../icons/orbit-32.png">
+<link rel="stylesheet" href="../shared/tokens.css">
+<link rel="stylesheet" href="../shared/base.css">
 <link rel="stylesheet" href="newtab.css">
 <script src="theme-boot.js"></script>
 </head>
 <body>
-<div class="backdrop" aria-hidden="true">
+<div class="sky" aria-hidden="true">
+  <div class="nebula"></div>
   <div class="stars"></div>
-  <div class="limb"></div>
+  <div class="stars stars-far"></div>
+  <div class="planet"></div>
 </div>
 
-<div class="page">
-  <header class="topbar">
-    <p class="clock"><time id="time"></time><span id="date"></span></p>
-    <button id="open-customize" class="ghost" type="button" aria-haspopup="dialog">Customize</button>
+<button id="open-customize" class="customize-button" type="button" aria-haspopup="dialog" aria-controls="customize">
+  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg>
+  <span data-i18n="customize">Customize</span>
+</button>
+
+<main class="page">
+  <header class="hero">
+    <time id="time" class="clock"></time>
+    <p id="date" class="date"></p>
   </header>
-  <main id="board" class="board"></main>
-</div>
+  <div id="board" class="board"></div>
+</main>
 
 <dialog id="customize" class="drawer" aria-labelledby="customize-title"></dialog>
 

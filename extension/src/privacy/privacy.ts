@@ -1,42 +1,50 @@
 // Orbit's privacy page: choices the browser's own settings do not offer, and links to those it does.
 
 import { h } from "../newtab/dom.ts";
+import { localizePage, t } from "../shared/i18n.ts";
 import { CLEARABLE_DATA, HISTORY_DAYS, sanitizePrivacy, type ClearableData, type FingerprintLevel, type PrivacySettings, type WebRtcPolicy } from "../shared/privacy.ts";
+import { resolveTheme } from "../shared/settings.ts";
 import { normalizeHosts, type Message } from "../shared/shields.ts";
 
 const page = document.getElementById("page")!;
+const locale = () => chrome.i18n.getUILanguage();
 
 const FINGERPRINT_CHOICES: Array<{ value: FingerprintLevel; label: string; detail: string }> = [
-  { value: "standard", label: "Standard", detail: "Canvas, audio and graphics readings differ from site to site. Hardware details are rounded. This is the least likely to affect how sites work." },
-  { value: "strict", label: "Strict", detail: "Also rounds screen size and changes text measurements slightly. Some sites may look or behave differently." },
-  { value: "off", label: "Off", detail: "Sites read your real values." },
+  { value: "standard", label: "fpStandard", detail: "fpStandardDetail" },
+  { value: "strict", label: "fpStrict", detail: "fpStrictDetail" },
+  { value: "off", label: "fpOff", detail: "fpOffDetail" },
 ];
 
 const WEBRTC_CHOICES: Array<{ value: WebRtcPolicy; label: string; detail: string }> = [
-  { value: "default_public_interface_only", label: "Hide local network addresses", detail: "Calls work normally. Sites do not see your addresses inside your network." },
-  { value: "disable_non_proxied_udp", label: "Only use a proxy", detail: "With no proxy set, video calls may not connect." },
-  { value: "default", label: "Chromium default", detail: "Fewest connection problems, and the least protection." },
+  { value: "default_public_interface_only", label: "rtcHide", detail: "rtcHideDetail" },
+  { value: "disable_non_proxied_udp", label: "rtcProxy", detail: "rtcProxyDetail" },
+  { value: "default", label: "rtcDefault", detail: "rtcDefaultDetail" },
 ];
 
 const CLEAR_LABELS: Record<ClearableData, string> = {
-  cookies: "Cookies and site data",
-  cache: "Cached images and files",
-  history: "Browsing history",
-  downloads: "Download history",
-  formData: "Autofill form data",
+  cookies: "clearCookies",
+  cache: "clearCache",
+  history: "clearHistory",
+  downloads: "clearDownloads",
+  formData: "clearFormData",
 };
 
-function radioGroup<T extends string | number>(name: string, choices: Array<{ value: T; label: string; detail?: string }>, current: T, onChange: (value: T) => void): HTMLElement {
+function historyLabel(days: number): string {
+  if (days === 0) return t("historyKeep");
+  if (days === 365) return t("historyYear");
+  return t("historyDays", days.toLocaleString(locale()));
+}
+
+function radioGroup<T extends string | number>(name: string, label: string, choices: Array<{ value: T; label: string; detail?: string }>, current: T, onChange: (value: T) => void): HTMLElement {
   return h(
     "div",
-    { class: "options", role: "radiogroup", "aria-label": name },
+    { class: "choices", role: "radiogroup", "aria-label": label },
     ...choices.map((choice) =>
       h(
         "label",
-        {},
+        { class: "choice" },
         h("input", { type: "radio", name, value: String(choice.value), checked: choice.value === current, onchange: () => onChange(choice.value) }),
-        h("span", {}, choice.label),
-        choice.detail ? h("small", {}, choice.detail) : null,
+        h("span", { class: "choice-text" }, h("span", { class: "choice-label" }, choice.label), choice.detail ? h("small", {}, choice.detail) : null),
       ),
     ),
   );
@@ -48,11 +56,11 @@ async function save(settings: PrivacySettings): Promise<void> {
 }
 
 function section(title: string, description: string | null, ...content: HTMLElement[]): HTMLElement {
-  return h("section", { class: "pane setting" }, h("h2", {}, title), description ? h("p", {}, description) : null, ...content);
+  return h("section", { class: "pane setting" }, h("h2", {}, title), description ? h("p", { class: "setting-detail" }, description) : null, ...content);
 }
 
-function openBrowserPage(url: string, label: string): HTMLElement {
-  return h("button", { type: "button", class: "link", onclick: () => void chrome.tabs.create({ url }) }, label);
+function browserLink(url: string, label: string): HTMLElement {
+  return h("button", { type: "button", class: "row-link", onclick: () => void chrome.tabs.create({ url }) }, h("span", {}, label), h("span", { class: "chevron", "aria-hidden": "true" }));
 }
 
 async function draw(): Promise<void> {
@@ -66,7 +74,7 @@ async function draw(): Promise<void> {
 
   const clearBoxes = h(
     "div",
-    { class: "options" },
+    { class: "choices" },
     ...CLEARABLE_DATA.map((item) => {
       const box = h("input", {
         type: "checkbox",
@@ -77,82 +85,81 @@ async function draw(): Promise<void> {
           void change({ clearOnStart: next });
         },
       });
-      return h("label", {}, box, h("span", {}, CLEAR_LABELS[item]));
+      return h("label", { class: "choice" }, box, h("span", { class: "choice-label" }, t(CLEAR_LABELS[item])));
     }),
   );
 
-  const historyChoices = HISTORY_DAYS.map((days) => ({ value: days as number, label: days === 0 ? "Keep until I delete it" : days === 365 ? "1 year" : `${days} days` }));
+  const historyChoices = HISTORY_DAYS.map((days) => ({ value: days as number, label: historyLabel(days) }));
 
   const siteList = sitesOff.length
     ? h(
         "div",
-        {},
+        { class: "site-list" },
         ...sitesOff.map((host) =>
           h(
             "div",
             { class: "site-row" },
-            h("span", {}, host),
+            h("span", { dir: "ltr" }, host),
             h(
               "button",
               {
                 type: "button",
-                class: "ghost",
+                class: "button quiet",
                 onclick: async () => {
                   const message: Message = { type: "set-shields", host, enabled: true, incognito: false };
                   await chrome.runtime.sendMessage(message);
                   await draw();
                 },
               },
-              "Turn Shields on",
+              t("turnShieldsOn"),
             ),
           ),
         ),
       )
-    : h("p", {}, "Shields is on for every site.");
+    : h("p", { class: "notice" }, t("shieldsOnEverywhere"));
 
   const meta = await fetch(chrome.runtime.getURL("rules/meta.json")).then((res) => res.json());
   const lists = Object.values(meta.lists) as Array<{ name: string; license: string; homepage: string }>;
   const rulesTotal = Object.values(meta.rulesets as Record<string, { rules: number }>).reduce((total, ruleset) => total + ruleset.rules, 0);
-  const updated = new Date(meta.generated).toLocaleDateString([], { year: "numeric", month: "long", day: "numeric" });
+  const updated = new Date(meta.generated).toLocaleDateString(locale(), { year: "numeric", month: "long", day: "numeric" });
 
   page.replaceChildren(
-    h("h1", {}, "Privacy settings"),
+    h("header", { class: "page-head" }, h("img", { src: "../icons/orbit-48.png", alt: "", width: 40, height: 40 }), h("div", {}, h("h1", {}, t("privacyTitle")), h("p", { class: "notice" }, t("privacyIntro")))),
+    section(t("fpTitle"), t("fpDetail"), radioGroup("fingerprinting", t("fpTitle"), FINGERPRINT_CHOICES.map((c) => ({ ...c, label: t(c.label), detail: t(c.detail) })), settings.fingerprinting, (value) => void change({ fingerprinting: value }))),
+    section(t("rtcTitle"), t("rtcDetail"), radioGroup("webrtc", t("rtcTitle"), WEBRTC_CHOICES.map((c) => ({ ...c, label: t(c.label), detail: t(c.detail) })), settings.webrtc, (value) => void change({ webrtc: value }))),
+    section(t("clearTitle"), t("clearDetail"), clearBoxes),
+    section(t("historyTitle"), t("historyDetail"), radioGroup("historyDays", t("historyTitle"), historyChoices, settings.historyDays, (value) => void change({ historyDays: value }))),
+    section(t("sitesOffTitle"), null, siteList),
     section(
-      "Fingerprinting protection",
-      "Sites can tell browsers apart by reading technical details. This makes those details less useful for tracking you. No setting can make you impossible to track, and canvases in web workers are not covered.",
-      radioGroup("fingerprinting", FINGERPRINT_CHOICES, settings.fingerprinting, (value) => void change({ fingerprinting: value })),
-    ),
-    section("WebRTC", "WebRTC powers video calls, and it can reveal network addresses to sites.", radioGroup("webrtc", WEBRTC_CHOICES, settings.webrtc, (value) => void change({ webrtc: value }))),
-    section("Clear data when Orbit starts", "Each time Orbit starts, it deletes what you choose here.", clearBoxes),
-    section("Delete old history automatically", "Runs when Orbit starts.", radioGroup("historyDays", historyChoices, settings.historyDays, (value) => void change({ historyDays: value }))),
-    section("Sites with Shields off", null, siteList),
-    section(
-      "Blocking lists",
-      `${rulesTotal.toLocaleString()} rules, updated ${updated}. New rules arrive with Orbit updates.`,
+      t("listsTitle"),
+      t("listsDetail", rulesTotal.toLocaleString(locale()), updated),
       h(
         "table",
         { class: "list-table" },
-        h("thead", {}, h("tr", {}, h("th", {}, "List"), h("th", {}, "License"))),
-        h("tbody", {}, ...lists.map((list) => h("tr", {}, h("td", {}, h("a", { href: list.homepage }, list.name)), h("td", {}, list.license)))),
+        h("thead", {}, h("tr", {}, h("th", {}, t("listName")), h("th", {}, t("listLicense")))),
+        h("tbody", {}, ...lists.map((list) => h("tr", {}, h("td", {}, h("a", { href: list.homepage, dir: "auto" }, list.name)), h("td", { dir: "ltr" }, list.license)))),
       ),
     ),
     section(
-      "More in browser settings",
+      t("moreTitle"),
       null,
       h(
         "div",
-        { class: "options" },
-        openBrowserPage("chrome://settings/security", "Secure DNS provider"),
-        openBrowserPage("chrome://settings/cookies", "Third-party cookies"),
-        openBrowserPage("chrome://settings/content", "Site permissions"),
-        openBrowserPage("chrome://settings/clearBrowserData", "Delete browsing data now"),
+        { class: "row-links" },
+        browserLink("chrome://settings/security", t("moreDns")),
+        browserLink("chrome://settings/cookies", t("moreCookies")),
+        browserLink("chrome://settings/content", t("morePermissions")),
+        browserLink("chrome://settings/clearBrowserData", t("moreClear")),
       ),
     ),
   );
 }
 
-void chrome.storage.local.get(["settings"]).then(({ settings: dashboard }) => {
-  const theme = (dashboard as { theme?: string } | undefined)?.theme;
-  if (theme === "light" || theme === "dark" || theme === "space") document.documentElement.dataset.theme = theme;
-});
+const prefersDark = matchMedia("(prefers-color-scheme: dark)");
+const applyTheme = () => {
+  document.documentElement.dataset.theme = resolveTheme(prefersDark.matches);
+};
+prefersDark.addEventListener("change", applyTheme);
+applyTheme();
+localizePage();
 void draw();

@@ -1,15 +1,17 @@
 // The dashboard's widgets. Each one renders into its own frame and keeps working when another fails.
 
+import { t, uiLanguage } from "../shared/i18n.ts";
 import type { Settings } from "../shared/settings.ts";
-import { PERIODS, sanitizeStats, summarize, type Period } from "../shared/stats.ts";
+import { CATEGORIES, PERIODS, sanitizeStats, summarize, type Category, type Period } from "../shared/stats.ts";
 import type { Message } from "../shared/shields.ts";
 import {
-  describeWeather,
   forecastUrl,
   geocodeUrl,
   isFresh,
   parseForecast,
   parsePlaces,
+  weatherConditionKey,
+  weatherIcon,
   WEATHER_PROVIDER,
   WEATHER_TIMEOUT_MS,
   type WeatherPlace,
@@ -21,9 +23,13 @@ import { debounce, h, icon, iconButton } from "./dom.ts";
 export interface WidgetContext {
   settings: () => Settings;
   saveSettings: (patch: Partial<Settings>) => Promise<void>;
+  /** Call after a widget changes height, so the scene can follow. */
+  relayout: () => void;
 }
 
-const PERIOD_LABEL: Record<Period, string> = { today: "Today", "7d": "Last 7 days", "30d": "Last 30 days", all: "All time" };
+const PERIOD_LABEL: Record<Period, string> = { today: "periodToday", "7d": "period7d", "30d": "period30d", all: "periodAll" };
+const CATEGORY_LABEL: Record<Category, string> = { ads: "statAds", trackers: "statTrackers", threats: "statThreats" };
+const locale = () => chrome.i18n.getUILanguage();
 
 // Search
 function looksLikeAddress(text: string): boolean {
@@ -31,7 +37,8 @@ function looksLikeAddress(text: string): boolean {
 }
 
 export function mountSearch(root: HTMLElement): void {
-  const input = h("input", { type: "search", name: "q", placeholder: "Search the web or enter an address", "aria-label": "Search the web or enter an address", autocomplete: "off", spellcheck: "false" });
+  const label = t("searchPlaceholder");
+  const input = h("input", { type: "search", name: "q", placeholder: label, "aria-label": label, autocomplete: "off", spellcheck: "false", autofocus: true });
   const form = h(
     "form",
     {
@@ -57,30 +64,35 @@ export function mountSearch(root: HTMLElement): void {
 // Protection
 export function mountStats(root: HTMLElement, context: WidgetContext): void {
   root.classList.add("pane");
-  const numbers = {
-    ads: h("dd", {}, "0"),
-    trackers: h("dd", {}, "0"),
-    threats: h("dd", {}, "0"),
-  };
+  const rows = Object.fromEntries(
+    CATEGORIES.map((category) => {
+      const value = h("dd", {}, "0");
+      const fill = h("span", { class: "fill" });
+      const row = h("div", { class: "meter", "data-category": category }, h("dt", {}, t(CATEGORY_LABEL[category])), value, h("span", { class: "track", "aria-hidden": "true" }, fill));
+      return [category, { row, value, fill }];
+    }),
+  ) as unknown as Record<Category, { row: HTMLElement; value: HTMLElement; fill: HTMLElement }>;
+
   const select = h(
     "select",
     {
-      "aria-label": "Reporting period",
+      "aria-label": t("reportingPeriod"),
       onchange: () => {
         void context.saveSettings({ statsPeriod: select.value as Period });
         void refresh();
       },
     },
-    ...PERIODS.map((period) => h("option", { value: period }, PERIOD_LABEL[period])),
+    ...PERIODS.map((period) => h("option", { value: period }, t(PERIOD_LABEL[period]))),
   );
   select.value = context.settings().statsPeriod;
 
-  const reset = h("button", { type: "button", class: "link", onclick: () => confirmReset() }, "Reset counts");
+  const reset = h("button", { type: "button", class: "link", onclick: () => confirmReset() }, t("resetCounts"));
   const footEnd = h("span", {}, reset);
 
   function confirmReset(): void {
     footEnd.replaceChildren(
-      "Reset all counts? ",
+      t("resetCountsConfirm"),
+      " ",
       h(
         "button",
         {
@@ -93,31 +105,27 @@ export function mountStats(root: HTMLElement, context: WidgetContext): void {
             await refresh();
           },
         },
-        "Reset",
+        t("reset"),
       ),
       " ",
-      h("button", { type: "button", class: "link", onclick: () => footEnd.replaceChildren(reset) }, "Keep"),
+      h("button", { type: "button", class: "link", onclick: () => footEnd.replaceChildren(reset) }, t("keep")),
     );
   }
 
   async function refresh(): Promise<void> {
     const { stats } = await chrome.storage.local.get("stats");
     const totals = summarize(sanitizeStats(stats), context.settings().statsPeriod, Date.now());
-    numbers.ads.textContent = totals.ads.toLocaleString();
-    numbers.trackers.textContent = totals.trackers.toLocaleString();
-    numbers.threats.textContent = totals.threats.toLocaleString();
+    const largest = Math.max(1, ...CATEGORIES.map((category) => totals[category]));
+    for (const category of CATEGORIES) {
+      rows[category].value.textContent = totals[category].toLocaleString(locale());
+      rows[category].fill.style.setProperty("--share", `${(totals[category] / largest) * 100}%`);
+    }
   }
 
   root.append(
-    h("div", { class: "widget-head" }, h("h2", {}, "Protection"), select),
-    h(
-      "dl",
-      { class: "stat-row" },
-      h("div", { class: "stat" }, numbers.ads, h("dt", {}, "Ads blocked")),
-      h("div", { class: "stat" }, numbers.trackers, h("dt", {}, "Trackers blocked")),
-      h("div", { class: "stat" }, numbers.threats, h("dt", {}, "Threats stopped")),
-    ),
-    h("div", { class: "foot" }, h("span", {}, "Counted on this device. Nothing is sent anywhere."), footEnd),
+    h("div", { class: "widget-head" }, h("h2", {}, t("widgetProtection")), select),
+    h("dl", { class: "meters" }, ...CATEGORIES.map((category) => rows[category].row)),
+    h("div", { class: "foot" }, h("span", {}, t("countedLocally")), footEnd),
   );
   chrome.storage.onChanged.addListener((changes, area) => {
     if (area === "local" && changes.stats) void refresh();
@@ -125,7 +133,7 @@ export function mountStats(root: HTMLElement, context: WidgetContext): void {
   void refresh();
 }
 
-// Bookmarks
+// Shortcuts (bookmarks)
 type BookmarkNode = chrome.bookmarks.BookmarkTreeNode;
 const BOOKMARKS_BAR = "1";
 
@@ -154,8 +162,8 @@ function validBookmarkUrl(text: string): string | null {
 }
 
 function bookmarkEditor(options: { title: string; url?: string; isFolder: boolean; heading: string; onSave: (title: string, url?: string) => Promise<void>; onDelete?: () => Promise<void> }): void {
-  const titleInput = h("input", { type: "text", value: options.title, "aria-label": "Name" });
-  const urlInput = options.isFolder ? null : h("input", { type: "text", inputmode: "url", value: options.url ?? "", "aria-label": "Address", placeholder: "example.com", spellcheck: "false" });
+  const titleInput = h("input", { type: "text", value: options.title, "aria-label": t("fieldName") });
+  const urlInput = options.isFolder ? null : h("input", { type: "text", inputmode: "url", dir: "ltr", value: options.url ?? "", "aria-label": t("fieldAddress"), placeholder: "example.com", spellcheck: "false" });
   const error = h("p", { class: "notice", role: "alert" });
   const dialog = h("dialog", { class: "editor" });
   const close = () => {
@@ -169,12 +177,12 @@ function bookmarkEditor(options: { title: string; url?: string; isFolder: boolea
         method: "dialog",
         onsubmit: async (event: Event) => {
           event.preventDefault();
-          const title = titleInput.value.trim() || "Untitled";
+          const title = titleInput.value.trim() || t("untitled");
           let url: string | undefined;
           if (urlInput) {
             const valid = validBookmarkUrl(urlInput.value.trim());
             if (!valid) {
-              error.textContent = "Enter a valid web address, such as example.com.";
+              error.textContent = t("invalidAddress");
               return;
             }
             url = valid;
@@ -184,8 +192,8 @@ function bookmarkEditor(options: { title: string; url?: string; isFolder: boolea
         },
       },
       h("h2", {}, options.heading),
-      h("label", { class: "field" }, h("span", {}, "Name"), titleInput),
-      urlInput && h("label", { class: "field" }, h("span", {}, "Address"), urlInput),
+      h("label", { class: "field" }, h("span", {}, t("fieldName")), titleInput),
+      urlInput && h("label", { class: "field" }, h("span", {}, t("fieldAddress")), urlInput),
       error,
       h(
         "div",
@@ -195,17 +203,17 @@ function bookmarkEditor(options: { title: string; url?: string; isFolder: boolea
             "button",
             {
               type: "button",
-              class: "ghost danger",
+              class: "button quiet danger",
               onclick: async () => {
                 await options.onDelete!();
                 close();
               },
             },
-            "Delete",
+            t("delete"),
           ),
         h("span", { class: "spacer" }),
-        h("button", { type: "button", class: "ghost", onclick: close }, "Cancel"),
-        h("button", { type: "submit", class: "primary" }, "Save"),
+        h("button", { type: "button", class: "button quiet", onclick: close }, t("cancel")),
+        h("button", { type: "submit", class: "button primary" }, t("save")),
       ),
     ),
   );
@@ -215,13 +223,11 @@ function bookmarkEditor(options: { title: string; url?: string; isFolder: boolea
 }
 
 export function mountBookmarks(root: HTMLElement, context: WidgetContext): void {
-  root.classList.add("pane");
-  const tabs = h("div", { class: "tabs", role: "tablist", "aria-label": "Bookmark collections" });
-  const addBookmark = h("button", { type: "button", class: "ghost", onclick: () => editNew(false) }, "Add bookmark");
-  const addFolder = h("button", { type: "button", class: "ghost", onclick: () => editNew(true) }, "New folder");
-  const head = h("div", { class: "widget-head" }, tabs, h("div", { class: "tabs" }, addBookmark, addFolder));
-  const body = h("div", {});
-  root.append(head, body);
+  const collections = h("div", { class: "segmented", role: "tablist", "aria-label": t("bookmarkCollections") });
+  const newFolder = iconButton("folder-plus", t("newFolder"), () => editNew(true));
+  const bar = h("div", { class: "shortcuts-bar" });
+  const body = h("div", { class: "shortcuts-body" });
+  root.append(h("div", { class: "shortcuts" }, bar, body));
 
   let current = context.settings().bookmarksFolder ?? BOOKMARKS_BAR;
   let dragId: string | null = null;
@@ -230,7 +236,7 @@ export function mountBookmarks(root: HTMLElement, context: WidgetContext): void 
     bookmarkEditor({
       title: "",
       isFolder,
-      heading: isFolder ? "New folder" : "Add bookmark",
+      heading: isFolder ? t("newFolder") : t("addShortcut"),
       onSave: async (title, url) => {
         await chrome.bookmarks.create({ parentId: current, title, url });
       },
@@ -245,15 +251,16 @@ export function mountBookmarks(root: HTMLElement, context: WidgetContext): void 
 
   function tile(node: BookmarkNode, parent: BookmarkNode, index: number): HTMLElement {
     const isFolder = !node.url;
+    const name = node.title || node.url || t("untitled");
     const edit = iconButton(
       "edit",
-      `Edit ${node.title || "bookmark"}`,
+      t("editItem", name),
       () =>
         bookmarkEditor({
           title: node.title,
           url: node.url,
           isFolder,
-          heading: isFolder ? "Edit folder" : "Edit bookmark",
+          heading: isFolder ? t("editFolder") : t("editShortcut"),
           onSave: async (title, url) => {
             await chrome.bookmarks.update(node.id, isFolder ? { title } : { title, url });
           },
@@ -265,10 +272,10 @@ export function mountBookmarks(root: HTMLElement, context: WidgetContext): void 
     );
     const iconBox = h("span", { class: "tile-icon" });
     iconBox.append(isFolder ? icon("folder") : h("img", { src: faviconUrl(node.url!), alt: "", width: 24, height: 24, loading: "lazy" }));
-    const label = h("span", { class: "tile-title" }, node.title || node.url || "Untitled");
+    const label = h("span", { class: "tile-title" }, name);
     const open = isFolder
       ? h("button", { type: "button", class: "open-folder", onclick: () => openFolder(node.id) }, iconBox, label)
-      : h("a", { href: node.url!, onclick: (event: Event) => openUrl(node.url!, event) }, iconBox, label);
+      : h("a", { href: node.url!, title: name, onclick: (event: Event) => openUrl(node.url!, event) }, iconBox, label);
     const item = h("li", { class: "tile", draggable: "true", "data-id": node.id }, open, edit);
 
     item.addEventListener("dragstart", (event) => {
@@ -300,6 +307,12 @@ export function mountBookmarks(root: HTMLElement, context: WidgetContext): void 
     return item;
   }
 
+  function addTile(isFolder: boolean): HTMLElement {
+    const iconBox = h("span", { class: "tile-icon" }, icon(isFolder ? "folder-plus" : "plus"));
+    const label = t(isFolder ? "newFolder" : "addShortcut");
+    return h("li", { class: "tile" }, h("button", { type: "button", class: "add-tile", onclick: () => editNew(isFolder) }, iconBox, h("span", { class: "tile-title" }, label)));
+  }
+
   async function render(): Promise<void> {
     const [tree] = await chrome.bookmarks.getTree();
     const roots = (tree?.children ?? []).filter((node) => node.id === BOOKMARKS_BAR || (node.children?.length ?? 0) > 0);
@@ -308,25 +321,27 @@ export function mountBookmarks(root: HTMLElement, context: WidgetContext): void 
     current = folder.id;
 
     const activeRoot = roots.find((node) => node.id === folder.id)?.id ?? null;
-    tabs.replaceChildren(
-      ...roots.map((node) =>
-        h("button", { type: "button", role: "tab", "aria-selected": String(node.id === activeRoot), onclick: () => openFolder(node.id) }, node.title),
-      ),
+    collections.replaceChildren(
+      ...roots.map((node) => h("button", { type: "button", role: "tab", "aria-selected": String(node.id === activeRoot), onclick: () => openFolder(node.id) }, node.title)),
     );
+    const crumb = activeRoot ? null : h("div", { class: "crumb" }, iconButton("back", t("backToParent"), () => openFolder(folder.parentId ?? BOOKMARKS_BAR)), h("span", {}, folder.title));
+    const barItems = crumb ? [crumb] : roots.length > 1 ? [collections] : [];
+    bar.replaceChildren(...barItems, ...(barItems.length ? [newFolder] : []));
+    bar.hidden = !barItems.length;
 
     const children = folder.children ?? [];
-    const list = h("ul", { class: "tiles" }, ...children.map((node, index) => tile(node, folder, index)));
-    const crumb = activeRoot
+    const list = h("ul", { class: "tiles" }, ...children.map((node, index) => tile(node, folder, index)), addTile(false), ...(children.length ? [addTile(true)] : []));
+    const hint = children.length
       ? null
-      : h("div", { class: "crumb" }, iconButton("back", "Back to the parent folder", () => openFolder(folder.parentId ?? BOOKMARKS_BAR)), h("span", {}, folder.title));
-    const empty = h(
-      "p",
-      { class: "empty" },
-      "No bookmarks here yet. Add one, or ",
-      h("button", { type: "button", class: "link", onclick: () => void chrome.tabs.create({ url: "chrome://settings/importData" }) }, "import them from another browser"),
-      ".",
-    );
-    body.replaceChildren(...(crumb ? [crumb] : []), children.length ? list : empty);
+      : h(
+          "p",
+          { class: "empty" },
+          t("shortcutsEmpty"),
+          " ",
+          h("button", { type: "button", class: "link", onclick: () => void chrome.tabs.create({ url: "chrome://settings/importData" }) }, t("importBookmarks")),
+        );
+    body.replaceChildren(list, ...(hint ? [hint] : []));
+    context.relayout();
   }
 
   for (const event of [chrome.bookmarks.onCreated, chrome.bookmarks.onRemoved, chrome.bookmarks.onChanged, chrome.bookmarks.onMoved, chrome.bookmarks.onChildrenReordered]) {
@@ -339,9 +354,9 @@ export function mountBookmarks(root: HTMLElement, context: WidgetContext): void 
 export function mountWeather(root: HTMLElement, context: WidgetContext): void {
   root.classList.add("pane");
   const body = h("div", {});
-  const credit = h("a", { href: WEATHER_PROVIDER.url, class: "link" }, `Weather by ${WEATHER_PROVIDER.name}`);
+  const credit = h("a", { href: WEATHER_PROVIDER.url, class: "link" }, t("weatherBy", WEATHER_PROVIDER.name));
   const unit = h("button", { type: "button", class: "link", onclick: () => toggleUnit() });
-  root.append(h("div", { class: "widget-head" }, h("h2", {}, "Weather"), unit), body, h("div", { class: "foot" }, credit));
+  root.append(h("div", { class: "widget-head" }, h("h2", {}, t("widgetWeather")), unit), body, h("div", { class: "foot" }, credit));
 
   async function load(): Promise<{ place: WeatherPlace | null; report: WeatherReport | null }> {
     const { weatherPlace, weatherReport } = await chrome.storage.local.get(["weatherPlace", "weatherReport"]);
@@ -356,7 +371,7 @@ export function mountWeather(root: HTMLElement, context: WidgetContext): void {
   }
 
   function showPlaceForm(message?: string): void {
-    const input = h("input", { type: "text", placeholder: "City name", "aria-label": "City name" });
+    const input = h("input", { type: "text", placeholder: t("cityName"), "aria-label": t("cityName") });
     const results = h("ul", { class: "place-results" });
     const form = h(
       "form",
@@ -366,13 +381,13 @@ export function mountWeather(root: HTMLElement, context: WidgetContext): void {
           event.preventDefault();
           const query = input.value.trim();
           if (!query) return;
-          results.replaceChildren(h("li", { class: "notice" }, "Searching..."));
+          results.replaceChildren(h("li", { class: "notice" }, t("searching")));
           try {
-            const res = await fetch(geocodeUrl(query), { credentials: "omit", referrerPolicy: "no-referrer", signal: AbortSignal.timeout(WEATHER_TIMEOUT_MS) });
+            const res = await fetch(geocodeUrl(query, uiLanguage()), { credentials: "omit", referrerPolicy: "no-referrer", signal: AbortSignal.timeout(WEATHER_TIMEOUT_MS) });
             const places = parsePlaces(await res.json());
             results.replaceChildren();
             if (!places.length) {
-              results.append(h("li", { class: "notice" }, "No place found with that name. Check the spelling."));
+              results.append(h("li", { class: "notice" }, t("noPlaceFound")));
             }
             for (const place of places) {
               results.append(
@@ -397,23 +412,21 @@ export function mountWeather(root: HTMLElement, context: WidgetContext): void {
               );
             }
           } catch {
-            results.replaceChildren(h("li", { class: "notice" }, "Could not reach the weather service. Check your connection and try again."));
+            results.replaceChildren(h("li", { class: "notice" }, t("weatherUnreachable")));
           }
+          context.relayout();
         },
       },
       input,
-      h("button", { type: "submit", class: "ghost" }, "Find"),
+      h("button", { type: "submit", class: "button" }, t("find")),
     );
-    body.replaceChildren(
-      h("p", { class: "notice" }, message ?? `Enter your city to see the weather. Your search goes to ${WEATHER_PROVIDER.name}.`),
-      form,
-      results,
-    );
+    body.replaceChildren(h("p", { class: "notice" }, message ?? t("weatherIntro", WEATHER_PROVIDER.name)), form, results);
+    context.relayout();
   }
 
   async function render(): Promise<void> {
     const unitName = context.settings().temperatureUnit;
-    unit.textContent = unitName === "celsius" ? "Show in °F" : "Show in °C";
+    unit.textContent = unitName === "celsius" ? t("showFahrenheit") : t("showCelsius");
     const { place, report: cached } = await load();
     if (!place) {
       showPlaceForm();
@@ -423,7 +436,7 @@ export function mountWeather(root: HTMLElement, context: WidgetContext): void {
       showReport(place, cached, false);
       if (isFresh(cached, Date.now())) return;
     } else {
-      body.replaceChildren(h("p", { class: "weather-place" }, place.name), h("p", { class: "notice" }, "Loading the weather..."));
+      body.replaceChildren(h("p", { class: "weather-place" }, place.name), h("p", { class: "notice" }, t("weatherLoading")));
     }
     let report = cached;
     let failed = false;
@@ -443,36 +456,39 @@ export function mountWeather(root: HTMLElement, context: WidgetContext): void {
   }
 
   function showReport(place: WeatherPlace, report: WeatherReport | null, failed: boolean): void {
-    const change = h("button", { type: "button", class: "link", onclick: () => showPlaceForm() }, "Change city");
+    const change = h("button", { type: "button", class: "link", onclick: () => showPlaceForm() }, t("changeCity"));
     if (!report) {
-      body.replaceChildren(h("p", { class: "weather-place" }, place.name), h("p", { class: "notice" }, "Weather is unavailable right now. Check your connection."), change);
+      body.replaceChildren(h("p", { class: "weather-place" }, place.name), h("p", { class: "notice" }, t("weatherUnavailable")), change);
+      context.relayout();
       return;
     }
     const symbol = context.settings().temperatureUnit === "celsius" ? "°C" : "°F";
+    const glyph = icon(weatherIcon(report.code));
+    glyph.classList.add("weather-icon");
+    const number = (value: number) => value.toLocaleString(locale());
+    const degrees = (value: number) => `⁦${number(value)}°⁩`;
     body.replaceChildren(
-      h(
-        "div",
-        { class: "weather-now" },
-        h("span", { class: "weather-temp" }, `${report.temperature}${symbol}`),
-        h("span", { class: "weather-range" }, `High ${report.high}° Low ${report.low}°`),
-      ),
+      h("div", { class: "weather-now" }, glyph, h("span", { class: "weather-temp", dir: "ltr" }, `${number(report.temperature)}${symbol}`)),
       h("p", { class: "weather-place" }, place.name),
-      h("p", { class: "weather-condition" }, describeWeather(report.code)),
-      ...(failed ? [h("p", { class: "notice" }, `Showing the last update, from ${new Date(report.fetchedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}.`)] : []),
-      change,
+      h("p", { class: "weather-condition" }, t(weatherConditionKey(report.code))),
+      h("p", { class: "weather-range" }, t("highLow", degrees(report.high), degrees(report.low))),
+      ...(failed ? [h("p", { class: "notice" }, t("weatherStale", new Date(report.fetchedAt).toLocaleTimeString(locale(), { hour: "numeric", minute: "2-digit" })))] : []),
+      h("p", { style: "margin-top: 0.6rem" }, change),
     );
+    context.relayout();
   }
   void render();
 }
 
 // Notes
 const NOTE_SWATCH: Record<NoteColor, string> = { ion: "#8d9bff", amber: "#f2b75b", rose: "#f28ca8", mint: "#5fd4c8", slate: "#9aa3b8" };
+const NOTE_COLOR_NAME: Record<NoteColor, string> = { ion: "colorBlue", amber: "colorAmber", rose: "colorRose", mint: "colorMint", slate: "colorSlate" };
 
 export function mountNotes(root: HTMLElement): void {
   root.classList.add("pane");
   let notes: Note[] = [];
   const list = h("div", { class: "notes-list" });
-  root.append(h("div", { class: "widget-head" }, h("h2", {}, "Notes"), h("button", { type: "button", class: "ghost", onclick: () => add() }, "Add note")), list);
+  root.append(h("div", { class: "widget-head" }, h("h2", {}, t("widgetNotes")), h("button", { type: "button", class: "button quiet", onclick: () => add() }, icon("plus"), t("addNote"))), list);
 
   const persist = () => chrome.storage.local.set({ notes });
   const persistSoon = debounce(() => void persist(), 400);
@@ -496,19 +512,19 @@ export function mountNotes(root: HTMLElement): void {
   }
 
   function noteCard(note: Note): HTMLElement {
-    const text = h("textarea", { "aria-label": "Note text", placeholder: "Write a note", oninput: () => update(note.id, { text: text.value }, false) });
+    const text = h("textarea", { dir: "auto", "aria-label": t("noteText"), placeholder: t("notePlaceholder"), oninput: () => update(note.id, { text: text.value }, false) });
     text.value = note.text;
     const tools = h(
       "div",
       { class: "note-tools" },
       ...NOTE_COLORS.map((color) => {
-        const swatch = h("button", { type: "button", class: "swatch", "aria-label": `Color ${color}`, "aria-pressed": String(note.color === color), onclick: () => update(note.id, { color }, true) });
+        const swatch = h("button", { type: "button", class: "swatch", "aria-label": t("noteColor", t(NOTE_COLOR_NAME[color])), "aria-pressed": String(note.color === color), onclick: () => update(note.id, { color }, true) });
         swatch.style.setProperty("--swatch", NOTE_SWATCH[color]);
         return swatch;
       }),
       h("span", { class: "spacer" }),
-      iconButton("pin", note.pinned ? "Unpin note" : "Pin note", () => update(note.id, { pinned: !note.pinned }, true), { "aria-pressed": String(note.pinned) }),
-      iconButton("trash", "Delete note", () => {
+      iconButton("pin", note.pinned ? t("unpinNote") : t("pinNote"), () => update(note.id, { pinned: !note.pinned }, true), { "aria-pressed": String(note.pinned) }),
+      iconButton("trash", t("deleteNote"), () => {
         notes = notes.filter((other) => other.id !== note.id);
         void persist();
         render();
@@ -518,11 +534,7 @@ export function mountNotes(root: HTMLElement): void {
   }
 
   function render(): void {
-    if (!notes.length) {
-      list.replaceChildren(h("p", { class: "empty" }, "No notes yet. Notes stay on this device."));
-      return;
-    }
-    list.replaceChildren(...sortNotes(notes).map(noteCard));
+    list.replaceChildren(...(notes.length ? sortNotes(notes).map(noteCard) : [h("p", { class: "empty" }, t("notesEmpty"))]));
   }
 
   void chrome.storage.local.get("notes").then((stored) => {
@@ -530,4 +542,3 @@ export function mountNotes(root: HTMLElement): void {
     render();
   });
 }
-

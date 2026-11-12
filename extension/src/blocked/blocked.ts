@@ -1,12 +1,16 @@
 // Warning page for a page load stopped by the threat lists. The blocked address arrives in the hash.
 
+import { localizePage, t } from "../shared/i18n.ts";
 import { siteOf, type Message } from "../shared/shields.ts";
+
+document.documentElement.dataset.theme = matchMedia("(prefers-color-scheme: dark)").matches ? "space" : "light";
+localizePage();
 
 const target = location.hash.slice(1);
 const host = siteOf(target);
 
 const hostLine = document.getElementById("host")!;
-hostLine.textContent = host ?? "This address";
+hostLine.textContent = host ?? t("thisAddress");
 
 document.getElementById("back")!.addEventListener("click", () => {
   if (history.length > 1) history.back();

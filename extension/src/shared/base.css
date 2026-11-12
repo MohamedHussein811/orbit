@@ -1,0 +1,331 @@
+/* Shared foundation for Orbit's built-in pages: type, surfaces and controls. Colors come from
+   tokens.css, which matches the browser's own palette. */
+
+@font-face {
+  font-family: "Readex Pro";
+  src: url("fonts/ReadexPro.ttf") format("truetype");
+  font-weight: 160 700;
+  font-display: swap;
+}
+
+:root {
+  color-scheme: dark;
+  --text: var(--orbit-on-surface);
+  --muted: var(--orbit-on-surface-variant);
+  --accent: var(--orbit-primary);
+  --on-accent: var(--orbit-on-primary);
+  --line: color-mix(in oklab, var(--orbit-on-surface) 11%, transparent);
+  --line-strong: color-mix(in oklab, var(--orbit-on-surface) 20%, transparent);
+  --pane: color-mix(in oklab, var(--orbit-container-high) 70%, transparent);
+  --pane-solid: var(--orbit-container-high);
+  --control: color-mix(in oklab, var(--orbit-on-surface) 7%, transparent);
+  --control-hover: color-mix(in oklab, var(--orbit-on-surface) 13%, transparent);
+  --danger: var(--orbit-error);
+  --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --radius-lg: 1.375rem;
+  --radius-md: 0.875rem;
+  --radius-sm: 0.625rem;
+  --font: "Readex Pro", system-ui, "Segoe UI", sans-serif;
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+  --pane: color-mix(in oklab, #ffffff 74%, transparent);
+  --pane-solid: #ffffff;
+  --line: color-mix(in oklab, var(--orbit-on-surface) 10%, transparent);
+  --control: color-mix(in oklab, var(--orbit-primary) 7%, transparent);
+  --control-hover: color-mix(in oklab, var(--orbit-primary) 13%, transparent);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  scrollbar-color: var(--line-strong) transparent;
+}
+
+body {
+  margin: 0;
+  background: var(--orbit-surface);
+  color: var(--text);
+  font: 320 0.9375rem/1.55 var(--font);
+  font-variation-settings: "HEXP" 0;
+}
+
+:lang(ar) body,
+body:lang(ar) {
+  line-height: 1.7;
+}
+
+h1,
+h2,
+h3,
+p {
+  margin: 0;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Controls */
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  min-height: 2.25rem;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  padding: 0.35rem 1rem;
+  background: var(--control);
+  color: var(--text);
+  font-weight: 450;
+  transition: background-color 120ms linear, border-color 120ms linear;
+}
+
+.button:hover {
+  background: var(--control-hover);
+}
+
+.button.primary {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.button.primary:hover {
+  background: color-mix(in oklab, var(--accent) 88%, var(--text));
+}
+
+.button.quiet {
+  background: none;
+  border-color: var(--line);
+}
+
+.button.quiet:hover {
+  background: var(--control);
+}
+
+.button.danger {
+  color: var(--danger);
+}
+
+.link {
+  border: 0;
+  padding: 0;
+  background: none;
+  color: var(--accent);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+
+.link:hover {
+  text-decoration-thickness: 2px;
+}
+
+.link.danger {
+  color: var(--danger);
+}
+
+.icon-button {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 2rem;
+  height: 2rem;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  color: var(--muted);
+  transition: background-color 120ms linear, color 120ms linear;
+}
+
+.icon-button:hover {
+  background: var(--control);
+  color: var(--text);
+}
+
+.icon-button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.icon-button svg,
+.button svg {
+  width: 1.05rem;
+  height: 1.05rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.75;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.icon-button[aria-pressed="true"] {
+  color: var(--accent);
+}
+
+.icon-button[aria-pressed="true"] svg {
+  fill: currentColor;
+}
+
+input[type="text"],
+input[type="url"],
+input[type="search"],
+select,
+textarea {
+  min-height: 2.25rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--control);
+  padding: 0.4rem 0.75rem;
+  transition: border-color 120ms linear;
+}
+
+input:hover,
+select:hover,
+textarea:hover {
+  border-color: var(--line-strong);
+}
+
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent) 28%, transparent);
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--muted);
+  opacity: 0.85;
+}
+
+select option {
+  background: var(--pane-solid);
+  color: var(--text);
+}
+
+.segmented {
+  display: inline-flex;
+  gap: 0.2rem;
+  padding: 0.2rem;
+  border-radius: 999px;
+  background: var(--control);
+}
+
+.segmented button {
+  min-height: 1.9rem;
+  border: 0;
+  border-radius: 999px;
+  padding: 0.2rem 0.85rem;
+  background: none;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.segmented button:hover {
+  color: var(--text);
+}
+
+.segmented button[aria-pressed="true"],
+.segmented button[aria-selected="true"] {
+  background: var(--pane-solid);
+  color: var(--text);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.25);
+}
+
+.switch {
+  position: relative;
+  flex: none;
+  width: 2.5rem;
+  height: 1.4rem;
+  margin: 0;
+  border-radius: 999px;
+  background: var(--control-hover);
+  appearance: none;
+  cursor: pointer;
+  transition: background-color 150ms var(--ease);
+}
+
+.switch::after {
+  content: "";
+  position: absolute;
+  inset-block-start: 0.2rem;
+  inset-inline-start: 0.2rem;
+  width: 1rem;
+  height: 1rem;
+  border-radius: 50%;
+  background: var(--text);
+  transition: transform 150ms var(--ease);
+}
+
+.switch:checked {
+  background: var(--accent);
+}
+
+.switch:checked::after {
+  background: var(--on-accent);
+  transform: translateX(1.1rem);
+}
+
+:root[dir="rtl"] .switch:checked::after {
+  transform: translateX(-1.1rem);
+}
+
+.pane {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--pane);
+  backdrop-filter: blur(20px) saturate(140%);
+}
+
+.notice {
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+@media (forced-colors: active) {
+  .pane,
+  .button,
+  .segmented button[aria-pressed="true"] {
+    border: 1px solid CanvasText;
+  }
+}

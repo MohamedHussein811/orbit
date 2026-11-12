@@ -1,7 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Orbit",
-  "description": "Orbit's dashboard and Shields.",
+  "description": "__MSG_extDescription__",
+  "default_locale": "en",
   "version": "0.0.0",
   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAtYwQ/pc9IWEOvYo3cDd90UBzrjzxLTcKo10orfYHahL8/Di+khgSVV/J/JYJ6nPUOvn/uu+l9WTWDmT3sO5iTJu1c6UBQNiYe1Nnzv7YCYnQG5l56wo0lBVq6cgc361F1vB6AjTalx+we2w01EDXPG2RuLaX8DFMxvVfJB3cX9tiQ2N/PLMf8qjsqrTi0cXeySe7mTs58d8fEvdNUlqoBks8IKU39zgbcGaqwZ4XLpn660TO0P+Ys0FmDlzyHqiWHqsxBSEKHjbKHHxWKYuMIj7ft8QQXgvd97cw6cmW54MQdhu4Ea1RfZkocGlWkwK8JA1SY97gYGNAeu6WwtnKIwIDAQAB",
   "incognito": "spanning",
