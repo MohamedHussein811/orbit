@@ -1,0 +1,39 @@
+diff --git a/chrome/browser/ui/tabs/tab_style.cc b/chrome/browser/ui/tabs/tab_style.cc
+--- a/chrome/browser/ui/tabs/tab_style.cc
++++ b/chrome/browser/ui/tabs/tab_style.cc
+@@ -95,7 +95,8 @@
+ }
+ 
+ int TabStyle::GetTopCornerRadius() const {
+-  return 10;
++  // Half the height of a detached tab, so tabs are pills.
++  return 14;
+ }
+ 
+ int TabStyle::GetBottomCornerRadius() const {
+diff --git a/chrome/browser/ui/views/tabs/common/horizontal_tab_style_views.cc b/chrome/browser/ui/views/tabs/common/horizontal_tab_style_views.cc
+--- a/chrome/browser/ui/views/tabs/common/horizontal_tab_style_views.cc
++++ b/chrome/browser/ui/views/tabs/common/horizontal_tab_style_views.cc
+@@ -88,9 +88,12 @@
+                                    tab_style()->GetSeparatorSize().width()) *
+                                   scale;
+ 
+-  // Selected, hover, and inactive tab fills are a detached squarcle tab.
++  // Orbit draws every tab as a detached pill, the active tab included, so it
++  // floats in the tab strip instead of joining the toolbar.
+   if (path_type == TabStyle::PathType::kHighlight ||
+-      path_type == TabStyle::PathType::kHitTest) {
++      path_type == TabStyle::PathType::kHitTest ||
++      path_type == TabStyle::PathType::kActiveTab ||
++      path_type == TabStyle::PathType::kBorder) {
+     float top_left_corner_radius = content_corner_radius;
+     float top_right_corner_radius = content_corner_radius;
+     float bottom_left_corner_radius = content_corner_radius;
+@@ -767,7 +770,6 @@
+                                               : kColorTabStrokeFrameInactive);
+ 
+   PaintBackgroundStroke(canvas, group_color.value_or(tab_stroke_color));
+-  PaintSeparators(canvas);
+ }
+ 
+ void HorizontalTabStyleViews::PaintTabBackgroundFill(

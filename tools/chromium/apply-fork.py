@@ -25,6 +25,7 @@ STRING_FILES = [
 XTB = re.compile(r'<file path="([^"]+\.xtb)"')
 TRANSLATION_ID = re.compile(r'<translation id="(\d+)"')
 TRANSLATION = re.compile(r'(<translation id=")(\d+)("[^>]*>)(.*?)(</translation>)', re.DOTALL)
+TRANSLATION_ELEMENT = re.compile(r'[ \t]*<translation id="(\d+)"[^>]*>.*?</translation>[ \t]*\n?', re.DOTALL)
 PART = re.compile(r'<part file="([^"]+\.grdp)"')
 # "Chrome" or "Chromium" used as the browser's own name in shared strings. Other products and
 # technologies keep their names: Google Chrome (as an import source), Chrome Web Store, ChromeOS,
@@ -83,6 +84,20 @@ def message_ids(grd):
     ]
 
 
+def drop_repeated_translations(text):
+    """Keeps the first translation of each message id. Renaming can make two messages identical,
+    which gives them one id, and grit refuses a translation file that repeats an id."""
+    seen = set()
+
+    def keep(match):
+        if match.group(1) in seen:
+            return ""
+        seen.add(match.group(1))
+        return match.group(0)
+
+    return TRANSLATION_ELEMENT.sub(keep, text)
+
+
 def rewrite(path, edit):
     before = path.read_bytes().decode("utf-8")
     after = edit(before)
@@ -111,7 +126,7 @@ def brand_strings(src):
             text = TRANSLATION_ID.sub(
                 lambda m: f'<translation id="{renamed.get(m.group(1), m.group(1))}"', text
             )
-            return NAME.sub("Orbit", text)
+            return drop_repeated_translations(NAME.sub("Orbit", text))
 
         xtbs = XTB.findall(grd.read_text(encoding="utf-8"))
         if not xtbs:
@@ -158,7 +173,7 @@ def rename_messages(src, relative, english, translation):
                 return m.group(0)
             return m.group(1) + renamed[m.group(2)] + m.group(3) + translation(m.group(4)) + m.group(5)
 
-        return TRANSLATION.sub(one, text)
+        return drop_repeated_translations(TRANSLATION.sub(one, text))
 
     xtbs = XTB.findall(grd.read_text(encoding="utf-8"))
     if not xtbs:

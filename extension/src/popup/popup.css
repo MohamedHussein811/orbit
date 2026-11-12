@@ -3,13 +3,13 @@
 body {
   width: 21rem;
   background:
-    radial-gradient(18rem 9rem at 50% -3rem, color-mix(in oklab, var(--accent) 22%, transparent), transparent 75%),
+    radial-gradient(18rem 9rem at 50% -3rem, color-mix(in oklab, var(--accent) 22%, transparent), transparent 75%) top / 100% 12rem no-repeat,
     var(--orbit-container-high);
 }
 
 :root[data-theme="light"] body {
   background:
-    radial-gradient(18rem 9rem at 50% -3rem, color-mix(in oklab, var(--accent) 18%, transparent), transparent 75%),
+    radial-gradient(18rem 9rem at 50% -3rem, color-mix(in oklab, var(--accent) 18%, transparent), transparent 75%) top / 100% 12rem no-repeat,
     #ffffff;
 }
 
@@ -117,12 +117,29 @@ body.off #shield-check {
 }
 
 .row-button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
   min-height: 2.5rem;
   border: 0;
   border-radius: var(--radius-sm);
   padding: 0 0.6rem;
   background: none;
   text-align: start;
+}
+
+.row-button::after {
+  content: "";
+  flex: none;
+  width: 1rem;
+  height: 1rem;
+  background: var(--muted);
+  mask: url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27black%27 stroke-width=%272%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27%3E%3Cpath d=%27m10 6 6 6-6 6%27/%3E%3C/svg%3E") center / contain no-repeat;
+}
+
+:root[dir="rtl"] .row-button::after {
+  scale: -1 1;
 }
 
 .row-button:hover {

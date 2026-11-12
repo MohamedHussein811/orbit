@@ -144,6 +144,18 @@ Motion answers what people do: the Customize panel slides in, the shortcut ring 
 and focus, meters fill when counts change. The only motion nobody asked for is the background
 video, and it has a pause control. All transitions stop under `prefers-reduced-motion`.
 
+## Window
+
+- Tabs are pills. Every tab, the active one included, is a detached shape that floats in the tab
+  strip with 6 px above and below it, instead of Chromium's active tab that flares into the
+  toolbar. The active tab takes the toolbar color; others show a fill only on hover. There are no
+  separator lines between tabs (`orbit-tabs.patch`).
+- Toolbar and tab icons are Orbit's own: thin round-capped lines on Chromium's 20 px grid
+  (back and forward chevrons, reload as an open ring with its gap at the top right like the mark,
+  a house, three dots for the menu, a puzzle piece, download, close and new tab). They are drawn
+  once in `tools/design/browser-icons.mjs`, which writes Chromium's `.icon` files into the
+  overlay in place of the ones Chromium 157's toolbar uses.
+
 ## Address bar
 
 Internal pages show as `orbit://` in the address bar, with Orbit's mark as their icon. Typing an
@@ -160,5 +172,5 @@ addresses, host names and the logo stay left to right. Text people type (notes) 
 
 - Address bar suggestions for built-in pages still show `chrome://` while typing.
 - Windows and Linux frames are opaque. The translucent frame option in Chromium 157 is macOS only.
-- The tab strip, toolbar buttons and address bar still use Chromium's shapes. Orbit's own shapes
-  for them are the next design round.
+- The address bar keeps Chromium's rounded shape and layout, and icons outside the toolbar and
+  tab strip (menus, page info, side panel) are still Chromium's.
