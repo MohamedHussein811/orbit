@@ -17,7 +17,7 @@ import sys
 import tempfile
 
 FORK = pathlib.Path(__file__).resolve().parents[2] / "chromium"
-NAME = re.compile(r"Chromium(?!OS| OS| Authors)")
+NAME = re.compile(r"Chromium(?!OS| OS| Authors|<ph name=\"END_LINK_CHROMIUM\")")
 STRING_FILES = [
     "chrome/app/chromium_strings.grd",
     "components/components_chromium_strings.grd",
@@ -33,6 +33,7 @@ CHROME = re.compile(
     r"(?!(?: |&nbsp;)?(?:OS|Web Store|Enterprise|Apps?|apps?|Remote Desktop|Root Store|Cleanup)\b)"
 )
 CHROME_STRING_FILES = ["chrome/app/generated_resources.grd"]
+YOU_AND_GOOGLE = re.compile(r"(>\s*)You and Google(\s*</message>)")
 
 
 def copy_overlay(src):
@@ -121,38 +122,57 @@ def grd_parts(grd):
     return [grd.parent / part for part in PART.findall(grd.read_text(encoding="utf-8"))]
 
 
+def rename_messages(src, relative, english, translation):
+    """Edits the messages of a grd and its parts with `english`, then applies `translation` to the
+    translations of exactly the messages whose English text changed, under their new ids."""
+    grd = src / relative
+    changed = []
+    old_ids = message_ids(grd)
+    for path in [grd, *grd_parts(grd)]:
+        if rewrite(path, english):
+            changed.append(path)
+    new_ids = message_ids(grd)
+    if len(old_ids) != len(new_ids):
+        sys.exit(f"{relative}: message count changed from {len(old_ids)} to {len(new_ids)}")
+    renamed = {old: new for old, new in zip(old_ids, new_ids) if old != new}
+    print(f"{relative}: {len(renamed)} of {len(new_ids)} messages renamed")
+
+    def edit(text):
+        def one(m):
+            if m.group(2) not in renamed:
+                return m.group(0)
+            return m.group(1) + renamed[m.group(2)] + m.group(3) + translation(m.group(4)) + m.group(5)
+
+        return TRANSLATION.sub(one, text)
+
+    xtbs = XTB.findall(grd.read_text(encoding="utf-8"))
+    if not xtbs:
+        sys.exit(f"{relative}: no translation files listed")
+    for xtb in xtbs:
+        path = grd.parent / xtb
+        if rewrite(path, edit):
+            changed.append(path)
+    return changed
+
+
 def rename_chrome(src):
-    """Renames "Chrome" to "Orbit" in shared strings, and only in the translations of messages
-    whose English text changed."""
+    """Renames "Chrome" used as the browser's name in shared strings, and the Settings section
+    "You and Google", which holds the Orbit profile and import."""
     sys.path.insert(0, str(src / "tools" / "grit"))
     changed = []
     for relative in CHROME_STRING_FILES:
-        grd = src / relative
-        old_ids = message_ids(grd)
-        for path in [grd, *grd_parts(grd)]:
-            if rewrite(path, lambda text: CHROME.sub("Orbit", text)):
-                changed.append(path)
-        new_ids = message_ids(grd)
-        if len(old_ids) != len(new_ids):
-            sys.exit(f"{relative}: message count changed from {len(old_ids)} to {len(new_ids)}")
-        renamed = {old: new for old, new in zip(old_ids, new_ids) if old != new}
-        print(f"{relative}: {len(renamed)} of {len(new_ids)} messages renamed")
-
-        def edit(text):
-            def one(m):
-                if m.group(2) not in renamed:
-                    return m.group(0)
-                return m.group(1) + renamed[m.group(2)] + m.group(3) + CHROME.sub("Orbit", m.group(4)) + m.group(5)
-
-            return TRANSLATION.sub(one, text)
-
-        xtbs = XTB.findall(grd.read_text(encoding="utf-8"))
-        if not xtbs:
-            sys.exit(f"{relative}: no translation files listed")
-        for xtb in xtbs:
-            path = grd.parent / xtb
-            if rewrite(path, edit):
-                changed.append(path)
+        changed += rename_messages(
+            src,
+            relative,
+            lambda text: YOU_AND_GOOGLE.sub(r"\1You and Orbit\2", text),
+            lambda text: text.replace("Google", "Orbit"),
+        )
+        changed += rename_messages(
+            src,
+            relative,
+            lambda text: CHROME.sub("Orbit", text),
+            lambda text: CHROME.sub("Orbit", text),
+        )
     return changed
 
 
