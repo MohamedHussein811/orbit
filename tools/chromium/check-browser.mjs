@@ -79,15 +79,25 @@ try {
   expect("Settings Privacy Guide", await settingsValue("showPrivacyGuide"), false);
 
   const prefix = `chrome-extension://${extensionId}/`;
+  // A tab that already shows Chromium's new tab page keeps it on reload, so each try opens a new tab.
   let newTab = "";
+  let tab;
   for (let i = 0; i < 60 && !newTab.startsWith(prefix); i++) {
-    await page.goto("chrome://newtab");
-    newTab = await page.eval("location.href");
-    if (!newTab.startsWith(prefix)) await sleep(1000);
+    await tab?.close();
+    tab = await cdp.newPage("chrome://newtab");
+    await sleep(2000);
+    newTab = await tab.eval("location.href");
   }
   expect("new tab page", newTab, `${prefix}newtab/newtab.html`);
-  const rulesets = await page.eval("chrome.declarativeNetRequest.getEnabledRulesets().then((ids) => ids.sort())");
+  const rulesets = await tab.eval("chrome.declarativeNetRequest.getEnabledRulesets().then((ids) => ids.sort())");
   expect("Shields rule lists", rulesets, ["ads", "threats", "trackers"]);
+
+  await page.goto("chrome://extensions");
+  const listed = await page.eval(
+    "new Promise((resolve) => chrome.developerPrivate.getExtensionsInfo({ includeDisabled: true, includeTerminated: true }, (list) => resolve(list.map((e) => e.id))))",
+  );
+  expect("no extensions from other programs", listed, []);
+  expect("blocks extensions registered for other browsers", value(prefs.extensions?.block_external_extensions), true);
 } catch (error) {
   console.log(`FAIL ${error.message}`);
   failures.push(error.message);

@@ -91,7 +91,7 @@ diff --git a/chrome/browser/prefs/browser_prefs.cc b/chrome/browser/prefs/browse
 diff --git a/chrome/browser/profiles/pref_service_builder_utils.cc b/chrome/browser/profiles/pref_service_builder_utils.cc
 --- a/chrome/browser/profiles/pref_service_builder_utils.cc
 +++ b/chrome/browser/profiles/pref_service_builder_utils.cc
-@@ -49,6 +49,66 @@
+@@ -49,6 +49,67 @@
      "information and MUST not be extracted, overwritten or modified except "
      "through %s defined APIs.";
  
@@ -152,13 +152,14 @@ diff --git a/chrome/browser/profiles/pref_service_builder_utils.cc b/chrome/brow
 +  SetOrbitDefault(registry, "translate.enabled", base::Value(false));
 +  SetOrbitDefault(registry, "alternate_error_pages.enabled", base::Value(false));
 +  SetOrbitDefault(registry, "signin.allowed", base::Value(false));
++  SetOrbitDefault(registry, "extensions.block_external_extensions", base::Value(true));
 +  SetOrbitDefault(registry, "profile.password_manager_leak_detection", base::Value(false));
 +}
 +
  }  // namespace
  
  void CreateProfileReadme(const base::FilePath& profile_path) {
-@@ -77,6 +137,8 @@
+@@ -77,6 +138,8 @@
        pref_registry);
    BrowserContextDependencyManager::GetInstance()
        ->RegisterProfilePrefsForServices(pref_registry);
