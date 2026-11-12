@@ -59,30 +59,17 @@ test -d "$data_dir/Default"
 extension=$(ls ../../chrome/browser/resources/orbit_extensions/*.json | xargs -n1 basename | sed 's/\.json$//')
 ls "$data_dir/Default/Extensions/$extension"
 
-# Privacy defaults and Settings data, read from the browser's own pages.
-dump() {
-  timeout 180 "$browser" --headless --user-data-dir="$profile" --dump-dom "$1" 2>> "$RUNNER_TEMP/dump-log.txt" | tr -d ' \t\r\n' > "$RUNNER_TEMP/$2"
-}
-dump chrome://prefs-internals prefs.txt
-dump chrome://local-state local-state.txt
-dump chrome://settings/strings.m.js settings.txt
-missing=0
-expect() {
-  grep -qF "$2" "$RUNNER_TEMP/$1" || { echo "missing in $1: $2"; missing=1; }
-}
-expect prefs.txt '"https_only_mode_enabled":true'
-expect prefs.txt '"keyword":"duckduckgo.com"'
-expect prefs.txt '"network_prediction_options":2'
-expect local-state.txt '"mode":"secure"'
-expect settings.txt '"showAiPage":false'
-expect settings.txt '"showPrivacyGuide":false'
-if grep "No Orbit default" "$RUNNER_TEMP/dump-log.txt"; then missing=1; fi
-if [ "$missing" -ne 0 ]; then
-  for file in prefs.txt local-state.txt settings.txt; do
-    echo "=== $file ($(wc -c < "$RUNNER_TEMP/$file") bytes)"
-    head -c 3000 "$RUNNER_TEMP/$file"; echo
-  done
-  exit 1
+# Privacy defaults, Settings data, the built-in extension and its new tab page.
+if [ -f chrome.exe ]; then
+  native_browser=$(cygpath -w "$PWD/chrome.exe")
+  check_flags=()
+elif [ "$(uname)" = "Darwin" ]; then
+  native_browser="$PWD/$browser"
+  check_flags=(--use-mock-keychain)
+else
+  native_browser="$PWD/chrome"
+  check_flags=(--password-store=basic)
 fi
+node "$GITHUB_WORKSPACE/tools/chromium/check-browser.mjs" "$native_browser" "$extension" "${check_flags[@]}"
 
 echo "### $product built and ran on free runners ($(uname))" >> "$GITHUB_STEP_SUMMARY"
