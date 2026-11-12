@@ -79,13 +79,15 @@ try {
   expect("Settings Privacy Guide", await settingsValue("showPrivacyGuide"), false);
 
   const prefix = `chrome-extension://${extensionId}/`;
-  // A tab that already shows Chromium's new tab page keeps it on reload, so each try opens a new tab.
+  // The extension installs about 20 seconds after a first start. Opening new tab pages every few
+  // seconds held the install back, so tries are 10 seconds apart, each in a new tab.
   let newTab = "";
   let tab;
-  for (let i = 0; i < 60 && !newTab.startsWith(prefix); i++) {
+  for (let i = 0; i < 18 && !newTab.startsWith(prefix); i++) {
+    await sleep(10000);
     await tab?.close();
-    tab = await cdp.newPage("chrome://newtab");
-    await sleep(2000);
+    tab = await cdp.newPage("about:blank");
+    await tab.goto("chrome://newtab", { settleMs: 1000 });
     newTab = await tab.eval("location.href");
   }
   expect("new tab page", newTab, `${prefix}newtab/newtab.html`);
