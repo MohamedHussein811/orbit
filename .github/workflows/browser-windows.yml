@@ -29,7 +29,7 @@ jobs:
   stage1:
     uses: ./.github/workflows/chromium-stage.yml
     secrets: inherit
-    with: { stage: 1, runner: windows-2025-vs2026, targets: chrome, resume_run: "43226045336", resume_state: 2 }
+    with: { stage: 1, runner: windows-2025-vs2026, targets: chrome, resume_run: "43270267023", resume_state: 2 }
   stage2:
     needs: stage1
     if: needs.stage1.outputs.done != 'true'

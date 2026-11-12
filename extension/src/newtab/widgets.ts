@@ -272,7 +272,7 @@ export function mountBookmarks(root: HTMLElement, context: WidgetContext): void 
     );
     const iconBox = h("span", { class: "tile-icon" });
     iconBox.append(isFolder ? icon("folder") : h("img", { src: faviconUrl(node.url!), alt: "", width: 24, height: 24, loading: "lazy" }));
-    const label = h("span", { class: "tile-title" }, name);
+    const label = h("span", { class: "tile-title", dir: "auto" }, name);
     const open = isFolder
       ? h("button", { type: "button", class: "open-folder", onclick: () => openFolder(node.id) }, iconBox, label)
       : h("a", { href: node.url!, title: name, onclick: (event: Event) => openUrl(node.url!, event) }, iconBox, label);

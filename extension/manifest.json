@@ -18,6 +18,7 @@
     "scripting",
     "search",
     "storage",
+    "tabs",
     "unlimitedStorage"
   ],
   "host_permissions": ["<all_urls>"],

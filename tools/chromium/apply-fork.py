@@ -26,13 +26,15 @@ XTB = re.compile(r'<file path="([^"]+\.xtb)"')
 TRANSLATION_ID = re.compile(r'<translation id="(\d+)"')
 TRANSLATION = re.compile(r'(<translation id=")(\d+)("[^>]*>)(.*?)(</translation>)', re.DOTALL)
 PART = re.compile(r'<part file="([^"]+\.grdp)"')
-# "Chrome" used as the browser's own name in shared strings. Other products and technologies keep
-# their names: Google Chrome (as an import source), Chrome Web Store, ChromeOS, Chrome Apps.
+# "Chrome" or "Chromium" used as the browser's own name in shared strings. Other products and
+# technologies keep their names: Google Chrome (as an import source), Chrome Web Store, ChromeOS,
+# Chrome Apps, the Chromium project and its authors.
 CHROME = re.compile(
-    r"(?<!Google )(?<!Google&nbsp;)\bChrome\b"
-    r"(?!(?: |&nbsp;)?(?:OS|Web Store|Enterprise|Apps?|apps?|Remote Desktop|Root Store|Cleanup)\b)"
+    r"(?<!Google )(?<!Google&nbsp;)\bChrom(?:e|ium)\b"
+    r"(?!(?: |&nbsp;)?(?:OS|Web Store|Enterprise|Apps?|apps?|Remote Desktop|Root Store|Cleanup|Authors|project)\b)"
+    r'(?!<ph name="END_LINK_CHROMIUM")'
 )
-CHROME_STRING_FILES = ["chrome/app/generated_resources.grd"]
+CHROME_STRING_FILES = ["chrome/app/generated_resources.grd", "components/components_strings.grd"]
 YOU_AND_GOOGLE = re.compile(r"(>\s*)You and Google(\s*</message>)")
 
 

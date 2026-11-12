@@ -35,7 +35,7 @@ diff --git a/chrome/browser/resources/new_tab_page_incognito_guest/incognito_tab
 diff --git a/components/security_interstitials/core/common/resources/interstitial_core.css b/components/security_interstitials/core/common/resources/interstitial_core.css
 --- a/components/security_interstitials/core/common/resources/interstitial_core.css
 +++ b/components/security_interstitials/core/common/resources/interstitial_core.css
-@@ -81,3 +81,53 @@
+@@ -81,3 +81,66 @@
      --text-color: var(--google-gray-500);
    }
  }
@@ -79,10 +79,23 @@ diff --git a/components/security_interstitials/core/common/resources/interstitia
 +  }
 +}
 +
-+body:not(.safe-browsing):not(.ssl):not(.lookalike-url):not(.enterprise-block) {
++html:has(body:not(.safe-browsing):not(.ssl):not(.lookalike-url):not(.enterprise-block)) {
++  min-height: 100%;
 +  background:
 +    radial-gradient(60rem 28rem at 50% -12rem, rgb(141 155 255 / 0.14), transparent 70%),
-+    var(--background-color);
++    #f6f7fd;
++}
++
++@media (prefers-color-scheme: dark) {
++  html:has(body:not(.safe-browsing):not(.ssl):not(.lookalike-url):not(.enterprise-block)) {
++    background:
++      radial-gradient(60rem 28rem at 50% -12rem, rgb(141 155 255 / 0.14), transparent 70%),
++      #0b0e27;
++  }
++}
++
++body:not(.safe-browsing):not(.ssl):not(.lookalike-url):not(.enterprise-block) {
++  background: transparent;
 +}
 +
 +h1 {

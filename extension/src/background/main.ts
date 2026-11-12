@@ -210,9 +210,25 @@ async function applyAll(): Promise<void> {
   await applyGenericHiding(sitesOff);
 }
 
-chrome.runtime.onInstalled.addListener(() => {
+/** Tabs opened before this extension finished installing show Chromium's own new tab page.
+ * A new tab in the same place shows Orbit's page instead. */
+async function takeOverNewTabs(): Promise<void> {
+  const tabs = await chrome.tabs.query({});
+  const chromiumNewTab = /^chrome:\/\/(newtab|new-tab-page)\//;
+  await Promise.all(
+    tabs
+      .filter((tab) => tab.id !== undefined && (chromiumNewTab.test(tab.url ?? "") || chromiumNewTab.test(tab.pendingUrl ?? "")))
+      .map(async (tab) => {
+        await chrome.tabs.create({ url: "chrome://newtab/", windowId: tab.windowId, index: tab.index, active: tab.active });
+        await chrome.tabs.remove(tab.id!);
+      }),
+  );
+}
+
+chrome.runtime.onInstalled.addListener((details) => {
   void chrome.action.setBadgeBackgroundColor({ color: "#3b4ad0" });
   void chrome.action.setBadgeTextColor({ color: "#ffffff" });
+  if (details.reason === "install") void takeOverNewTabs();
 });
 
 // The browser re-registers an extension loaded from a folder at each launch, and may report that as
