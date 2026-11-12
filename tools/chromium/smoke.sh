@@ -20,6 +20,7 @@ elif [ -f chrome.exe ]; then
   # browser folder. GitHub runner folders do not grant it, unlike a normal install location.
   MSYS2_ARG_CONV_EXCL="*" icacls "$(cygpath -w "$PWD")" /grant "*S-1-15-2-1:(OI)(CI)(RX)" /grant "*S-1-15-2-2:(OI)(CI)(RX)" /T /Q > /dev/null
   profile=$(cygpath -w "$profile")
+  export MSYS2_ARG_CONV_EXCL="*"
 else
   ls -lh chrome
   sandbox="$RUNNER_TEMP/chrome-sandbox"
@@ -47,7 +48,7 @@ if [ "$(uname)" = "Darwin" ]; then
 elif [ -f chrome.exe ]; then
   "$browser" "${flags[@]}" &
   sleep 30
-  taskkill //F //T //IM chrome.exe > /dev/null 2>&1 || true
+  taskkill /F /T /IM chrome.exe > /dev/null 2>&1 || true
 else
   command -v xvfb-run > /dev/null || sudo apt-get install -y -qq xvfb > /dev/null
   timeout 30 xvfb-run -a "$browser" --password-store=basic "${flags[@]}" || true

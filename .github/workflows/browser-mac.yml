@@ -7,7 +7,7 @@ name: Orbit browser (Mac)
 
 on:
   push:
-    branches: [fork]
+    branches: [fork, shields]
     paths:
       - chromium/**
       - tools/chromium/**
@@ -20,14 +20,14 @@ permissions:
   actions: read
 
 concurrency:
-  group: browser-mac
+  group: browser-mac-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
   stage1:
     uses: ./.github/workflows/chromium-stage.yml
     secrets: inherit
-    with: { stage: 1, runner: xcode-27, targets: chrome, resume_run: "42743786854", resume_state: 3 }
+    with: { stage: 1, runner: xcode-27, targets: chrome, resume_run: "43088839399", resume_state: 2 }
   stage2:
     needs: stage1
     if: needs.stage1.outputs.done != 'true'
