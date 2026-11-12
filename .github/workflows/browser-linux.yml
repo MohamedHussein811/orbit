@@ -26,7 +26,7 @@ jobs:
   stage1:
     uses: ./.github/workflows/chromium-stage.yml
     secrets: inherit
-    with: { stage: 1, resume_run: "43140357587", resume_state: 2 }
+    with: { stage: 1, resume_run: "43144358546", resume_state: 2 }
   stage2:
     needs: stage1
     if: needs.stage1.outputs.done != 'true'

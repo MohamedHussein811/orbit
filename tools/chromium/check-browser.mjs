@@ -79,15 +79,15 @@ try {
   expect("Settings Privacy Guide", await settingsValue("showPrivacyGuide"), false);
 
   const prefix = `chrome-extension://${extensionId}/`;
-  let worker;
-  for (let i = 0; i < 60 && !worker; i++) {
-    worker = (await cdp.targets()).find((t) => t.url.startsWith(prefix));
-    if (!worker) await sleep(1000);
+  let newTab = "";
+  for (let i = 0; i < 60 && !newTab.startsWith(prefix); i++) {
+    await page.goto("chrome://newtab");
+    newTab = await page.eval("location.href");
+    if (!newTab.startsWith(prefix)) await sleep(1000);
   }
-  expect("built-in extension running", Boolean(worker), true);
-
-  await page.goto("chrome://newtab");
-  expect("new tab page", await page.eval("location.href"), `${prefix}newtab/newtab.html`);
+  expect("new tab page", newTab, `${prefix}newtab/newtab.html`);
+  const rulesets = await page.eval("chrome.declarativeNetRequest.getEnabledRulesets().then((ids) => ids.sort())");
+  expect("Shields rule lists", rulesets, ["ads", "threats", "trackers"]);
 } catch (error) {
   console.log(`FAIL ${error.message}`);
   failures.push(error.message);

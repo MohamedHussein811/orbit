@@ -48,10 +48,22 @@ diff --git a/chrome/app/chrome_main_delegate.cc b/chrome/app/chrome_main_delegat
  
  #if BUILDFLAG(IS_CHROMEOS)
    ash::BootTimesRecorder::Get()->SaveChromeMainStats();
+diff --git a/chrome/browser/net/default_dns_over_https_config_source.cc b/chrome/browser/net/default_dns_over_https_config_source.cc
+--- a/chrome/browser/net/default_dns_over_https_config_source.cc
++++ b/chrome/browser/net/default_dns_over_https_config_source.cc
+@@ -29,7 +29,7 @@
+   if (set_up_pref_defaults) {
+     local_state->SetDefaultPrefValue(prefs::kDnsOverHttpsMode,
+                                      base::Value(SecureDnsConfig::ModeToString(
+-                                         net::SecureDnsMode::kAutomatic)));
++                                         net::SecureDnsMode::kSecure)));
+   }
+ }
+ 
 diff --git a/chrome/browser/prefs/browser_prefs.cc b/chrome/browser/prefs/browser_prefs.cc
 --- a/chrome/browser/prefs/browser_prefs.cc
 +++ b/chrome/browser/prefs/browser_prefs.cc
-@@ -1643,6 +1643,16 @@
+@@ -1643,6 +1643,15 @@
    registry->RegisterBooleanPref(kSupervisedUserSafeSites, false);
  }
  
@@ -59,7 +71,6 @@ diff --git a/chrome/browser/prefs/browser_prefs.cc b/chrome/browser/prefs/browse
 +// Orbit's privacy defaults for the browser as a whole. They change only the default value, so a
 +// person's own choice in Settings still wins.
 +void SetOrbitLocalStateDefaults(PrefRegistrySimple* registry) {
-+  registry->SetDefaultPrefValue("dns_over_https.mode", base::Value("secure"));
 +  registry->SetDefaultPrefValue(
 +      "dns_over_https.templates",
 +      base::Value("https://dns.quad9.net/dns-query"));
@@ -68,7 +79,7 @@ diff --git a/chrome/browser/prefs/browser_prefs.cc b/chrome/browser/prefs/browse
  }  // namespace
  
  std::string GetCountry() {
-@@ -1985,6 +1995,8 @@
+@@ -1985,6 +1994,8 @@
        policy::policy_prefs::kLocalNetworkAccessPermissionsPolicyDefaultEnabled,
        false);
  
