@@ -66,7 +66,7 @@ fs.writeFileSync(
 | System | Download |
 | --- | --- |
 | Windows 10 and 11 (x64) | [${windows}](${download(windows)}) |
-| macOS 12 or later (Apple silicon) | [${mac}](${download(mac)}) |
+| macOS 13 or later (Apple silicon) | [${mac}](${download(mac)}) |
 | Linux (x64, Debian and Ubuntu) | [${deb}](${download(deb)}) |
 | Linux (x64, any distribution) | [${archive}](${download(archive)}) |
 
