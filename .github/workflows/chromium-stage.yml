@@ -150,7 +150,7 @@ jobs:
 
       - name: Use Orbit's build settings in the restored build
         if: inputs.stage != 1 || inputs.resume_run != ''
-        run: cmp -s tools/chromium/args.gn src/out/Release/args.gn || cp tools/chromium/args.gn src/out/Release/args.gn
+        run: tools/chromium/args.sh src/out/Release/args.gn
 
       - name: Date Orbit's changed files against the restored build
         run: |

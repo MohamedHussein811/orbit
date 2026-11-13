@@ -87,6 +87,11 @@ try {
 
   expect("default color scheme follows the device", value(prefs.browser?.theme?.color_scheme2), 0);
 
+  // Windows plays H.264 and AAC through the operating system; other systems do not claim them.
+  await page.goto("about:blank");
+  const mp4 = await page.eval(`document.createElement("video").canPlayType('video/mp4; codecs="avc1.42E01E, mp4a.40.2"')`);
+  expect("MP4 with H.264 and AAC", mp4, process.platform === "win32" ? "probably" : "");
+
   const prefix = `chrome-extension://${extensionId}/`;
   // The extension installs about 20 seconds after a first start. Opening new tab pages every few
   // seconds held the install back, so tries are 10 seconds apart, each in a new tab.

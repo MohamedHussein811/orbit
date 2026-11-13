@@ -1,0 +1,87 @@
+diff --git a/media/base/win/mf_helpers.cc b/media/base/win/mf_helpers.cc
+--- a/media/base/win/mf_helpers.cc
++++ b/media/base/win/mf_helpers.cc
+@@ -539,7 +539,9 @@
+ 
+   size_t extra_size = wave_format_size - sizeof(WAVEFORMATEX);
+   aac_wave_format->wfx.cbSize = static_cast<WORD>(extra_size);
+-  aac_wave_format->wPayloadType = 0;  // RAW AAC
++  // xHE-AAC arrives raw; other AAC arrives as ADTS frames.
++  aac_wave_format->wPayloadType =
++      decoder_config.profile() == AudioCodecProfile::kXHE_AAC ? 0 : 1;
+   aac_wave_format->wAudioProfileLevelIndication =
+       0xFE;                          // no audio profile specified
+   aac_wave_format->wStructType = 0;  // audio specific config follows
+diff --git a/media/BUILD.gn b/media/BUILD.gn
+--- a/media/BUILD.gn
++++ b/media/BUILD.gn
+@@ -87,7 +87,9 @@
+   }
+ }
+ 
+-if (proprietary_codecs && media_use_ffmpeg) {
++# Orbit builds Windows with proprietary codecs and Chromium's FFmpeg: the MP4
++# reader comes from FFmpeg, decoding from the operating system.
++if (proprietary_codecs && media_use_ffmpeg && !is_win) {
+   assert(
+       ffmpeg_branding != "Chromium",
+       "proprietary codecs and ffmpeg_branding set to Chromium are incompatible")
+diff --git a/media/filters/win/media_foundation_audio_decoder.cc b/media/filters/win/media_foundation_audio_decoder.cc
+--- a/media/filters/win/media_foundation_audio_decoder.cc
++++ b/media/filters/win/media_foundation_audio_decoder.cc
+@@ -100,7 +100,7 @@
+ #endif
+ #if BUILDFLAG(USE_PROPRIETARY_CODECS)
+     case AudioCodec::kAAC:
+-      if (config.profile() == AudioCodecProfile::kXHE_AAC &&
++      if (config.profile() != AudioCodecProfile::kXHE_AAC ||
+           base::win::GetVersion() >= base::win::Version::WIN11_22H2) {
+         return MFT_REGISTER_TYPE_INFO{MFMediaType_Audio, MFAudioFormat_AAC};
+       }
+@@ -333,8 +333,10 @@
+ }
+ 
+ bool MediaFoundationAudioDecoder::NeedsBitstreamConversion() const {
+-  // DTS does not require any header/bit stream conversion
+-  return false;
++  // AAC, other than xHE-AAC, reaches Media Foundation as ADTS frames, as MP4 in
++  // Media Source already does. DTS needs no conversion.
++  return config_.codec() == AudioCodec::kAAC &&
++         config_.profile() != AudioCodecProfile::kXHE_AAC;
+ }
+ 
+ HRESULT MediaFoundationAudioDecoder::CreateDecoder() {
+diff --git a/media/gpu/windows/supported_profile_helpers.cc b/media/gpu/windows/supported_profile_helpers.cc
+--- a/media/gpu/windows/supported_profile_helpers.cc
++++ b/media/gpu/windows/supported_profile_helpers.cc
+@@ -364,7 +364,9 @@
+   //
+   // On Windows 7 the maximum resolution supported by media foundation is
+   // 1920 x 1088. We use 1088 to account for 16x16 macro-blocks.
+-  constexpr gfx::Size kDefaultMaxH264Resolution(1920, 1088);
++  // Orbit has no software H.264 decoder to fall back to, so allow what current
++  // hardware decodes.
++  constexpr gfx::Size kDefaultMaxH264Resolution(4096, 2304);
+   SupportedResolutionRange h264_profile;
+   h264_profile.min_resolution = kMinResolution;
+   h264_profile.max_landscape_resolution = kDefaultMaxH264Resolution;
+diff --git a/media/mojo/services/gpu_mojo_media_client_win.cc b/media/mojo/services/gpu_mojo_media_client_win.cc
+--- a/media/mojo/services/gpu_mojo_media_client_win.cc
++++ b/media/mojo/services/gpu_mojo_media_client_win.cc
+@@ -101,9 +101,13 @@
+     }
+ #endif  // BUILDFLAG (ENABLE_PLATFORM_AC3_EAC3_AUDIO)
+ 
+-    if (base::win::GetVersion() >= base::win::Version::WIN11_22H2 &&
+-        InitializeMediaFoundation()) {
+-      audio_configs.emplace_back(AudioCodec::kAAC, AudioCodecProfile::kXHE_AAC);
++    if (InitializeMediaFoundation()) {
++      // Windows' own AAC decoder, which Orbit uses instead of shipping one.
++      audio_configs.emplace_back(AudioCodec::kAAC, AudioCodecProfile::kUnknown);
++      if (base::win::GetVersion() >= base::win::Version::WIN11_22H2) {
++        audio_configs.emplace_back(AudioCodec::kAAC,
++                                   AudioCodecProfile::kXHE_AAC);
++      }
+     }
+ 
+     return audio_configs;

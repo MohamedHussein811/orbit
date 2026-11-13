@@ -22,6 +22,22 @@ The owner asked for the best option (2026-11-12). Orbit goes with option B, and 
 NovaTech obtains the licenses. Until a build with B is tested on each system, option A stays, and
 `docs/KNOWN_LIMITS.md` keeps saying so.
 
+## What Orbit does (2026-11-13)
+
+Windows builds use option B (`orbit-media.patch`, `tools/chromium/args.sh`):
+
+- `proprietary_codecs = true` with Chromium's FFmpeg branding, on Windows only. Chromium's FFmpeg
+  already contains the MP4 reader (`CONFIG_MOV_DEMUXER`), but no H.264 or AAC decoder.
+- H.264 is decoded by the GPU through Chromium's D3D11 decoder, up to 4096x2304. A Windows PC
+  without hardware H.264 decoding (some virtual machines) cannot play it.
+- AAC is decoded by Windows Media Foundation through Chromium's existing platform audio decoder
+  path (the one Chrome uses for xHE-AAC), fed as ADTS frames. Windows "N" editions need the Media
+  Feature Pack.
+- `check-browser.mjs` checks that Windows reports MP4 with H.264 and AAC as playable, and that the
+  other systems do not.
+
+macOS and Linux stay on option A, so they never claim a format they would play without sound.
+
 ## What option B needs (research, 2026-11-13)
 
 - Video: Chromium refuses `proprietary_codecs = true` with Chromium's FFmpeg branding through

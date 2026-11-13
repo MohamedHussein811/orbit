@@ -51,7 +51,7 @@ else
 fi
 
 mkdir -p out/Release
-cp ../tools/chromium/args.gn out/Release/args.gn
+../tools/chromium/args.sh out/Release/args.gn
 out/gn/gn gen out/Release
 ninja -C out/Release -n $TARGETS | tail -1
 df -h .

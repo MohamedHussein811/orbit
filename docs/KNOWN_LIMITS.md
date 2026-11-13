@@ -6,7 +6,7 @@ These are true of the current code. Each one says what a person would notice.
 
 | Limit | What a person notices | Path to fix |
 | --- | --- | --- |
-| No H.264, AAC or HEVC | Sites that only offer those formats do not play, including many news and social video players. YouTube works through VP9 | Operating system decoders, planned in [VIDEO.md](VIDEO.md) |
+| H.264 and AAC on Windows only, no HEVC | On Windows, H.264 and AAC play through the operating system (H.264 needs hardware decoding). On macOS and Linux, sites that only offer those formats do not play. YouTube works everywhere through VP9 | macOS: AudioToolbox for AAC, see [VIDEO.md](VIDEO.md) |
 | Windows installer not code-signed | Windows SmartScreen warns about an unknown publisher on first run. The macOS disk image is signed and notarized only once the signing secrets are set | Windows: SignPath's free open source signing. macOS: the secrets listed in [RELEASING.md](RELEASING.md) |
 | Browser does not update in place | Orbit shows a note on the new tab page when a newer release is out, but people install it themselves. Shields rules do update automatically | Chromium's own updater, or signed update feeds for each system |
 | Not tested on real hardware outside CI | macOS and Linux have only run on CI machines | Testing on real machines |
