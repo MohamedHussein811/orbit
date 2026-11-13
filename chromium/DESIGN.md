@@ -22,7 +22,8 @@ satellite appear around a shortcut on the new tab page when it is hovered or foc
 | Light | White surfaces, lavender frame | Orbit's palette in light mode |
 | System | Dark or Light, following the device | Chromium's device mode |
 
-People choose Light, Dark or Device in Settings > Appearance > Mode. Orbit's own pages follow the
+People choose Light, Dark or Device in Settings > Appearance > Mode; Device is the default, so
+Orbit respects the system and accessibility setting. Orbit's own pages follow the
 browser through `prefers-color-scheme`. The new tab page's background is chosen separately, in its
 Customize panel: Orbit's black hole video, the person's own image or video, or a plain surface.
 
@@ -40,6 +41,8 @@ neutral variant; the error ramp is Chromium's) for dark and light mode and write
 - The contrast table below.
 
 Error pages and security warnings get fixed values from the same palette in `orbit-pages.patch`.
+A page that could not load shows Orbit's open ring with its satellite drifted off the path, the
+ring muted and the satellite in the accent color (`orbit-error-page.patch`).
 
 Key values:
 
@@ -152,15 +155,21 @@ video, and it has a pause control. All transitions stop under `prefers-reduced-m
   separator lines between tabs (`orbit-tabs.patch`).
 - Toolbar and tab icons are Orbit's own: thin round-capped lines on Chromium's 20 px grid
   (back and forward chevrons, reload as an open ring with its gap at the top right like the mark,
-  a house, three dots for the menu, a puzzle piece, download, close and new tab). They are drawn
-  once in `tools/design/browser-icons.mjs`, which writes Chromium's `.icon` files into the
-  overlay in place of the ones Chromium 157's toolbar uses.
+  a house, three dots for the menu, a puzzle piece with a slash or a check for its blocked and
+  allowed states, download, close and new tab). They are drawn once in
+  `tools/design/browser-icons.mjs`, which writes Chromium's `.icon` files into the overlay in
+  place of the ones Chromium 157's toolbar uses, together with every copy of Orbit's mark.
+- Chromium's test field trials are off (`disable_fieldtrial_testing_config` in
+  `tools/chromium/args.gn`). They turned on lab experiments, among them toolbar buttons drawn as
+  web pages with Chromium's icons.
 
 ## Address bar
 
-Internal pages show as `orbit://` in the address bar, with Orbit's mark as their icon. Typing an
-`orbit://` address opens the matching page (`orbit-scheme.patch`). Only the address bar changes:
-web pages still cannot open internal pages, with either scheme.
+Internal pages show as `orbit://` in the address bar, with Orbit's mark as their icon. Pages of
+Orbit's built-in extension show as `orbit://<page>`, such as `orbit://privacy`, instead of a
+`chrome-extension://` address. Typing an `orbit://` address opens the matching page
+(`orbit-scheme.patch`). Only the address bar changes: web pages still cannot open internal pages,
+with either scheme.
 
 ## Right to left
 

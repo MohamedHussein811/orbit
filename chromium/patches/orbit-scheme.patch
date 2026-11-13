@@ -1,14 +1,29 @@
 diff --git a/components/omnibox/browser/autocomplete_input.cc b/components/omnibox/browser/autocomplete_input.cc
 --- a/components/omnibox/browser/autocomplete_input.cc
 +++ b/components/omnibox/browser/autocomplete_input.cc
-@@ -186,6 +186,16 @@
+@@ -186,6 +186,31 @@
      AdjustCursorPositionIfNecessary(text.length() - text_.length(),
                                      &cursor_position_);
  
 +  // The address bar shows Orbit's internal pages as orbit://, so a typed
-+  // orbit:// address means the chrome:// page. Only typed input is mapped.
-+  if (base::StartsWith(text_, u"orbit://",
-+                       base::CompareCase::INSENSITIVE_ASCII)) {
++  // orbit:// address means the chrome:// page, or one of the pages of Orbit's
++  // built-in extension. Only typed input is mapped.
++  bool orbit_page = false;
++  for (std::u16string_view page : {u"privacy"}) {
++    std::u16string typed = base::StrCat({u"orbit://", page});
++    if (base::EqualsCaseInsensitiveASCII(text_, typed) ||
++        base::EqualsCaseInsensitiveASCII(text_, base::StrCat({typed, u"/"}))) {
++      text_ = base::StrCat(
++          {u"chrome-extension://kceipbaiojomdibnboffoieecidpfdck/", page, u"/", page, u".html"});
++      if (cursor_position_ != std::u16string::npos) {
++        cursor_position_ = text_.length();
++      }
++      orbit_page = true;
++      break;
++    }
++  }
++  if (!orbit_page && base::StartsWith(text_, u"orbit://",
++                                      base::CompareCase::INSENSITIVE_ASCII)) {
 +    text_.replace(0, 5, u"chrome");
 +    if (cursor_position_ != std::u16string::npos && cursor_position_ >= 5) {
 +      ++cursor_position_;
@@ -21,15 +36,24 @@ diff --git a/components/omnibox/browser/autocomplete_input.cc b/components/omnib
 diff --git a/components/omnibox/browser/location_bar_model_impl.cc b/components/omnibox/browser/location_bar_model_impl.cc
 --- a/components/omnibox/browser/location_bar_model_impl.cc
 +++ b/components/omnibox/browser/location_bar_model_impl.cc
-@@ -10,6 +10,7 @@
+@@ -5,11 +5,16 @@
+ #include "components/omnibox/browser/location_bar_model_impl.h"
+ 
+ #include <string>
++#include <string_view>
++#include <vector>
+ 
+ #include "base/check.h"
  #include "base/feature_list.h"
  #include "base/metrics/field_trial_params.h"
  #include "base/notreached.h"
++#include "base/strings/strcat.h"
++#include "base/strings/string_split.h"
 +#include "base/strings/string_util.h"
  #include "base/strings/utf_string_conversions.h"
  #include "base/time/time.h"
  #include "build/build_config.h"
-@@ -147,12 +148,20 @@
+@@ -147,12 +152,38 @@
    // Note that we can't unescape spaces here, because if the user copies this
    // and pastes it into another program, that program may think the URL ends at
    // the space.
@@ -46,6 +70,24 @@ diff --git a/components/omnibox/browser/location_bar_model_impl.cc b/components/
 +      base::StartsWith(formatted_text, u"chrome://",
 +                       base::CompareCase::INSENSITIVE_ASCII)) {
 +    formatted_text.replace(0, 6, u"orbit");
++  }
++
++  // Pages of Orbit's built-in extension, kept at <page>/<page>.html, show as
++  // orbit://<page>.
++  if (url.SchemeIs("chrome-extension") &&
++      url.host() == "kceipbaiojomdibnboffoieecidpfdck") {
++    std::vector<std::string_view> parts = base::SplitStringPiece(
++        url.path(), "/", base::KEEP_WHITESPACE, base::SPLIT_WANT_NONEMPTY);
++    if (parts.size() == 2 && parts[1] == base::StrCat({parts[0], ".html"})) {
++      std::string page = base::StrCat({"orbit://", parts[0]});
++      if (url.has_query()) {
++        base::StrAppend(&page, {"?", url.query()});
++      }
++      if (url.has_ref()) {
++        base::StrAppend(&page, {"#", url.ref()});
++      }
++      formatted_text = base::UTF8ToUTF16(page);
++    }
 +  }
 +
    // Truncating the URL breaks editing and then pressing enter, but hopefully
