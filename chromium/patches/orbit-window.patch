@@ -1,0 +1,322 @@
+diff --git a/chrome/browser/ui/color/material_chrome_color_mixer.cc b/chrome/browser/ui/color/material_chrome_color_mixer.cc
+--- a/chrome/browser/ui/color/material_chrome_color_mixer.cc
++++ b/chrome/browser/ui/color/material_chrome_color_mixer.cc
+@@ -524,7 +524,7 @@
+       ui::kColorSysOnSurfaceSubtle};
+ 
+   // Toolbar colors.
+-  mixer[kColorToolbar] = {ui::kColorSysBase};
++  mixer[kColorToolbar] = {ui::kColorSysHeader};
+   mixer[kColorToolbarButtonBackgroundHighlightedDefault] = {
+       ui::kColorSysStateHoverOnSubtle};
+   mixer[kColorToolbarButtonBorder] = {ui::kColorSysOutline};
+@@ -536,7 +536,7 @@
+       {ui::kColorSysStateDisabled}, {kColorToolbar})};
+   mixer[kColorToolbarButtonIconPressed] = {kColorToolbarButtonIconHovered};
+   mixer[kColorToolbarButtonText] = {ui::kColorSysOnSurfaceSecondary};
+-  mixer[kColorToolbarContentAreaSeparator] = {ui::kColorSysSurfaceVariant};
++  mixer[kColorToolbarContentAreaSeparator] = {kColorToolbar};
+   mixer[kColorToolbarFeaturePromoHighlight] = {ui::kColorSysPrimary};
+   mixer[kColorToolbarIconContainerBorder] = {ui::kColorSysNeutralOutline};
+   mixer[kColorToolbarInkDropHover] = {ui::kColorSysStateHoverOnSubtle};
+diff --git a/chrome/browser/ui/views/frame/browser_view.cc b/chrome/browser/ui/views/frame/browser_view.cc
+--- a/chrome/browser/ui/views/frame/browser_view.cc
++++ b/chrome/browser/ui/views/frame/browser_view.cc
+@@ -4752,6 +4752,15 @@
+       return HTCLIENT;
+     }
+ 
++    // Orbit's toolbar shares the top row with the tabs, so its empty space
++    // moves the window like a title bar. HTNOWHERE lets the frame check the
++    // window controls first.
++    gfx::Point test_point2(point);
++    if (ConvertedHitTest(parent(), top_container_, &test_point2) &&
++        top_container_->IsPositionInWindowCaption(test_point2)) {
++      return HTNOWHERE;
++    }
++
+     // The top few pixels of the TabStrip are a drop-shadow - as we're pretty
+     // starved of draggable area, let's give it to window dragging (this also
+     // makes sense visually).
+@@ -5110,6 +5119,7 @@
+   layout_views.vertical_tab_strip_top_corner = vertical_tab_strip_top_corner_;
+   layout_views.organizer_tray = organizer_tray_;
+   layout_views.toolbar = toolbar_;
++  layout_views.orbit_tab_slot = toolbar_->orbit_tab_slot();
+   layout_views.infobar_container = infobar_container_;
+   layout_views.multi_contents_view = multi_contents_view_;
+   layout_views.side_panel = side_panel_;
+diff --git a/chrome/browser/ui/views/frame/layout/browser_view_layout.h b/chrome/browser/ui/views/frame/layout/browser_view_layout.h
+--- a/chrome/browser/ui/views/frame/layout/browser_view_layout.h
++++ b/chrome/browser/ui/views/frame/layout/browser_view_layout.h
+@@ -75,6 +75,8 @@
+   raw_ptr<CustomFloatingCorner> vertical_tab_strip_top_corner = nullptr;
+   raw_ptr<OrganizerTrayView> organizer_tray = nullptr;
+   raw_ptr<views::View> toolbar = nullptr;
++  // The place in the toolbar row that Orbit lays the horizontal tab strip over.
++  raw_ptr<views::View> orbit_tab_slot = nullptr;
+   raw_ptr<InfoBarContainerView> infobar_container = nullptr;
+   raw_ptr<MultiContentsView> multi_contents_view = nullptr;
+   raw_ptr<SidePanel> side_panel = nullptr;
+diff --git a/chrome/browser/ui/views/frame/layout/browser_view_tabbed_layout_impl.cc b/chrome/browser/ui/views/frame/layout/browser_view_tabbed_layout_impl.cc
+--- a/chrome/browser/ui/views/frame/layout/browser_view_tabbed_layout_impl.cc
++++ b/chrome/browser/ui/views/frame/layout/browser_view_tabbed_layout_impl.cc
+@@ -55,6 +55,8 @@
+ #include "ui/gfx/geometry/size.h"
+ #include "ui/gfx/geometry/size_conversions.h"
+ #include "ui/views/controls/separator.h"
++#include "ui/views/layout/layout_manager_base.h"
++#include "ui/views/layout/proposed_layout.h"
+ #include "ui/views/view.h"
+ #include "ui/views/view_class_properties.h"
+ #include "ui/views/view_utils.h"
+@@ -435,8 +437,8 @@
+     BrowserLayoutParams& params) const {
+   HorizontalLayout layout;
+   // Start with some preliminary values.
+-  layout.force_top_container_to_top =
+-      layout_data_->tab_strip_type != TabStripType::kHorizontal;
++  // Orbit keeps the toolbar and the tabs in one row at the top of the window.
++  layout.force_top_container_to_top = true;
+ 
+   layout.is_split_view = delegate().IsActiveTabSplit();
+ 
+@@ -861,20 +863,14 @@
+                     show_organizer_tray);
+   }
+ 
+-  // Lay out horizontal tab strip region if present.
++  // Lay out horizontal tab strip region if present. Orbit places it in the
++  // toolbar row once the top container is laid out, below.
++  ProposedLayout* horizontal_tab_strip_layout = nullptr;
+   if (IsParentedTo(views().horizontal_tab_strip_region_view,
+                    views().browser_view)) {
+-    gfx::Rect tabstrip_bounds;
+-    if (layout_data_->tab_strip_type == TabStripType::kHorizontal) {
+-      const int leading_margin = GetHorizontalTabStripLeadingMargin(params);
+-      tabstrip_bounds = GetBoundsWithExclusion(
+-          params, views().horizontal_tab_strip_region_view, leading_margin);
+-      params.SetTop(tabstrip_bounds.bottom() -
+-                    GetLayoutConstant(LayoutConstant::kTabstripToolbarOverlap));
+-      needs_exclusion = false;
+-    }
+-    layout.AddChild(views().horizontal_tab_strip_region_view, tabstrip_bounds,
+-                    layout_data_->tab_strip_type == TabStripType::kHorizontal);
++    horizontal_tab_strip_layout = &layout.AddChild(
++        views().horizontal_tab_strip_region_view, gfx::Rect(),
++        layout_data_->tab_strip_type == TabStripType::kHorizontal);
+   }
+ 
+   // This will be the area next to the vertical tab strip (if present) that will
+@@ -1052,6 +1048,37 @@
+         GetTopContainerBoundsInParent(top_container_local_bounds, params);
+     params.SetTop(top_container_layout.bounds.bottom());
+ 
++    // Put the tabs in the place the toolbar keeps for them after the address
++    // bar, centered in the row.
++    if (horizontal_tab_strip_layout && views().orbit_tab_slot &&
++        layout_data_->tab_strip_type == TabStripType::kHorizontal) {
++      const auto toolbar_it =
++          top_container_layout.children.find(views().toolbar.get());
++      auto* const toolbar_layout_manager =
++          static_cast<views::LayoutManagerBase*>(
++              views().toolbar->GetLayoutManager());
++      if (toolbar_it != top_container_layout.children.end() &&
++          !toolbar_it->second.bounds.IsEmpty() && toolbar_layout_manager) {
++        gfx::Rect toolbar_bounds = toolbar_it->second.bounds;
++        toolbar_bounds.Offset(top_container_layout.bounds.OffsetFromOrigin());
++        const views::ProposedLayout toolbar_layout =
++            toolbar_layout_manager->GetProposedLayout(toolbar_bounds.size());
++        const views::ChildLayout* const slot =
++            toolbar_layout.GetLayoutFor(views().orbit_tab_slot);
++        if (slot && slot->visible) {
++          const int height = std::min(
++              toolbar_bounds.height(),
++              views()
++                  .horizontal_tab_strip_region_view->GetPreferredSize()
++                  .height());
++          horizontal_tab_strip_layout->bounds = gfx::Rect(
++              toolbar_bounds.x() + slot->bounds.x(),
++              toolbar_bounds.y() + (toolbar_bounds.height() - height) / 2,
++              slot->bounds.width(), height);
++        }
++      }
++    }
++
+     // Possibly bump the leading margin of the top container out to cover the
+     // caption buttons, leaving all of the child views in the same absolute
+     // position.
+@@ -1538,6 +1565,14 @@
+           background->GetWindowCorner(/*upper=*/true);
+       corners[CornerOrientation::kTopTrailing] =
+           background->GetWindowCorner(/*upper=*/true);
++    } else if (layout_data_->tab_strip_type == TabStripType::kHorizontal) {
++      // Orbit's toolbar row is the top edge of the window.
++      corners[CornerOrientation::kTopTrailing] =
++          background->GetWindowCorner(/*upper=*/true);
++      if (params.leading_exclusion.IsEmpty()) {
++        corners[CornerOrientation::kTopLeading] =
++            background->GetWindowCorner(/*upper=*/true);
++      }
+     }
+   }
+ 
+@@ -1826,24 +1861,7 @@
+   CustomCornersBackground::Corners toolbar_corners;
+   switch (layout_data_->tab_strip_type) {
+     case TabStripType::kHorizontal: {
+-      const gfx::Rect toolbar_bounds = views().toolbar->GetBoundsInScreen();
+-      const gfx::Rect tabstrip_bounds =
+-          views().horizontal_tab_strip_region_view->GetBoundsInScreen();
+-      if (toolbar_bounds.y() <= tabstrip_bounds.bottom()) {
+-        // Trailing curve is always shown for normal horizontal tabstrip when
+-        // the two are vertically adjacent.
+-        toolbar_corners[CornerOrientation::kTopTrailing].type =
+-            CustomCornersBackground::CornerType::kRoundedWithBackground;
+-
+-        // If there is anything on the leading side or the first tab is not
+-        // selected, then the corner radius is shown, otherwise we hide the
+-        // corner radius. (Don't show if the left edges don't line up.)
+-        if (!delegate().IsActiveTabAtLeadingWindowEdge() &&
+-            toolbar_bounds.x() <= tabstrip_bounds.x()) {
+-          toolbar_corners[CornerOrientation::kTopLeading].type =
+-              CustomCornersBackground::CornerType::kRoundedWithBackground;
+-        }
+-      }
++      // Orbit's tabs sit inside the toolbar row, so no corner joins a tab.
+       break;
+     }
+     case TabStripType::kVertical: {
+diff --git a/chrome/browser/ui/views/toolbar/toolbar_view.cc b/chrome/browser/ui/views/toolbar/toolbar_view.cc
+--- a/chrome/browser/ui/views/toolbar/toolbar_view.cc
++++ b/chrome/browser/ui/views/toolbar/toolbar_view.cc
+@@ -153,6 +153,8 @@
+ #include "ui/color/color_id.h"
+ #include "ui/color/color_provider.h"
+ #include "ui/compositor/layer.h"
++#include "cc/paint/paint_flags.h"
++#include "cc/paint/paint_shader.h"
+ #include "ui/gfx/canvas.h"
+ #include "ui/gfx/geometry/insets.h"
+ #include "ui/gfx/image/canvas_image_source.h"
+@@ -189,6 +191,41 @@
+ 
+ namespace {
+ 
++// Orbit's address bar keeps this width in the toolbar row; the tabs take the
++// rest, and always keep at least the minimum.
++constexpr int kOrbitLocationBarWidth = 480;
++constexpr int kOrbitMinimumTabSlotWidth = 160;
++
++gfx::Size OrbitLocationBarSize(const views::View* view,
++                               const views::SizeBounds& maximum_size) {
++  const int width =
++      std::max(maximum_size.width().min_of(kOrbitLocationBarWidth),
++               view->GetMinimumSize().width());
++  return gfx::Size(width, view->GetPreferredSize().height());
++}
++
++// Orbit's horizon: a thin line under the toolbar row that runs from periwinkle
++// through the amber and rose of the black hole's disk.
++class OrbitHorizonBackground : public views::Background {
++ public:
++  void Paint(gfx::Canvas* canvas, views::View* view) const override {
++    const gfx::Rect bounds = view->GetLocalBounds();
++    const SkPoint points[] = {SkPoint::Make(bounds.x(), 0),
++                              SkPoint::Make(bounds.right(), 0)};
++    const SkColor4f colors[] = {
++        SkColor4f::FromColor(SkColorSetARGB(0x1A, 0x9E, 0xAC, 0xFF)),
++        SkColor4f::FromColor(SkColorSetARGB(0x8C, 0xFF, 0xB3, 0x6B)),
++        SkColor4f::FromColor(SkColorSetARGB(0xB3, 0xFF, 0x5D, 0x73)),
++        SkColor4f::FromColor(SkColorSetARGB(0xFF, 0x9E, 0xAC, 0xFF)),
++        SkColor4f::FromColor(SkColorSetARGB(0x1A, 0x9E, 0xAC, 0xFF))};
++    const SkScalar positions[] = {0.f, 0.38f, 0.48f, 0.6f, 1.f};
++    cc::PaintFlags flags;
++    flags.setShader(cc::PaintShader::MakeLinearGradient(
++        points, colors, positions, 5, SkTileMode::kClamp));
++    canvas->DrawRect(bounds, flags);
++  }
++};
++
+ // Gets the display mode for a given browser.
+ ToolbarView::DisplayMode GetDisplayMode(BrowserWindowInterface* browser) {
+   // Checked in this order because even tabbed PWAs use the CUSTOM_TAB
+@@ -480,6 +517,18 @@
+     location_bar_ = toolbar_webview_->GetLocationBar();
+   }
+ 
++  // Orbit keeps the tabs in the toolbar row: this empty view holds their place
++  // after the address bar, and the browser layout puts the tab strip over it.
++  orbit_tab_slot_ = AddChildView(std::make_unique<views::View>());
++  orbit_tab_slot_->SetPreferredSize(gfx::Size(kOrbitMinimumTabSlotWidth, 0));
++  orbit_tab_slot_->GetViewAccessibility().SetIsIgnored(true);
++
++  orbit_horizon_ = AddChildView(std::make_unique<views::View>());
++  orbit_horizon_->SetBackground(std::make_unique<OrbitHorizonBackground>());
++  orbit_horizon_->SetProperty(views::kViewIgnoredByLayoutKey, true);
++  orbit_horizon_->SetCanProcessEventsWithinSubtree(false);
++  orbit_horizon_->GetViewAccessibility().SetIsIgnored(true);
++
+   bool is_glic_left_of_profile =
+       features::kGlicToolbarButtonLocationParam.Get() ==
+           features::GlicToolbarButtonLocation::kLeftOfProfileChip ||
+@@ -1501,6 +1550,10 @@
+   // Call super implementation to ensure layout manager and child layouts
+   // happen.
+   LayoutSuperclass<AccessiblePaneView>(this);
++
++  if (orbit_horizon_) {
++    orbit_horizon_->SetBounds(0, height() - 1, width(), 1);
++  }
+ }
+ 
+ void ToolbarView::OnThemeChanged() {
+@@ -1588,12 +1641,24 @@
+ 
+   // If the Views location bar is in use, set its properties here.
+   if (location_bar_view_) {
+-    location_bar_view_->SetProperty(views::kFlexBehaviorKey,
+-                                    location_bar_flex_rule);
++    location_bar_view_->SetProperty(
++        views::kFlexBehaviorKey,
++        views::FlexSpecification(base::BindRepeating(&OrbitLocationBarSize))
++            .WithOrder(location_bar_flex_order));
+     location_bar_view_->SetProperty(views::kMarginsKey,
+                                     gfx::Insets::VH(0, location_bar_margin));
+   }
+ 
++  // The tab slot only gets what the other elements leave, and gives way first.
++  if (orbit_tab_slot_) {
++    orbit_tab_slot_->SetProperty(
++        views::kFlexBehaviorKey,
++        views::FlexSpecification(views::LayoutOrientation::kHorizontal,
++                                 views::MinimumFlexSizeRule::kPreferred,
++                                 views::MaximumFlexSizeRule::kUnbounded)
++            .WithOrder(kOrderOffset * 2));
++  }
++
+   if (extensions_container_) {
+     const views::FlexSpecification extensions_flex_rule =
+         views::FlexSpecification(
+diff --git a/chrome/browser/ui/views/toolbar/toolbar_view.h b/chrome/browser/ui/views/toolbar/toolbar_view.h
+--- a/chrome/browser/ui/views/toolbar/toolbar_view.h
++++ b/chrome/browser/ui/views/toolbar/toolbar_view.h
+@@ -187,6 +187,9 @@
+   ExtensionsToolbarButton* GetExtensionsButton() const;
+   ReloadButton* reload_button() const { return reload_; }
+   LocationBarView* location_bar_view() const { return location_bar_view_; }
++
++  // The empty place after the address bar that Orbit's tab strip is laid over.
++  views::View* orbit_tab_slot() const { return orbit_tab_slot_; }
+   LocationBar* location_bar() const { return location_bar_; }
+   CustomTabBarView* custom_tab_bar() { return custom_tab_bar_; }
+   BatterySaverButton* battery_saver_button() const {
+@@ -414,6 +417,8 @@
+   raw_ptr<SplitTabsToolbarButton> split_tabs_ = nullptr;
+   raw_ptr<CustomTabBarView> custom_tab_bar_ = nullptr;
+   raw_ptr<LocationBarView> location_bar_view_ = nullptr;
++  raw_ptr<views::View> orbit_tab_slot_ = nullptr;
++  raw_ptr<views::View> orbit_horizon_ = nullptr;
+ 
+   // An alias for `location_bar_view_` or `toolbar_webview_->GetLocationBar()`.
+   raw_ptr<LocationBar> location_bar_ = nullptr;
