@@ -48,6 +48,14 @@ if [ "$(uname)" = "Darwin" ]; then
   fi
 elif is_windows; then
   cp mini_installer.exe "$dist/${product}Setup-$version-x64.exe"
+  # Install it the way a person would, for this user, and check what landed.
+  ./mini_installer.exe --do-not-launch-chrome
+  installed="$(cygpath -u "$LOCALAPPDATA")/NovaTech/$product/Application"
+  ls -l "$installed" "$installed/$version"
+  test -f "$installed/orbit.exe"
+  test -f "$installed/$version/chrome.dll"
+  test -f "$installed/$version/resources/orbit_extensions/orbit.crx"
+  "$installed/$version/Installer/setup.exe" --uninstall --force-uninstall || true
 else
   name=$(echo "$product" | tr '[:upper:]' '[:lower:]')
   tree="$RUNNER_TEMP/$name-package"

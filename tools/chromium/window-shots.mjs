@@ -1,6 +1,6 @@
 // Screenshots of a built Orbit's real window (Windows only), for design review. Starts Orbit with a
 // new profile in a temporary folder and captures only Orbit's own windows, never the screen.
-//   node tools/chromium/window-shots.mjs <chrome.exe> <out dir> <language> <scene,...>
+//   node tools/chromium/window-shots.mjs <orbit.exe> <out dir> <language> <scene,...>
 // Scenes: dark, light (Settings and the new tab page in that theme), error, history,
 // privacy. Private windows come out blank this way. Loading two news sites first makes the
 // Shields counts real.
@@ -16,7 +16,7 @@ const SHOT = path.join(ROOT, "tools/chromium/lib/window-shot.ps1");
 const ID = "kceipbaiojomdibnboffoieecidpfdck";
 const [browser, outDir, lang = "en", scenesArg = "dark"] = process.argv.slice(2);
 if (!browser || !outDir) {
-  console.error("usage: window-shots.mjs <chrome.exe> <out dir> <language> <scene,...>");
+  console.error("usage: window-shots.mjs <orbit.exe> <out dir> <language> <scene,...>");
   process.exit(2);
 }
 const scenes = scenesArg.split(",");

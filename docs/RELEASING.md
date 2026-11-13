@@ -14,7 +14,7 @@ Each stage downloads and verifies the Chromium source, builds and signs the buil
 npm run typecheck
 npm run test:unit
 node tools/chromium/check-browser.mjs <path to a built Orbit> kceipbaiojomdibnboffoieecidpfdck
-node tools/chromium/window-shots.mjs <chrome.exe> <out folder> en dark,light
+node tools/chromium/window-shots.mjs <orbit.exe> <out folder> en dark,light
 ```
 
 `window-shots.mjs` captures Orbit's own windows on Windows for design review.

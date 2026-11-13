@@ -9,12 +9,12 @@ if [ "$(uname)" = "Darwin" ]; then
   du -sh "$product.app"
   browser="$product.app/Contents/MacOS/$product"
   data_dir="$HOME/Library/Application Support/$product"
-elif [ -f chrome.exe ]; then
-  ls -lh chrome.exe chrome.dll
-  name=$(powershell -NoProfile -Command "(Get-Item chrome.exe).VersionInfo.ProductName")
-  powershell -NoProfile -Command "(Get-Item chrome.exe).VersionInfo | Format-List ProductName, ProductVersion, CompanyName, LegalCopyright"
+elif [ -f orbit.exe ]; then
+  ls -lh orbit.exe chrome.dll
+  name=$(powershell -NoProfile -Command "(Get-Item orbit.exe).VersionInfo.ProductName")
+  powershell -NoProfile -Command "(Get-Item orbit.exe).VersionInfo | Format-List ProductName, ProductVersion, CompanyName, LegalCopyright"
   test "$(echo "$name" | tr -d '\r')" = "$product"
-  browser=./chrome.exe
+  browser=./orbit.exe
   data_dir="$(cygpath -u "$LOCALAPPDATA")/NovaTech/$product/User Data"
   # The Windows sandbox runs child processes as app containers, which need read access to the
   # browser folder. GitHub runner folders do not grant it, unlike a normal install location.
@@ -32,7 +32,7 @@ else
   data_dir="${XDG_CONFIG_HOME:-$HOME/.config}/$(echo "$product" | tr '[:upper:]' '[:lower:]')"
 fi
 
-if [ ! -f chrome.exe ]; then
+if [ ! -f orbit.exe ]; then
   version=$(timeout 60 "$browser" --version)
   echo "$version"
   case "$version" in "$product "*) ;; *) echo "expected the version line to start with $product"; exit 1 ;; esac
@@ -45,10 +45,10 @@ test ! -e "$data_dir/Default"
 flags=(--no-first-run --no-default-browser-check about:blank)
 if [ "$(uname)" = "Darwin" ]; then
   timeout 30 "$browser" --use-mock-keychain "${flags[@]}" || true
-elif [ -f chrome.exe ]; then
+elif [ -f orbit.exe ]; then
   "$browser" "${flags[@]}" &
   sleep 30
-  taskkill /F /T /IM chrome.exe > /dev/null 2>&1 || true
+  taskkill /F /T /IM orbit.exe > /dev/null 2>&1 || true
 else
   command -v xvfb-run > /dev/null || sudo apt-get install -y -qq xvfb > /dev/null
   timeout 30 xvfb-run -a "$browser" --password-store=basic "${flags[@]}" || true
@@ -60,8 +60,8 @@ extension=$(ls ../../chrome/browser/resources/orbit_extensions/*.json | xargs -n
 ls "$data_dir/Default/Extensions/$extension"
 
 # Privacy defaults, Settings data, the built-in extension and its new tab page.
-if [ -f chrome.exe ]; then
-  native_browser=$(cygpath -w "$PWD/chrome.exe")
+if [ -f orbit.exe ]; then
+  native_browser=$(cygpath -w "$PWD/orbit.exe")
   check_flags=()
 elif [ "$(uname)" = "Darwin" ]; then
   native_browser="$PWD/$browser"

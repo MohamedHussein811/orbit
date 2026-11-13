@@ -26,6 +26,7 @@ its renamed message. "The Chromium Authors" and ChromiumOS names stay as they ar
 | `orbit-scheme.patch` | The address bar shows internal pages as `orbit://`, and Orbit's own extension pages as `orbit://<page>` (such as `orbit://privacy`); a typed `orbit://` address opens them. Web pages cannot open internal pages with either scheme |
 | `orbit-tabs.patch` | Tabs are pills that float in the tab strip, the active tab included, with no separator lines |
 | `orbit-window.patch` | One top row: the toolbar moves into the title bar row with a fixed-width address bar, and the tabs sit in the rest of that row. A thin horizon line (periwinkle, amber, rose) runs under it. The row takes the frame color so the active tab stands out as a pill. A rail on the leading edge below the row holds Orbit's mark and Home, Privacy, Bookmarks (side panel), History, Downloads, Notes (side panel) and Settings. Also turns on Chromium's 2026 WebUI refresh by default |
+| `orbit-installer.patch` | On Windows the browser is `orbit.exe` (its file, version info, installer file names, App Paths entry and tile manifest), and Chromium's installer carries Orbit's built-in extension |
 | `orbit-error-page.patch` | Error pages show Orbit's ring with its satellite drifted away instead of Chromium's pixel picture. The offline game keeps its art |
 | `orbit-shields-counts.patch` | Lets Orbit's built-in extension (and no other) receive the rule-match events Shields counts blocks with, which Chromium otherwise gives only to unpacked extensions |
 
