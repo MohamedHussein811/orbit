@@ -51,22 +51,7 @@ else
 fi
 
 mkdir -p out/Release
-cat > out/Release/args.gn <<'EOF'
-is_debug = false
-is_official_build = false
-is_component_build = false
-symbol_level = 0
-blink_symbol_level = 0
-v8_symbol_level = 0
-treat_warnings_as_errors = false
-use_thin_lto = false
-is_cfi = false
-chrome_pgo_phase = 0
-proprietary_codecs = false
-ffmpeg_branding = "Chromium"
-use_remoteexec = false
-use_siso = false
-EOF
+cp ../tools/chromium/args.gn out/Release/args.gn
 out/gn/gn gen out/Release
 ninja -C out/Release -n $TARGETS | tail -1
 df -h .

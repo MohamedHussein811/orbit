@@ -148,6 +148,10 @@ jobs:
           rm -rf state
           df -h .
 
+      - name: Use Orbit's build settings in the restored build
+        if: inputs.stage != 1 || inputs.resume_run != ''
+        run: cmp -s tools/chromium/args.gn src/out/Release/args.gn || cp tools/chromium/args.gn src/out/Release/args.gn
+
       - name: Date Orbit's changed files against the restored build
         run: |
           if [ "$RUNNER_OS" = Windows ]; then python=python; else python=python3; fi

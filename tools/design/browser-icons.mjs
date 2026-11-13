@@ -1,9 +1,10 @@
-// Orbit's icons for the browser frame: toolbar buttons, tab close and new tab. Each icon is drawn
+// Orbit's icons for the browser frame: toolbar buttons, tab close, new tab and the Orbit mark in the
+// address bar and dialogs. Each icon is drawn
 // once here as SVG-style shapes and written as a Chromium .icon file into the overlay, replacing
 // the file Chromium 157's toolbar uses. Lines have round caps; corners are separate segments so
 // the round caps overlap into round joins (Chromium strokes with mitered joins). Chromium 157 has
-// two sets of toolbar icons (the rounded set is on in builds that use its test field trials), so
-// each icon goes to both files, scaled when a file uses another grid size.
+// two sets of toolbar icons (the rounded set sits behind the RoundedIcons feature), so each icon
+// goes to both files, scaled when a file uses another grid size.
 //   node tools/design/browser-icons.mjs write              write the overlay .icon files
 //   node tools/design/browser-icons.mjs preview <out.svg>  contact sheet on toolbar colors
 import fs from "node:fs";
@@ -14,9 +15,36 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..")
 const OVERLAY = path.join(ROOT, "chromium", "overlay");
 
 const line = (d, width = 1.5) => ({ kind: "path", d, width });
+const fill = (d) => ({ kind: "path", d });
 const dot = (cx, cy, r) => ({ kind: "circle", cx, cy, r });
 const ring = (cx, cy, r, width = 1.5) => ({ kind: "circle", cx, cy, r, width });
 const round = (n) => Math.round(n * 100) / 100;
+
+/** Scales absolute SVG path data by k around (ox, oy). */
+function scalePath(d, k, ox, oy) {
+  const x = (n) => round(ox + (n - ox) * k);
+  const y = (n) => round(oy + (n - oy) * k);
+  return d.replace(/([MLHVACQZ])([^MLHVACQZ]*)/g, (_, letter, args) => {
+    const n = (args.match(/-?\d*\.?\d+/g) ?? []).map(Number);
+    const map = {
+      M: () => [x(n[0]), y(n[1])],
+      L: () => [x(n[0]), y(n[1])],
+      H: () => [x(n[0])],
+      V: () => [y(n[0])],
+      A: () => [round(n[0] * k), round(n[1] * k), n[2], n[3], n[4], x(n[5]), y(n[6])],
+      Q: () => [x(n[0]), y(n[1]), x(n[2]), y(n[3])],
+      C: () => [x(n[0]), y(n[1]), x(n[2]), y(n[3]), x(n[4]), y(n[5])],
+      Z: () => [],
+    };
+    return `${letter}${map[letter]().join(" ")} `;
+  }).trim();
+}
+
+const PUZZLE =
+  "M6.3 15.6 A1.5 1.5 0 0 1 4.8 14.1 V12.55 A1.6 1.6 0 1 0 4.8 9.95 V8.6 A1.5 1.5 0 0 1 6.3 7.1 H7.7 A1.6 1.6 0 1 1 10.3 7.1 H11.7 A1.5 1.5 0 0 1 13.2 8.6 V9.95 A1.6 1.6 0 1 1 13.2 12.55 V14.1 A1.5 1.5 0 0 1 11.7 15.6 Z";
+const SMALL_PUZZLE = scalePath(PUZZLE, 0.82, 3, 4);
+
+const MARK = "M23.37 8.95 A11.775 11.775 0 1 1 15.05 0.63 A1.73 1.73 0 0 1 14.15 3.96 A8.325 8.325 0 1 0 20.04 9.85 A1.73 1.73 0 0 1 23.37 8.95 Z";
 
 /** Reload: an open ring with its gap at the top right, like Orbit's mark, and an arrowhead. */
 function reloadShapes() {
@@ -97,11 +125,30 @@ export const ICONS = [
     name: "extensions",
     canvas: 20,
     targets: ["components/vector_icons/extension_chrome_refresh_old.icon", "components/vector_icons/chrome_extension.icon"],
-    shapes: [
-      line(
-        "M6.3 15.6 A1.5 1.5 0 0 1 4.8 14.1 V12.55 A1.6 1.6 0 1 0 4.8 9.95 V8.6 A1.5 1.5 0 0 1 6.3 7.1 H7.7 A1.6 1.6 0 1 1 10.3 7.1 H11.7 A1.5 1.5 0 0 1 13.2 8.6 V9.95 A1.6 1.6 0 1 1 13.2 12.55 V14.1 A1.5 1.5 0 0 1 11.7 15.6 Z",
-      ),
+    shapes: [line(PUZZLE)],
+  },
+  {
+    name: "extensions-blocked",
+    canvas: 20,
+    targets: ["components/vector_icons/extension_off_old.icon", "components/vector_icons/chrome_extension_off.icon"],
+    shapes: [line(PUZZLE), line("M3.5 4 L16 16.5")],
+  },
+  {
+    name: "extensions-allowed",
+    canvas: 20,
+    targets: ["components/vector_icons/extension_on_old.icon", "components/vector_icons/chrome_extension_check.icon"],
+    shapes: [line(SMALL_PUZZLE), line("M12.5 14.75 L14.25 16.5"), line("M14.25 16.5 L17.5 13")],
+  },
+  {
+    name: "mark",
+    canvas: 24,
+    targets: [
+      "components/vector_icons/chromium/product.icon",
+      "components/vector_icons/chromium/product_refresh.icon",
+      "components/omnibox/browser/vector_icons/chrome_product.icon",
+      ["components/omnibox/browser/vector_icons/product_chrome_refresh_old.icon", 15],
     ],
+    shapes: [fill(MARK), dot(19.11, 4.89, 2.25)],
   },
   {
     name: "tab-close",

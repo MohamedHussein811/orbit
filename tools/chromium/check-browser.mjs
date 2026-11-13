@@ -85,7 +85,7 @@ try {
   expect("search engines offered", engines.map((e) => e.name), ["DuckDuckGo", "Google", "Bing", "Ecosia"]);
   expect("default search engine", engines.find((e) => e.isDefault)?.name, "DuckDuckGo");
 
-  expect("default color scheme is dark", value(prefs.browser?.theme?.color_scheme2), 2);
+  expect("default color scheme follows the device", value(prefs.browser?.theme?.color_scheme2), 0);
 
   const prefix = `chrome-extension://${extensionId}/`;
   // The extension installs about 20 seconds after a first start. Opening new tab pages every few
