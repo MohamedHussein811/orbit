@@ -24,19 +24,26 @@ NovaTech obtains the licenses. Until a build with B is tested on each system, op
 
 ## What Orbit does (2026-11-13)
 
-Windows builds use option B (`orbit-media.patch`, `tools/chromium/args.sh`):
+Windows and macOS builds use option B (`orbit-media.patch`, `tools/chromium/args.sh`):
 
-- `proprietary_codecs = true` with Chromium's FFmpeg branding, on Windows only. Chromium's FFmpeg
-  already contains the MP4 reader (`CONFIG_MOV_DEMUXER`), but no H.264 or AAC decoder.
+- `proprietary_codecs = true` with Chromium's FFmpeg branding, on Windows and macOS. Chromium's
+  FFmpeg already contains the MP4 reader (`CONFIG_MOV_DEMUXER`), but no H.264 or AAC decoder.
+- `media_use_openh264 = false`, so no H.264 encoder is compiled into Orbit either (WebRTC's
+  software H.264 follows that setting). Encoding uses the operating system's encoders.
 - H.264 is decoded by the GPU through Chromium's D3D11 decoder, up to 4096x2304. A Windows PC
   without hardware H.264 decoding (some virtual machines) cannot play it.
 - AAC is decoded by Windows Media Foundation through Chromium's existing platform audio decoder
   path (the one Chrome uses for xHE-AAC), fed as ADTS frames. Windows "N" editions need the Media
   Feature Pack.
-- `check-browser.mjs` checks that Windows reports MP4 with H.264 and AAC as playable, and that the
-  other systems do not.
+- macOS: H.264 through VideoToolbox (Chromium's own path), AAC through AudioToolbox in Chromium's
+  platform audio decoder (the one Chrome uses for xHE-AAC), extended to all AAC: raw frames with
+  the stream's ES descriptor as the magic cookie, the richest layer the stream signals (HE-AAC's
+  SBR), and ADTS headers that Media Source adds are removed before decoding.
+- `check-browser.mjs` checks that Windows and macOS report MP4 with H.264 and AAC as playable and
+  really decode two AAC clips (a plain file and Media Source), and that Linux claims neither.
+  Windows CI machines may lack Media Foundation, so there the clip result is only reported.
 
-macOS and Linux stay on option A, so they never claim a format they would play without sound.
+Linux stays on option A, so it never claims a format it would play without sound.
 
 ## What option B needs (research, 2026-11-13)
 

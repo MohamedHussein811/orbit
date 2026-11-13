@@ -87,10 +87,46 @@ try {
 
   expect("default color scheme follows the device", value(prefs.browser?.theme?.color_scheme2), 0);
 
-  // Windows plays H.264 and AAC through the operating system; other systems do not claim them.
+  // Windows and macOS play H.264 and AAC through the operating system; Linux does not claim them.
+  // The AAC clips are decoded for real: a plain file (raw AAC frames) and Media Source (ADTS frames).
+  const systemCodecs = process.platform === "win32" || process.platform === "darwin";
   await page.goto("about:blank");
   const mp4 = await page.eval(`document.createElement("video").canPlayType('video/mp4; codecs="avc1.42E01E, mp4a.40.2"')`);
-  expect("MP4 with H.264 and AAC", mp4, process.platform === "win32" ? "probably" : "");
+  expect("MP4 with H.264 and AAC", mp4, systemCodecs ? "probably" : "");
+  for (const [name, file, mse] of [
+    ["AAC file decodes", "tone-aac.m4a", false],
+    ["AAC in Media Source decodes", "tone-aac-fragmented.m4a", true],
+  ]) {
+    const clip = fs.readFileSync(new URL(`testdata/${file}`, import.meta.url)).toString("base64");
+    const result = await page.eval(`(async () => {
+      const bytes = Uint8Array.from(atob("${clip}"), (c) => c.charCodeAt(0));
+      const audio = document.createElement("audio");
+      audio.muted = true;
+      const done = new Promise((resolve) => {
+        audio.addEventListener("canplay", () => resolve("decoded"), { once: true });
+        audio.addEventListener("error", () => resolve("error " + audio.error?.code), { once: true });
+        setTimeout(() => resolve("timeout, ready state " + audio.readyState), 15000);
+      });
+      if (${mse}) {
+        const type = 'audio/mp4; codecs="mp4a.40.2"';
+        if (!MediaSource.isTypeSupported(type)) return "not supported";
+        const source = new MediaSource();
+        audio.src = URL.createObjectURL(source);
+        await new Promise((resolve) => source.addEventListener("sourceopen", resolve, { once: true }));
+        const buffer = source.addSourceBuffer(type);
+        buffer.appendBuffer(bytes);
+        await new Promise((resolve) => buffer.addEventListener("updateend", resolve, { once: true }));
+        source.endOfStream();
+      } else {
+        audio.src = URL.createObjectURL(new Blob([bytes], { type: "audio/mp4" }));
+      }
+      return done;
+    })()`);
+    const wanted = systemCodecs ? "decoded" : mse ? "not supported" : "error 4";
+    // Windows Server runners may lack Media Foundation, so a CI Windows result is only reported.
+    if (process.platform === "win32" && process.env.CI && result !== wanted) console.log(`note ${name}: ${JSON.stringify(result)}`);
+    else expect(name, result, wanted);
+  }
 
   const prefix = `chrome-extension://${extensionId}/`;
   // The extension installs about 20 seconds after a first start. Opening new tab pages every few

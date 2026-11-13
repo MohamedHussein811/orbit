@@ -6,7 +6,7 @@ These are true of the current code. Each one says what a person would notice.
 
 | Limit | What a person notices | Path to fix |
 | --- | --- | --- |
-| H.264 and AAC on Windows only, no HEVC | On Windows, H.264 and AAC play through the operating system (H.264 needs hardware decoding). On macOS and Linux, sites that only offer those formats do not play. YouTube works everywhere through VP9 | macOS: AudioToolbox for AAC, see [VIDEO.md](VIDEO.md) |
+| No H.264 or AAC on Linux | On Windows and macOS, H.264 and AAC play through the operating system (on Windows, H.264 needs hardware decoding). On Linux, sites that only offer those formats do not play. YouTube works everywhere through VP9 | Licensed decoders (option C in [VIDEO.md](VIDEO.md)) |
 | Windows installer not code-signed | Windows SmartScreen warns about an unknown publisher on first run. The macOS disk image is signed and notarized only once the signing secrets are set | Windows: SignPath's free open source signing. macOS: the secrets listed in [RELEASING.md](RELEASING.md) |
 | Browser does not update in place | Orbit shows a note on the new tab page when a newer release is out, but people install it themselves. Shields rules do update automatically | Chromium's own updater, or signed update feeds for each system |
 | Not tested on real hardware outside CI | macOS and Linux have only run on CI machines | Testing on real machines |
@@ -36,6 +36,7 @@ These also apply to unbranded Chromium builds.
 - **Default browser:** the Windows installer registers Orbit so Windows can offer it in Default apps. Settings has a "Make default" button whose effect has not been tested, and it may not detect that Orbit is the default.
 - **Sign-in to the browser** is off. Google sites can still be used normally in a tab, though real Google login has not been tested.
 - **macOS and Linux** have only run on CI machines, not on physical computers.
+- **macOS full screen** shows the tabs in macOS's full screen title bar above the toolbar, as Chrome does, instead of Orbit's single row. Changing it means leaving Chromium's tabbed full screen mode, which needs testing on a real Mac.
 
 ## Not measured yet
 

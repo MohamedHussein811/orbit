@@ -10,6 +10,7 @@ is_cfi = false
 chrome_pgo_phase = 0
 proprietary_codecs = false
 ffmpeg_branding = "Chromium"
+media_use_openh264 = false
 use_remoteexec = false
 use_siso = false
 disable_fieldtrial_testing_config = true
