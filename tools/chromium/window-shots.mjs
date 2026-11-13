@@ -36,6 +36,9 @@ const child = spawn(
     `--lang=${lang}`,
     "--window-size=1440,900",
     "--window-position=40,40",
+    // Keep painting when other windows cover Orbit, so the capture is not blank.
+    "--disable-features=CalculateNativeWinOcclusion",
+    "--disable-backgrounding-occluded-windows",
     "about:blank",
   ],
   { stdio: "ignore" },

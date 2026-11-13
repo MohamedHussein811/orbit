@@ -1,7 +1,9 @@
 // Orbit's icons for the browser frame: toolbar buttons, tab close and new tab. Each icon is drawn
 // once here as SVG-style shapes and written as a Chromium .icon file into the overlay, replacing
 // the file Chromium 157's toolbar uses. Lines have round caps; corners are separate segments so
-// the round caps overlap into round joins (Chromium strokes with mitered joins).
+// the round caps overlap into round joins (Chromium strokes with mitered joins). Chromium 157 has
+// two sets of toolbar icons (the rounded set is on in builds that use its test field trials), so
+// each icon goes to both files, scaled when a file uses another grid size.
 //   node tools/design/browser-icons.mjs write              write the overlay .icon files
 //   node tools/design/browser-icons.mjs preview <out.svg>  contact sheet on toolbar colors
 import fs from "node:fs";
@@ -47,31 +49,31 @@ export const ICONS = [
   {
     name: "back",
     canvas: 20,
-    targets: ["components/vector_icons/back_arrow_chrome_refresh_old.icon"],
+    targets: ["components/vector_icons/back_arrow_chrome_refresh_old.icon", ["components/vector_icons/arrow_back.icon", 24]],
     shapes: [line("M12.25 4.5 L6.75 10"), line("M6.75 10 L12.25 15.5")],
   },
   {
     name: "forward",
     canvas: 20,
-    targets: ["components/vector_icons/forward_arrow_chrome_refresh_old.icon"],
+    targets: ["components/vector_icons/forward_arrow_chrome_refresh_old.icon", ["components/vector_icons/arrow_forward.icon", 24]],
     shapes: [line("M7.75 4.5 L13.25 10"), line("M13.25 10 L7.75 15.5")],
   },
   {
     name: "reload",
     canvas: 20,
-    targets: ["components/vector_icons/reload_chrome_refresh_old.icon"],
+    targets: ["components/vector_icons/reload_chrome_refresh_old.icon", ["components/vector_icons/refresh.icon", 24]],
     shapes: reloadShapes(),
   },
   {
     name: "stop",
     canvas: 20,
-    targets: ["chrome/app/vector_icons/navigate_stop_chrome_refresh_old.icon"],
+    targets: ["chrome/app/vector_icons/navigate_stop_chrome_refresh_old.icon", ["chrome/app/vector_icons/close.icon", 24]],
     shapes: [line("M5.5 5.5 L14.5 14.5"), line("M14.5 5.5 L5.5 14.5")],
   },
   {
     name: "home",
     canvas: 20,
-    targets: ["chrome/app/vector_icons/navigate_home_chrome_refresh_old.icon"],
+    targets: ["chrome/app/vector_icons/navigate_home_chrome_refresh_old.icon", ["chrome/app/vector_icons/home.icon", 24]],
     shapes: [
       line("M3.75 9.5 L10 4"),
       line("M10 4 L16.25 9.5"),
@@ -82,19 +84,19 @@ export const ICONS = [
   {
     name: "menu",
     canvas: 20,
-    targets: ["chrome/app/vector_icons/browser_tools_chrome_refresh_old.icon"],
+    targets: ["chrome/app/vector_icons/browser_tools_chrome_refresh_old.icon", "chrome/app/vector_icons/more_vert.icon"],
     shapes: [dot(4.75, 10, 1.4), dot(10, 10, 1.4), dot(15.25, 10, 1.4)],
   },
   {
     name: "download",
     canvas: 20,
-    targets: ["chrome/app/vector_icons/download_toolbar_button_chrome_refresh_old.icon"],
+    targets: ["chrome/app/vector_icons/download_toolbar_button_chrome_refresh_old.icon", ["chrome/app/vector_icons/download.icon", 24]],
     shapes: [line("M10 4 V12.75"), line("M6.5 9.25 L10 12.75"), line("M10 12.75 L13.5 9.25"), line("M4.75 16 H15.25")],
   },
   {
     name: "extensions",
     canvas: 20,
-    targets: ["components/vector_icons/extension_chrome_refresh_old.icon"],
+    targets: ["components/vector_icons/extension_chrome_refresh_old.icon", "components/vector_icons/chrome_extension.icon"],
     shapes: [
       line(
         "M6.3 15.6 A1.5 1.5 0 0 1 4.8 14.1 V12.55 A1.6 1.6 0 1 0 4.8 9.95 V8.6 A1.5 1.5 0 0 1 6.3 7.1 H7.7 A1.6 1.6 0 1 1 10.3 7.1 H11.7 A1.5 1.5 0 0 1 13.2 8.6 V9.95 A1.6 1.6 0 1 1 13.2 12.55 V14.1 A1.5 1.5 0 0 1 11.7 15.6 Z",
@@ -104,19 +106,19 @@ export const ICONS = [
   {
     name: "tab-close",
     canvas: 16,
-    targets: ["chrome/app/vector_icons/close_tab_chrome_refresh_old.icon"],
+    targets: ["chrome/app/vector_icons/close_tab_chrome_refresh_old.icon", ["chrome/app/vector_icons/close_weight500_custom.icon", 24]],
     shapes: [line("M5.25 5.25 L10.75 10.75", 1.4), line("M10.75 5.25 L5.25 10.75", 1.4)],
   },
   {
     name: "new-tab",
     canvas: 16,
-    targets: ["components/vector_icons/add_old.icon"],
+    targets: ["components/vector_icons/add_old.icon", ["components/vector_icons/add_weight500_custom.icon", 24]],
     shapes: [line("M8 3.75 V12.25", 1.4), line("M3.75 8 H12.25", 1.4)],
   },
   {
     name: "tab-search",
     canvas: 24,
-    targets: ["chrome/app/vector_icons/tab_search_tab_strip_old.icon"],
+    targets: ["chrome/app/vector_icons/tab_search_tab_strip_old.icon", ["components/vector_icons/keyboard_arrow_down.icon", 16]],
     shapes: [line("M7.5 10 L12 14.5", 1.8), line("M12 14.5 L16.5 10", 1.8)],
   },
 ];
@@ -125,7 +127,8 @@ const NUMBER = /-?\d*\.?\d+(?:e-?\d+)?/gi;
 const COMMANDS = { M: ["MOVE_TO", 2], L: ["LINE_TO", 2], H: ["H_LINE_TO", 1], V: ["V_LINE_TO", 1], A: ["ARC_TO", 7], C: ["CUBIC_TO", 6], Q: ["QUADRATIC_TO", 4], Z: ["CLOSE", 0] };
 
 /** Converts absolute SVG path data to .icon commands. Relative commands are not used here. */
-function pathCommands(d) {
+function pathCommands(d, scale = 1) {
+  const s = (n) => Math.round(n * scale * 1000) / 1000;
   const out = [];
   for (const [, letter, args] of d.matchAll(/([MLHVACQZ])([^MLHVACQZ]*)/g)) {
     const [name, count] = COMMANDS[letter];
@@ -135,22 +138,27 @@ function pathCommands(d) {
       continue;
     }
     if (numbers.length === 0 || numbers.length % count !== 0) throw new Error(`bad ${letter} in ${d}`);
-    for (let i = 0; i < numbers.length; i += count) out.push(`${name}, ${numbers.slice(i, i + count).join(", ")},`);
+    for (let i = 0; i < numbers.length; i += count) {
+      const group = numbers.slice(i, i + count).map((n, k) => (letter === "A" && (k === 2 || k === 3 || k === 4) ? n : s(n)));
+      out.push(`${name}, ${group.join(", ")},`);
+    }
   }
   return out;
 }
 
-export function iconFile(icon) {
+export function iconFile(icon, canvas = icon.canvas) {
+  const scale = canvas / icon.canvas;
+  const s = (n) => Math.round(n * scale * 1000) / 1000;
   const lines = [
     `// Orbit's ${icon.name} icon, generated by tools/design/browser-icons.mjs.`,
     "",
-    `CANVAS_DIMENSIONS, ${icon.canvas},`,
+    `CANVAS_DIMENSIONS, ${canvas},`,
   ];
   icon.shapes.forEach((shape, index) => {
     if (index > 0) lines.push("NEW_PATH,");
-    if (shape.width) lines.push(`STROKE, ${shape.width}f,`);
-    if (shape.kind === "circle") lines.push(`CIRCLE, ${shape.cx}, ${shape.cy}, ${shape.r},`);
-    else lines.push(...pathCommands(shape.d));
+    if (shape.width) lines.push(`STROKE, ${s(shape.width)}f,`);
+    if (shape.kind === "circle") lines.push(`CIRCLE, ${s(shape.cx)}, ${s(shape.cy)}, ${s(shape.r)},`);
+    else lines.push(...pathCommands(shape.d, scale));
   });
   return `${lines.join("\n")}\n`;
 }
@@ -195,9 +203,10 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   } else if (command === "write") {
     for (const icon of ICONS) {
       for (const target of icon.targets) {
-        const file = path.join(OVERLAY, target);
+        const [relative, canvas] = Array.isArray(target) ? target : [target, icon.canvas];
+        const file = path.join(OVERLAY, relative);
         fs.mkdirSync(path.dirname(file), { recursive: true });
-        fs.writeFileSync(file, iconFile(icon));
+        fs.writeFileSync(file, iconFile(icon, canvas));
         console.log(`wrote ${path.relative(ROOT, file)}`);
       }
     }
