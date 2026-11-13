@@ -158,9 +158,13 @@ video, and it has a pause control. All transitions stop under `prefers-reduced-m
 - The row takes the frame color; the active tab keeps the lighter base color, so it reads as a
   raised pill.
 - The rail: a column on the leading edge below the row, in the same color, so the frame reads as
-  one L shape around the page. Orbit's mark on top, then Home, Bookmarks (side panel), History and
-  Downloads, and Settings at the bottom, all with Chromium's own commands and translated names.
-  Hidden in fullscreen and with vertical tabs.
+  one L shape around the page. Orbit's mark on top, then Home, Privacy (orbit://privacy),
+  Bookmarks (side panel), History, Downloads and Notes (Orbit's notes side panel, the same notes as
+  the new tab page), and Settings at the bottom. Buttons whose panel is open stay lit. Names come
+  from Chromium's translations, except Notes, which uses Orbit's own English and Arabic. Hidden in
+  fullscreen and with vertical tabs; with vertical tabs the address bar fills the row.
+- The active tab carries a short horizon line (amber, rose, periwinkle) at the bottom of its pill.
+- Chromium's 2026 WebUI refresh is on by default, so Settings and other pages use Orbit's palette.
 - Tabs are pills. Every tab, the active one included, is a detached shape that floats in the tab
   strip with 6 px above and below it, instead of Chromium's active tab that flares into the
   toolbar. The active tab takes the toolbar color; others show a fill only on hover. There are no
