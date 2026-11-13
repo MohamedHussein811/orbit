@@ -140,6 +140,31 @@ export const ICONS = [
     shapes: [line(SMALL_PUZZLE), line("M12.5 14.75 L14.25 16.5"), line("M14.25 16.5 L17.5 13")],
   },
   {
+    name: "rail-bookmarks",
+    canvas: 20,
+    targets: ["chrome/app/vector_icons/orbit_rail_bookmarks.icon"],
+    shapes: [line("M6.25 4 H13.75 A1 1 0 0 1 14.75 5 V16 L10 12.75 L5.25 16 V5 A1 1 0 0 1 6.25 4 Z")],
+  },
+  {
+    name: "rail-history",
+    canvas: 20,
+    targets: ["chrome/app/vector_icons/orbit_rail_history.icon"],
+    shapes: [line("M4 10 A6 6 0 1 0 5.76 5.76"), line("M3.75 3.5 V6.25 H6.5"), line("M10 6.75 V10 L12.25 11.5")],
+  },
+  {
+    name: "rail-settings",
+    canvas: 20,
+    targets: ["chrome/app/vector_icons/orbit_rail_settings.icon"],
+    shapes: [
+      line("M4 6.5 H10.75"),
+      line("M14.25 6.5 H16"),
+      ring(12.5, 6.5, 1.75),
+      line("M4 13.5 H5.75"),
+      line("M9.25 13.5 H16"),
+      ring(7.5, 13.5, 1.75),
+    ],
+  },
+  {
     name: "mark",
     canvas: 24,
     targets: [

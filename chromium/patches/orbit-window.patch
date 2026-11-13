@@ -1,3 +1,16 @@
+diff --git a/chrome/app/vector_icons/BUILD.gn b/chrome/app/vector_icons/BUILD.gn
+--- a/chrome/app/vector_icons/BUILD.gn
++++ b/chrome/app/vector_icons/BUILD.gn
+@@ -221,6 +221,9 @@
+     "my_location_old.icon",
+     "name_window_old.icon",
+     "navigate_home_chrome_refresh_old.icon",
++    "orbit_rail_bookmarks.icon",
++    "orbit_rail_history.icon",
++    "orbit_rail_settings.icon",
+     "navigate_home_touch_old.icon",
+     "navigate_stop_chrome_refresh_old.icon",
+     "navigate_stop_touch_old.icon",
 diff --git a/chrome/browser/ui/color/material_chrome_color_mixer.cc b/chrome/browser/ui/color/material_chrome_color_mixer.cc
 --- a/chrome/browser/ui/color/material_chrome_color_mixer.cc
 +++ b/chrome/browser/ui/color/material_chrome_color_mixer.cc
@@ -22,7 +35,94 @@ diff --git a/chrome/browser/ui/color/material_chrome_color_mixer.cc b/chrome/bro
 diff --git a/chrome/browser/ui/views/frame/browser_view.cc b/chrome/browser/ui/views/frame/browser_view.cc
 --- a/chrome/browser/ui/views/frame/browser_view.cc
 +++ b/chrome/browser/ui/views/frame/browser_view.cc
-@@ -4752,6 +4752,15 @@
+@@ -331,6 +331,14 @@
+ #include "ui/base/ui_base_features.h"
+ #include "ui/base/window_open_disposition.h"
+ #include "ui/base/window_open_disposition_utils.h"
++#include "chrome/app/vector_icons/vector_icons.h"
++#include "chrome/browser/ui/views/toolbar/toolbar_button.h"
++#include "components/strings/grit/components_strings.h"
++#include "components/vector_icons/vector_icons.h"
++#include "ui/accessibility/ax_enums.mojom.h"
++#include "ui/views/background.h"
++#include "ui/views/controls/image_view.h"
++#include "ui/views/layout/box_layout.h"
+ #include "ui/color/color_id.h"
+ #include "ui/compositor/debug_utils.h"
+ #include "ui/compositor/layer.h"
+@@ -426,6 +434,54 @@
+ 
+ namespace {
+ 
++// Orbit's rail: a column on the leading edge of the window, below the toolbar
++// row, with Orbit's mark and the places people return to.
++std::unique_ptr<views::View> CreateOrbitRail(BrowserWindowInterface* browser) {
++  auto rail = std::make_unique<views::View>();
++  rail->SetBackground(views::CreateSolidBackground(kColorToolbar));
++  auto* const layout =
++      rail->SetLayoutManager(std::make_unique<views::BoxLayout>(
++          views::BoxLayout::Orientation::kVertical, gfx::Insets::VH(10, 8),
++          6));
++  layout->set_cross_axis_alignment(
++      views::BoxLayout::CrossAxisAlignment::kCenter);
++  rail->GetViewAccessibility().SetRole(ax::mojom::Role::kToolbar);
++  rail->GetViewAccessibility().SetName(
++      l10n_util::GetStringUTF16(IDS_PRODUCT_NAME));
++
++  auto* const mark = rail->AddChildView(
++      std::make_unique<views::ImageView>(ui::ImageModel::FromVectorIcon(
++          vector_icons::kProductRefreshIcon, kColorToolbarButtonIcon, 22)));
++  mark->SetProperty(views::kMarginsKey, gfx::Insets::TLBR(4, 0, 10, 0));
++  mark->GetViewAccessibility().SetIsIgnored(true);
++
++  const auto add_button = [&](const gfx::VectorIcon& icon, int command,
++                              int name_id) {
++    auto* const button = rail->AddChildView(std::make_unique<ToolbarButton>(
++        base::BindRepeating(
++            [](BrowserWindowInterface* browser, int command,
++               const ui::Event& event) {
++              chrome::ExecuteCommandWithDisposition(
++                  browser, command,
++                  ui::DispositionFromEventFlags(event.flags()));
++            },
++            browser, command)));
++    button->SetVectorIcon(icon);
++    button->SetTooltipText(l10n_util::GetStringUTF16(name_id));
++  };
++  add_button(kNavigateHomeChromeRefreshOldIcon, IDC_HOME,
++             IDS_OVERFLOW_MENU_ITEM_TEXT_HOME);
++  add_button(kOrbitRailBookmarksIcon, IDC_SHOW_BOOKMARK_SIDE_PANEL,
++             IDS_BOOKMARK_MANAGER_TITLE);
++  add_button(kOrbitRailHistoryIcon, IDC_SHOW_HISTORY, IDS_HISTORY_TITLE);
++  add_button(kDownloadToolbarButtonChromeRefreshOldIcon, IDC_SHOW_DOWNLOADS,
++             IDS_OVERFLOW_MENU_ITEM_TEXT_DOWNLOADS);
++  layout->SetFlexForView(rail->AddChildView(std::make_unique<views::View>()),
++                         1);
++  add_button(kOrbitRailSettingsIcon, IDC_OPTIONS, IDS_SETTINGS_SETTINGS);
++  return rail;
++}
++
+ // The visible height of the shadow above the tabs. Clicks in this area are
+ // treated as clicks to the frame, rather than clicks to the tab.
+ const int kTabShadowSize = 2;
+@@ -975,6 +1031,8 @@
+ 
+   side_panel_ = AddChildView(std::make_unique<SidePanel>(this));
+ 
++  orbit_rail_ = AddChildView(CreateOrbitRail(browser_.get()));
++
+   // Tabstrip comes basically last because it should be before toolbar in the
+   // focus order but also needs to paint on top of everything.
+   horizontal_tab_strip_region_view_ =
+@@ -1156,6 +1214,7 @@
+   vertical_tab_strip_bottom_corner_ = nullptr;
+   organizer_tray_ = nullptr;
+   side_panel_ = nullptr;
++  orbit_rail_ = nullptr;
+ 
+ #if BUILDFLAG(IS_MAC)
+   tab_overlay_view_ = nullptr;
+@@ -4752,6 +4811,15 @@
        return HTCLIENT;
      }
  
@@ -38,23 +138,50 @@ diff --git a/chrome/browser/ui/views/frame/browser_view.cc b/chrome/browser/ui/v
      // The top few pixels of the TabStrip are a drop-shadow - as we're pretty
      // starved of draggable area, let's give it to window dragging (this also
      // makes sense visually).
-@@ -5110,6 +5119,7 @@
+@@ -5110,6 +5178,8 @@
    layout_views.vertical_tab_strip_top_corner = vertical_tab_strip_top_corner_;
    layout_views.organizer_tray = organizer_tray_;
    layout_views.toolbar = toolbar_;
 +  layout_views.orbit_tab_slot = toolbar_->orbit_tab_slot();
++  layout_views.orbit_rail = orbit_rail_;
    layout_views.infobar_container = infobar_container_;
    layout_views.multi_contents_view = multi_contents_view_;
    layout_views.side_panel = side_panel_;
+diff --git a/chrome/browser/ui/views/frame/browser_view.h b/chrome/browser/ui/views/frame/browser_view.h
+--- a/chrome/browser/ui/views/frame/browser_view.h
++++ b/chrome/browser/ui/views/frame/browser_view.h
+@@ -1233,6 +1233,7 @@
+   // the kSidePanelHorizontalAlignment pref's value. Conceptually this member
+   // should exist if and only if the side_panel_coordinator is created.
+   raw_ptr<SidePanel> side_panel_ = nullptr;
++  raw_ptr<views::View> orbit_rail_ = nullptr;
+ 
+   // The handler responsible for showing autofill bubbles.
+   std::unique_ptr<autofill::AutofillBubbleHandler> autofill_bubble_handler_;
+diff --git a/chrome/browser/ui/views/frame/BUILD.gn b/chrome/browser/ui/views/frame/BUILD.gn
+--- a/chrome/browser/ui/views/frame/BUILD.gn
++++ b/chrome/browser/ui/views/frame/BUILD.gn
+@@ -767,6 +767,9 @@
+     "//chrome/browser:browser_public_dependencies",
+   ]
+   deps = [
++    "//chrome/app/vector_icons",
++    "//components/strings",
++    "//components/vector_icons",
+     ":app_menu_button",
+     ":browser_frame_view",
+     ":browser_native_widget",
 diff --git a/chrome/browser/ui/views/frame/layout/browser_view_layout.h b/chrome/browser/ui/views/frame/layout/browser_view_layout.h
 --- a/chrome/browser/ui/views/frame/layout/browser_view_layout.h
 +++ b/chrome/browser/ui/views/frame/layout/browser_view_layout.h
-@@ -75,6 +75,8 @@
+@@ -75,6 +75,10 @@
    raw_ptr<CustomFloatingCorner> vertical_tab_strip_top_corner = nullptr;
    raw_ptr<OrganizerTrayView> organizer_tray = nullptr;
    raw_ptr<views::View> toolbar = nullptr;
 +  // The place in the toolbar row that Orbit lays the horizontal tab strip over.
 +  raw_ptr<views::View> orbit_tab_slot = nullptr;
++  // Orbit's rail on the leading edge of the window.
++  raw_ptr<views::View> orbit_rail = nullptr;
    raw_ptr<InfoBarContainerView> infobar_container = nullptr;
    raw_ptr<MultiContentsView> multi_contents_view = nullptr;
    raw_ptr<SidePanel> side_panel = nullptr;
@@ -146,7 +273,31 @@ diff --git a/chrome/browser/ui/views/frame/layout/browser_view_tabbed_layout_imp
      // Possibly bump the leading margin of the top container out to cover the
      // caption buttons, leaving all of the child views in the same absolute
      // position.
-@@ -1538,6 +1565,14 @@
+@@ -1067,6 +1094,23 @@
+     }
+   }
+ 
++  // Orbit's rail sits on the leading edge, below the toolbar row.
++  if (IsParentedTo(views().orbit_rail, views().browser_view)) {
++    const bool rail_visible =
++        layout_data_->tab_strip_type == TabStripType::kHorizontal &&
++        delegate().IsToolbarVisible() &&
++        !is_fullscreen(layout_data_->window_state);
++    gfx::Rect rail_bounds;
++    if (rail_visible) {
++      const int rail_width = views().orbit_rail->GetPreferredSize().width();
++      rail_bounds = gfx::Rect(params.visual_client_area.x(),
++                              params.visual_client_area.y(), rail_width,
++                              params.visual_client_area.height());
++      params.InsetHorizontal(rail_width, /*leading=*/true);
++    }
++    layout.AddChild(views().orbit_rail, rail_bounds, rail_visible);
++  }
++
+   // Lay out the main area background.
+   ProposedLayout* main_background_layout = nullptr;
+   if (IsParentedTo(views().main_background_region, views().browser_view)) {
+@@ -1538,6 +1582,14 @@
            background->GetWindowCorner(/*upper=*/true);
        corners[CornerOrientation::kTopTrailing] =
            background->GetWindowCorner(/*upper=*/true);
@@ -161,7 +312,7 @@ diff --git a/chrome/browser/ui/views/frame/layout/browser_view_tabbed_layout_imp
      }
    }
  
-@@ -1826,24 +1861,7 @@
+@@ -1826,24 +1878,7 @@
    CustomCornersBackground::Corners toolbar_corners;
    switch (layout_data_->tab_strip_type) {
      case TabStripType::kHorizontal: {

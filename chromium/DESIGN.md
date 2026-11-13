@@ -157,6 +157,10 @@ video, and it has a pause control. All transitions stop under `prefers-reduced-m
   (the black hole's disk) to periwinkle. It replaces Chromium's grey separator.
 - The row takes the frame color; the active tab keeps the lighter base color, so it reads as a
   raised pill.
+- The rail: a column on the leading edge below the row, in the same color, so the frame reads as
+  one L shape around the page. Orbit's mark on top, then Home, Bookmarks (side panel), History and
+  Downloads, and Settings at the bottom, all with Chromium's own commands and translated names.
+  Hidden in fullscreen and with vertical tabs.
 - Tabs are pills. Every tab, the active one included, is a detached shape that floats in the tab
   strip with 6 px above and below it, instead of Chromium's active tab that flares into the
   toolbar. The active tab takes the toolbar color; others show a fill only on hover. There are no
