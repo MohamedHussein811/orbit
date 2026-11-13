@@ -30,10 +30,22 @@ diff --git a/chrome/browser/ui/color/material_chrome_color_mixer.cc b/chrome/bro
    mixer[kColorToolbarButtonIconPressed] = {kColorToolbarButtonIconHovered};
    mixer[kColorToolbarButtonText] = {ui::kColorSysOnSurfaceSecondary};
 -  mixer[kColorToolbarContentAreaSeparator] = {ui::kColorSysSurfaceVariant};
-+  mixer[kColorToolbarContentAreaSeparator] = {kColorToolbar};
++  mixer[kColorToolbarContentAreaSeparator] = {ui::kColorSysHeader};
    mixer[kColorToolbarFeaturePromoHighlight] = {ui::kColorSysPrimary};
    mixer[kColorToolbarIconContainerBorder] = {ui::kColorSysNeutralOutline};
    mixer[kColorToolbarInkDropHover] = {ui::kColorSysStateHoverOnSubtle};
+diff --git a/chrome/browser/ui/ui_features.cc b/chrome/browser/ui/ui_features.cc
+--- a/chrome/browser/ui/ui_features.cc
++++ b/chrome/browser/ui/ui_features.cc
+@@ -70,7 +70,7 @@
+                    true);
+ BASE_FEATURE(kMenuSimplification, base::FEATURE_DISABLED_BY_DEFAULT);
+ BASE_FEATURE(kTabGroupColorRefresh, base::FEATURE_DISABLED_BY_DEFAULT);
+-BASE_FEATURE(kWebuiRefresh2026, base::FEATURE_DISABLED_BY_DEFAULT);
++BASE_FEATURE(kWebuiRefresh2026, base::FEATURE_ENABLED_BY_DEFAULT);
+ BASE_FEATURE(kAppMenuGlowUp, base::FEATURE_DISABLED_BY_DEFAULT);
+ // Enables the redesigned Settings 2026 refresh features and search UX.
+ BASE_FEATURE(kSettingsRefresh2026, base::FEATURE_DISABLED_BY_DEFAULT);
 diff --git a/chrome/browser/ui/views/frame/browser_view.cc b/chrome/browser/ui/views/frame/browser_view.cc
 --- a/chrome/browser/ui/views/frame/browser_view.cc
 +++ b/chrome/browser/ui/views/frame/browser_view.cc
