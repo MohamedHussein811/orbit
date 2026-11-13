@@ -37,7 +37,7 @@ diff --git a/chrome/browser/ui/color/material_chrome_color_mixer.cc b/chrome/bro
 diff --git a/chrome/browser/ui/views/frame/browser_view.cc b/chrome/browser/ui/views/frame/browser_view.cc
 --- a/chrome/browser/ui/views/frame/browser_view.cc
 +++ b/chrome/browser/ui/views/frame/browser_view.cc
-@@ -331,6 +331,22 @@
+@@ -331,6 +331,25 @@
  #include "ui/base/ui_base_features.h"
  #include "ui/base/window_open_disposition.h"
  #include "ui/base/window_open_disposition_utils.h"
@@ -54,16 +54,26 @@ diff --git a/chrome/browser/ui/views/frame/browser_view.cc b/chrome/browser/ui/v
 +#include "url/gurl.h"
 +#include "components/vector_icons/vector_icons.h"
 +#include "ui/accessibility/ax_enums.mojom.h"
++#include "ui/views/animation/ink_drop.h"
++#include "ui/views/animation/ink_drop_host.h"
++#include "ui/views/animation/ink_drop_state.h"
 +#include "ui/views/background.h"
 +#include "ui/views/controls/image_view.h"
 +#include "ui/views/layout/box_layout.h"
  #include "ui/color/color_id.h"
  #include "ui/compositor/debug_utils.h"
  #include "ui/compositor/layer.h"
-@@ -426,6 +442,92 @@
+@@ -426,6 +445,100 @@
  
  namespace {
  
++// Orbit's own pages and panels live in its built-in extension.
++constexpr char kOrbitExtensionId[] = "kceipbaiojomdibnboffoieecidpfdck";
++
++// Rail buttons that show which side panel is open.
++constexpr int kOrbitRailBookmarksViewId = 0x0B17A001;
++constexpr int kOrbitRailNotesViewId = 0x0B17A002;
++
 +// Orbit's rail: a column on the leading edge of the window, below the toolbar
 +// row, with Orbit's mark and the places people return to.
 +std::unique_ptr<views::View> CreateOrbitRail(BrowserWindowInterface* browser) {
@@ -92,6 +102,7 @@ diff --git a/chrome/browser/ui/views/frame/browser_view.cc b/chrome/browser/ui/v
 +        rail->AddChildView(std::make_unique<ToolbarButton>(std::move(action)));
 +    button->SetVectorIcon(icon);
 +    button->SetTooltipText(name);
++    return button;
 +  };
 +  const auto command = [browser](int id) {
 +    return base::BindRepeating(
@@ -111,10 +122,8 @@ diff --git a/chrome/browser/ui/views/frame/browser_view.cc b/chrome/browser/ui/v
 +  };
 +  const auto name = [](int id) { return l10n_util::GetStringUTF16(id); };
 +
-+  // Orbit's own pages and panels live in its built-in extension. Its notes
-+  // name comes from Orbit's two translations, since Chromium has no such
-+  // string.
-+  constexpr char kOrbitExtensionId[] = "kceipbaiojomdibnboffoieecidpfdck";
++  // The notes name comes from Orbit's two translations, since Chromium has no
++  // such string.
 +  const bool arabic = base::StartsWith(
 +      g_browser_process->GetApplicationLocale(), "ar",
 +      base::CompareCase::SENSITIVE);
@@ -134,7 +143,8 @@ diff --git a/chrome/browser/ui/views/frame/browser_view.cc b/chrome/browser/ui/v
 +                 },
 +                 browser, std::string(kOrbitExtensionId)));
 +  add_button(kOrbitRailBookmarksIcon, name(IDS_BOOKMARK_MANAGER_TITLE),
-+             side_panel(SidePanelEntryKey(SidePanelEntryId::kBookmarks)));
++             side_panel(SidePanelEntryKey(SidePanelEntryId::kBookmarks)))
++      ->SetID(kOrbitRailBookmarksViewId);
 +  add_button(kOrbitRailHistoryIcon, name(IDS_HISTORY_TITLE),
 +             command(IDC_SHOW_HISTORY));
 +  add_button(kDownloadToolbarButtonChromeRefreshOldIcon,
@@ -142,7 +152,8 @@ diff --git a/chrome/browser/ui/views/frame/browser_view.cc b/chrome/browser/ui/v
 +             command(IDC_SHOW_DOWNLOADS));
 +  add_button(kOrbitRailNotesIcon, notes_name,
 +             side_panel(SidePanelEntryKey(SidePanelEntryId::kExtension,
-+                                          kOrbitExtensionId)));
++                                          kOrbitExtensionId)))
++      ->SetID(kOrbitRailNotesViewId);
 +  layout->SetFlexForView(rail->AddChildView(std::make_unique<views::View>()),
 +                         1);
 +  add_button(kOrbitRailSettingsIcon, name(IDS_SETTINGS_SETTINGS),
@@ -153,7 +164,7 @@ diff --git a/chrome/browser/ui/views/frame/browser_view.cc b/chrome/browser/ui/v
  // The visible height of the shadow above the tabs. Clicks in this area are
  // treated as clicks to the frame, rather than clicks to the tab.
  const int kTabShadowSize = 2;
-@@ -975,6 +1077,8 @@
+@@ -975,6 +1088,8 @@
  
    side_panel_ = AddChildView(std::make_unique<SidePanel>(this));
  
@@ -162,7 +173,7 @@ diff --git a/chrome/browser/ui/views/frame/browser_view.cc b/chrome/browser/ui/v
    // Tabstrip comes basically last because it should be before toolbar in the
    // focus order but also needs to paint on top of everything.
    horizontal_tab_strip_region_view_ =
-@@ -1156,6 +1260,7 @@
+@@ -1156,6 +1271,7 @@
    vertical_tab_strip_bottom_corner_ = nullptr;
    organizer_tray_ = nullptr;
    side_panel_ = nullptr;
@@ -170,7 +181,7 @@ diff --git a/chrome/browser/ui/views/frame/browser_view.cc b/chrome/browser/ui/v
  
  #if BUILDFLAG(IS_MAC)
    tab_overlay_view_ = nullptr;
-@@ -4752,6 +4857,15 @@
+@@ -4752,6 +4868,15 @@
        return HTCLIENT;
      }
  
@@ -186,7 +197,55 @@ diff --git a/chrome/browser/ui/views/frame/browser_view.cc b/chrome/browser/ui/v
      // The top few pixels of the TabStrip are a drop-shadow - as we're pretty
      // starved of draggable area, let's give it to window dragging (this also
      // makes sense visually).
-@@ -5110,6 +5224,8 @@
+@@ -4830,6 +4955,39 @@
+ ///////////////////////////////////////////////////////////////////////////////
+ // BrowserView, views::View overrides:
+ 
++void BrowserView::UpdateOrbitRail() {
++  SidePanelUI* const ui = SidePanelUI::From(browser_.get());
++  if (!orbit_rail_ || !ui) {
++    return;
++  }
++  // Switching panels does not always change the layout, so lay out again when
++  // a panel shows.
++  if (!orbit_side_panel_shown_subscription_) {
++    orbit_side_panel_shown_subscription_ =
++        ui->RegisterSidePanelShown(base::BindRepeating(
++            &BrowserView::InvalidateLayout, base::Unretained(this)));
++  }
++  for (views::View* const child : orbit_rail_->children()) {
++    std::optional<SidePanelEntryKey> key;
++    if (child->GetID() == kOrbitRailBookmarksViewId) {
++      key.emplace(SidePanelEntryId::kBookmarks);
++    } else if (child->GetID() == kOrbitRailNotesViewId) {
++      key.emplace(SidePanelEntryId::kExtension, kOrbitExtensionId);
++    }
++    if (!key) {
++      continue;
++    }
++    views::InkDrop* const ink_drop = views::InkDrop::Get(child)->GetInkDrop();
++    const bool showing = ui->IsSidePanelEntryShowing(*key);
++    const views::InkDropState current = ink_drop->GetTargetInkDropState();
++    if (showing && current != views::InkDropState::ACTIVATED) {
++      ink_drop->AnimateToState(views::InkDropState::ACTIVATED);
++    } else if (!showing && current == views::InkDropState::ACTIVATED) {
++      ink_drop->AnimateToState(views::InkDropState::DEACTIVATED);
++    }
++  }
++}
++
+ void BrowserView::Layout(PassKey) {
+   TRACE_EVENT0("ui", "BrowserView::Layout");
+   // Do not perform layout if the view is not yet initialized, in fullscreen
+@@ -4887,6 +5045,7 @@
+   // TODO(jamescook): Why was this in the middle of layout code?
+   toolbar_->location_bar()->UpdateFocusBehavior(IsToolbarVisible());
+   GetFrameView()->UpdateMinimumSize();
++  UpdateOrbitRail();
+ 
+   if (omnibox::IsWebUIOmniboxInBrowserViewEnabled()) {
+     // When the WebUI Omnibox is embedded directly in the `BrowserView` (instead
+@@ -5110,6 +5269,8 @@
    layout_views.vertical_tab_strip_top_corner = vertical_tab_strip_top_corner_;
    layout_views.organizer_tray = organizer_tray_;
    layout_views.toolbar = toolbar_;
@@ -198,11 +257,22 @@ diff --git a/chrome/browser/ui/views/frame/browser_view.cc b/chrome/browser/ui/v
 diff --git a/chrome/browser/ui/views/frame/browser_view.h b/chrome/browser/ui/views/frame/browser_view.h
 --- a/chrome/browser/ui/views/frame/browser_view.h
 +++ b/chrome/browser/ui/views/frame/browser_view.h
-@@ -1233,6 +1233,7 @@
+@@ -720,6 +720,9 @@
+ 
+   // views::View:
+   void Layout(PassKey) override;
++
++  // Shows which rail button's side panel is open.
++  void UpdateOrbitRail();
+   void OnGestureEvent(ui::GestureEvent* event) override;
+   void ViewHierarchyChanged(
+       const views::ViewHierarchyChangedDetails& details) override;
+@@ -1233,6 +1236,8 @@
    // the kSidePanelHorizontalAlignment pref's value. Conceptually this member
    // should exist if and only if the side_panel_coordinator is created.
    raw_ptr<SidePanel> side_panel_ = nullptr;
 +  raw_ptr<views::View> orbit_rail_ = nullptr;
++  base::CallbackListSubscription orbit_side_panel_shown_subscription_;
  
    // The handler responsible for showing autofill bubbles.
    std::unique_ptr<autofill::AutofillBubbleHandler> autofill_bubble_handler_;
@@ -459,7 +529,35 @@ diff --git a/chrome/browser/ui/views/toolbar/toolbar_view.cc b/chrome/browser/ui
    bool is_glic_left_of_profile =
        features::kGlicToolbarButtonLocationParam.Get() ==
            features::GlicToolbarButtonLocation::kLeftOfProfileChip ||
-@@ -1501,6 +1550,10 @@
+@@ -723,9 +772,27 @@
+   }
+ }
+ 
++void ToolbarView::UpdateOrbitTabSlot() {
++  if (!orbit_tab_slot_ || !location_bar_view_) {
++    return;
++  }
++  orbit_tab_slot_->SetVisible(!should_display_vertical_tabs_);
++  location_bar_view_->SetProperty(
++      views::kFlexBehaviorKey,
++      (should_display_vertical_tabs_
++           ? views::FlexSpecification(
++                 views::LayoutOrientation::kHorizontal,
++                 views::MinimumFlexSizeRule::kScaleToMinimum,
++                 views::MaximumFlexSizeRule::kUnbounded)
++           : views::FlexSpecification(
++                 base::BindRepeating(&OrbitLocationBarSize)))
++          .WithOrder(orbit_location_bar_flex_order_));
++}
++
+ void ToolbarView::OnVerticalTabStripModeChanged(
+     tabs::VerticalTabStripStateController* controller) {
+   should_display_vertical_tabs_ = controller->ShouldDisplayVerticalTabs();
++  UpdateOrbitTabSlot();
+   UpdateGlicButtonVisibility();
+   UpdateGlicActorVisibility();
+   // Invalidate the layout cache so responsive buttons (forward, home, split,
+@@ -1501,6 +1568,10 @@
    // Call super implementation to ensure layout manager and child layouts
    // happen.
    LayoutSuperclass<AccessiblePaneView>(this);
@@ -470,16 +568,15 @@ diff --git a/chrome/browser/ui/views/toolbar/toolbar_view.cc b/chrome/browser/ui
  }
  
  void ToolbarView::OnThemeChanged() {
-@@ -1588,12 +1641,24 @@
+@@ -1587,13 +1658,23 @@
+       .SetDefault(views::kMarginsKey, gfx::Insets::VH(0, default_margin));
  
    // If the Views location bar is in use, set its properties here.
++  orbit_location_bar_flex_order_ = location_bar_flex_order;
++  UpdateOrbitTabSlot();
    if (location_bar_view_) {
 -    location_bar_view_->SetProperty(views::kFlexBehaviorKey,
 -                                    location_bar_flex_rule);
-+    location_bar_view_->SetProperty(
-+        views::kFlexBehaviorKey,
-+        views::FlexSpecification(base::BindRepeating(&OrbitLocationBarSize))
-+            .WithOrder(location_bar_flex_order));
      location_bar_view_->SetProperty(views::kMarginsKey,
                                      gfx::Insets::VH(0, location_bar_margin));
    }
@@ -500,22 +597,27 @@ diff --git a/chrome/browser/ui/views/toolbar/toolbar_view.cc b/chrome/browser/ui
 diff --git a/chrome/browser/ui/views/toolbar/toolbar_view.h b/chrome/browser/ui/views/toolbar/toolbar_view.h
 --- a/chrome/browser/ui/views/toolbar/toolbar_view.h
 +++ b/chrome/browser/ui/views/toolbar/toolbar_view.h
-@@ -187,6 +187,9 @@
+@@ -187,6 +187,13 @@
    ExtensionsToolbarButton* GetExtensionsButton() const;
    ReloadButton* reload_button() const { return reload_; }
    LocationBarView* location_bar_view() const { return location_bar_view_; }
 +
 +  // The empty place after the address bar that Orbit's tab strip is laid over.
 +  views::View* orbit_tab_slot() const { return orbit_tab_slot_; }
++
++  // With vertical tabs the address bar fills the row; otherwise it keeps its
++  // width and leaves the rest to the tabs.
++  void UpdateOrbitTabSlot();
    LocationBar* location_bar() const { return location_bar_; }
    CustomTabBarView* custom_tab_bar() { return custom_tab_bar_; }
    BatterySaverButton* battery_saver_button() const {
-@@ -414,6 +417,8 @@
+@@ -414,6 +421,9 @@
    raw_ptr<SplitTabsToolbarButton> split_tabs_ = nullptr;
    raw_ptr<CustomTabBarView> custom_tab_bar_ = nullptr;
    raw_ptr<LocationBarView> location_bar_view_ = nullptr;
 +  raw_ptr<views::View> orbit_tab_slot_ = nullptr;
 +  raw_ptr<views::View> orbit_horizon_ = nullptr;
++  int orbit_location_bar_flex_order_ = 0;
  
    // An alias for `location_bar_view_` or `toolbar_webview_->GetLocationBar()`.
    raw_ptr<LocationBar> location_bar_ = nullptr;
