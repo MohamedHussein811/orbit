@@ -218,21 +218,33 @@ def mac_icons(src):
         shutil.copytree(theme / "Assets.xcassets", catalog)
         for png in catalog.rglob("*.png"):
             shutil.copyfile(FORK / "mac-icons" / f"icon_{png_width(png)}.png", png)
+        # macOS 26 draws app icons from the Icon Composer file; earlier releases use the bitmaps
+        # in the catalog. The arguments follow Chromium's tools/mac/icons/compile_car.py.
+        icon = work / "AppIcon.icon"
+        shutil.copytree(FORK / "mac-icons" / "AppIcon.icon", icon)
+        shutil.rmtree(theme / "AppIcon.icon", ignore_errors=True)
+        shutil.copytree(icon, theme / "AppIcon.icon")
         compiled = work / "compiled"
         compiled.mkdir()
         subprocess.run(
             [
-                "xcrun", "actool", "--compile", str(compiled),
-                "--platform", "macosx",
-                "--minimum-deployment-target", "12.0",
-                "--app-icon", "AppIcon",
-                "--output-partial-info-plist", str(work / "partial.plist"),
+                "xcrun", "actool",
+                "--output-format=xml1", "--notices", "--warnings", "--errors",
+                "--platform=macosx", "--target-device=mac",
+                "--lightweight-asset-runtime-mode=enabled",
+                "--enable-icon-stack-fallback-generation=disabled",
+                "--include-all-app-icons",
+                "--app-icon=AppIcon",
+                "--minimum-deployment-target=12.0",
+                f"--output-partial-info-plist={work / 'partial.plist'}",
+                f"--compile={compiled}",
                 str(catalog),
+                str(icon),
             ],
             check=True,
         )
         shutil.copyfile(compiled / "Assets.car", theme / "Assets.car")
-    return [theme / "Assets.car"]
+    return [theme / "Assets.car"] + sorted(path for path in (theme / "AppIcon.icon").rglob("*") if path.is_file())
 
 
 def main():
