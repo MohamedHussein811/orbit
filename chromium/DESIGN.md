@@ -163,6 +163,7 @@ video, and it has a pause control. All transitions stop under `prefers-reduced-m
   the new tab page), and Settings at the bottom. Buttons whose panel is open stay lit. Names come
   from Chromium's translations, except Notes, which uses Orbit's own English and Arabic. Hidden in
   fullscreen and with vertical tabs; with vertical tabs the address bar fills the row.
+- The page's top corner next to the rail is rounded, so the page sits inside the frame like a card.
 - The active tab carries a short horizon line (amber, rose, periwinkle) at the bottom of its pill.
 - Chromium's 2026 WebUI refresh is on by default, so Settings and other pages use Orbit's palette.
 - Tabs are pills. Every tab, the active one included, is a detached shape that floats in the tab

@@ -176,24 +176,30 @@ diff --git a/chrome/browser/ui/views/frame/browser_view.cc b/chrome/browser/ui/v
  // The visible height of the shadow above the tabs. Clicks in this area are
  // treated as clicks to the frame, rather than clicks to the tab.
  const int kTabShadowSize = 2;
-@@ -975,6 +1088,8 @@
+@@ -975,6 +1088,13 @@
  
    side_panel_ = AddChildView(std::make_unique<SidePanel>(this));
  
 +  orbit_rail_ = AddChildView(CreateOrbitRail(browser_.get()));
++  orbit_rail_corner_ = AddChildView(std::make_unique<CustomFloatingCorner>(
++      *this, CornerOrientation::kTopLeading,
++      views::ShapeContextTokens::kContentSeparatorRadius,
++      CustomFloatingCorner::ColorChoice(CustomFloatingCorner::ToolbarTheme()),
++      std::optional<ui::ColorId>()));
 +
    // Tabstrip comes basically last because it should be before toolbar in the
    // focus order but also needs to paint on top of everything.
    horizontal_tab_strip_region_view_ =
-@@ -1156,6 +1271,7 @@
+@@ -1156,6 +1276,8 @@
    vertical_tab_strip_bottom_corner_ = nullptr;
    organizer_tray_ = nullptr;
    side_panel_ = nullptr;
 +  orbit_rail_ = nullptr;
++  orbit_rail_corner_ = nullptr;
  
  #if BUILDFLAG(IS_MAC)
    tab_overlay_view_ = nullptr;
-@@ -4752,6 +4868,15 @@
+@@ -4752,6 +4874,15 @@
        return HTCLIENT;
      }
  
@@ -209,7 +215,7 @@ diff --git a/chrome/browser/ui/views/frame/browser_view.cc b/chrome/browser/ui/v
      // The top few pixels of the TabStrip are a drop-shadow - as we're pretty
      // starved of draggable area, let's give it to window dragging (this also
      // makes sense visually).
-@@ -4830,6 +4955,39 @@
+@@ -4830,6 +4961,39 @@
  ///////////////////////////////////////////////////////////////////////////////
  // BrowserView, views::View overrides:
  
@@ -249,7 +255,7 @@ diff --git a/chrome/browser/ui/views/frame/browser_view.cc b/chrome/browser/ui/v
  void BrowserView::Layout(PassKey) {
    TRACE_EVENT0("ui", "BrowserView::Layout");
    // Do not perform layout if the view is not yet initialized, in fullscreen
-@@ -4887,6 +5045,7 @@
+@@ -4887,6 +5051,7 @@
    // TODO(jamescook): Why was this in the middle of layout code?
    toolbar_->location_bar()->UpdateFocusBehavior(IsToolbarVisible());
    GetFrameView()->UpdateMinimumSize();
@@ -257,12 +263,13 @@ diff --git a/chrome/browser/ui/views/frame/browser_view.cc b/chrome/browser/ui/v
  
    if (omnibox::IsWebUIOmniboxInBrowserViewEnabled()) {
      // When the WebUI Omnibox is embedded directly in the `BrowserView` (instead
-@@ -5110,6 +5269,8 @@
+@@ -5110,6 +5275,9 @@
    layout_views.vertical_tab_strip_top_corner = vertical_tab_strip_top_corner_;
    layout_views.organizer_tray = organizer_tray_;
    layout_views.toolbar = toolbar_;
 +  layout_views.orbit_tab_slot = toolbar_->orbit_tab_slot();
 +  layout_views.orbit_rail = orbit_rail_;
++  layout_views.orbit_rail_corner = orbit_rail_corner_;
    layout_views.infobar_container = infobar_container_;
    layout_views.multi_contents_view = multi_contents_view_;
    layout_views.side_panel = side_panel_;
@@ -279,11 +286,12 @@ diff --git a/chrome/browser/ui/views/frame/browser_view.h b/chrome/browser/ui/vi
    void OnGestureEvent(ui::GestureEvent* event) override;
    void ViewHierarchyChanged(
        const views::ViewHierarchyChangedDetails& details) override;
-@@ -1233,6 +1236,8 @@
+@@ -1233,6 +1236,9 @@
    // the kSidePanelHorizontalAlignment pref's value. Conceptually this member
    // should exist if and only if the side_panel_coordinator is created.
    raw_ptr<SidePanel> side_panel_ = nullptr;
 +  raw_ptr<views::View> orbit_rail_ = nullptr;
++  raw_ptr<views::View> orbit_rail_corner_ = nullptr;
 +  base::CallbackListSubscription orbit_side_panel_shown_subscription_;
  
    // The handler responsible for showing autofill bubbles.
@@ -304,14 +312,16 @@ diff --git a/chrome/browser/ui/views/frame/BUILD.gn b/chrome/browser/ui/views/fr
 diff --git a/chrome/browser/ui/views/frame/layout/browser_view_layout.h b/chrome/browser/ui/views/frame/layout/browser_view_layout.h
 --- a/chrome/browser/ui/views/frame/layout/browser_view_layout.h
 +++ b/chrome/browser/ui/views/frame/layout/browser_view_layout.h
-@@ -75,6 +75,10 @@
+@@ -75,6 +75,12 @@
    raw_ptr<CustomFloatingCorner> vertical_tab_strip_top_corner = nullptr;
    raw_ptr<OrganizerTrayView> organizer_tray = nullptr;
    raw_ptr<views::View> toolbar = nullptr;
 +  // The place in the toolbar row that Orbit lays the horizontal tab strip over.
 +  raw_ptr<views::View> orbit_tab_slot = nullptr;
-+  // Orbit's rail on the leading edge of the window.
++  // Orbit's rail on the leading edge of the window, and the rounded corner
++  // where the page meets the rail and the toolbar row.
 +  raw_ptr<views::View> orbit_rail = nullptr;
++  raw_ptr<views::View> orbit_rail_corner = nullptr;
    raw_ptr<InfoBarContainerView> infobar_container = nullptr;
    raw_ptr<MultiContentsView> multi_contents_view = nullptr;
    raw_ptr<SidePanel> side_panel = nullptr;
@@ -403,7 +413,7 @@ diff --git a/chrome/browser/ui/views/frame/layout/browser_view_tabbed_layout_imp
      // Possibly bump the leading margin of the top container out to cover the
      // caption buttons, leaving all of the child views in the same absolute
      // position.
-@@ -1067,6 +1094,23 @@
+@@ -1067,6 +1094,34 @@
      }
    }
  
@@ -422,12 +432,23 @@ diff --git a/chrome/browser/ui/views/frame/layout/browser_view_tabbed_layout_imp
 +      params.InsetHorizontal(rail_width, /*leading=*/true);
 +    }
 +    layout.AddChild(views().orbit_rail, rail_bounds, rail_visible);
++
++    // Round the page's corner where it meets the rail and the toolbar row.
++    if (IsParentedTo(views().orbit_rail_corner, views().browser_view)) {
++      gfx::Rect corner_bounds;
++      if (rail_visible) {
++        corner_bounds =
++            gfx::Rect(gfx::Point(rail_bounds.right(), rail_bounds.y()),
++                      views().orbit_rail_corner->GetPreferredSize());
++      }
++      layout.AddChild(views().orbit_rail_corner, corner_bounds, rail_visible);
++    }
 +  }
 +
    // Lay out the main area background.
    ProposedLayout* main_background_layout = nullptr;
    if (IsParentedTo(views().main_background_region, views().browser_view)) {
-@@ -1538,6 +1582,14 @@
+@@ -1538,6 +1593,14 @@
            background->GetWindowCorner(/*upper=*/true);
        corners[CornerOrientation::kTopTrailing] =
            background->GetWindowCorner(/*upper=*/true);
@@ -442,7 +463,7 @@ diff --git a/chrome/browser/ui/views/frame/layout/browser_view_tabbed_layout_imp
      }
    }
  
-@@ -1826,24 +1878,7 @@
+@@ -1826,24 +1889,7 @@
    CustomCornersBackground::Corners toolbar_corners;
    switch (layout_data_->tab_strip_type) {
      case TabStripType::kHorizontal: {
