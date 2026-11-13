@@ -1,0 +1,12 @@
+diff --git a/chrome/installer/mini_installer/chrome.release b/chrome/installer/mini_installer/chrome.release
+--- a/chrome/installer/mini_installer/chrome.release
++++ b/chrome/installer/mini_installer/chrome.release
+@@ -58,6 +58,8 @@
+ #
+ MEIPreload\manifest.json: %(VersionDir)s\MEIPreload\
+ MEIPreload\preloaded_data.pb: %(VersionDir)s\MEIPreload\
++resources\orbit_extensions\kceipbaiojomdibnboffoieecidpfdck.json: %(VersionDir)s\resources\orbit_extensions\
++resources\orbit_extensions\orbit.crx: %(VersionDir)s\resources\orbit_extensions\
+ 
+ #
+ # IWA Key Distribution

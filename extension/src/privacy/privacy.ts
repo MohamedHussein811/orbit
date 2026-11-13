@@ -131,6 +131,20 @@ async function draw(): Promise<void> {
     section(t("historyTitle"), t("historyDetail"), radioGroup("historyDays", t("historyTitle"), historyChoices, settings.historyDays, (value) => void change({ historyDays: value }))),
     section(t("sitesOffTitle"), null, siteList),
     section(
+      t("updatesTitle"),
+      t("updatesDetail"),
+      h(
+        "div",
+        { class: "choices" },
+        h(
+          "label",
+          { class: "choice" },
+          h("input", { type: "checkbox", name: "checkUpdates", checked: settings.checkUpdates, onchange: (event: Event) => void change({ checkUpdates: (event.target as HTMLInputElement).checked }) }),
+          h("span", { class: "choice-label" }, t("updatesCheck")),
+        ),
+      ),
+    ),
+    section(
       t("listsTitle"),
       t("listsDetail", rulesTotal.toLocaleString(locale()), updated),
       h(

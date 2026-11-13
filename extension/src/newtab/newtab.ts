@@ -6,6 +6,7 @@ import { BACKGROUNDS, resolveTheme, sanitizeSettings, type Background, type Sett
 import { h, icon, iconButton } from "./dom.ts";
 import { loadCustomMedia, MAX_MEDIA_BYTES, MEDIA_TYPES, removeCustomMedia, saveCustomMedia } from "./media-store.ts";
 import { mountBookmarks, mountNotes, mountSearch, mountStats, mountWeather, type WidgetContext } from "./widgets.ts";
+import { isNewer, runningVersion, sanitizeRelease } from "../shared/updates.ts";
 
 const DEFAULT_VIDEO = "media/blackhole.webm";
 const DEFAULT_POSTER = "media/blackhole.jpg";
@@ -488,4 +489,21 @@ async function main(): Promise<void> {
   });
 }
 
+// A quiet note in the corner when a newer Orbit is out. The background check stores it.
+async function showUpdate(): Promise<void> {
+  const { update } = await chrome.storage.local.get("update");
+  const release = sanitizeRelease(update);
+  document.querySelector(".update-chip")?.remove();
+  if (!release || !isNewer(release, await runningVersion())) return;
+  const label = t("updateAvailable", release.tag.slice(1));
+  document.body.append(
+    h("a", { class: "update-chip", href: release.url, target: "_blank", rel: "noopener" }, h("span", { class: "update-dot", "aria-hidden": "true" }), h("span", {}, label), h("strong", {}, t("updateGet"))),
+  );
+}
+
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area === "local" && changes.update) void showUpdate();
+});
+
 void main();
+void showUpdate();

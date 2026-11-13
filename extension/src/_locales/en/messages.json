@@ -458,6 +458,21 @@
   "moreClear": {
     "message": "Delete browsing data now"
   },
+  "updatesTitle": {
+    "message": "Orbit updates"
+  },
+  "updatesDetail": {
+    "message": "Once a day Orbit asks its release page on GitHub for the newest version number, and tells you on the new tab page when a newer Orbit is out. The request carries nothing about you or your browsing."
+  },
+  "updatesCheck": {
+    "message": "Tell me when a new version is out"
+  },
+  "updateAvailable": {
+    "message": "Orbit $1 is available"
+  },
+  "updateGet": {
+    "message": "Get it"
+  },
   "shields": {
     "message": "Shields"
   },

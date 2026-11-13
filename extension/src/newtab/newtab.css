@@ -1352,3 +1352,40 @@ body.editing .dock > .widget.is-dragging {
     outline-color: Highlight;
   }
 }
+
+/* Update note */
+.update-chip {
+  position: fixed;
+  z-index: 2;
+  inset-block-start: clamp(0.75rem, 2.4vh, 1.25rem);
+  inset-inline-end: calc(clamp(0.75rem, 2.4vh, 1.25rem) + 3.25rem);
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  min-height: 2.5rem;
+  padding: 0 1rem;
+  border: 1px solid var(--card-line);
+  border-radius: 1.25rem;
+  background: var(--tile);
+  color: var(--text);
+  font-size: 0.875rem;
+  text-decoration: none;
+  box-shadow: var(--card-shadow);
+}
+
+.update-chip:hover {
+  background: var(--card);
+  border-color: var(--line-strong);
+}
+
+.update-chip strong {
+  color: var(--accent);
+  font-weight: 500;
+}
+
+.update-dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #ffb36b, #ff5d73 50%, #9eacff);
+}

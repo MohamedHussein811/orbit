@@ -192,3 +192,18 @@ test("weather reports expire", () => {
   assert.equal(isFresh(report, NOW + WEATHER_CACHE_MS + 1), false);
   assert.equal(isFresh(null, NOW), false);
 });
+
+test("release check compares versions and accepts only Orbit's release pages", async () => {
+  const { compareVersions, isNewer, sanitizeRelease, RELEASES } = await import("../src/shared/updates.ts");
+  assert.equal(compareVersions("157.0.8103.38", "157.0.8103.38"), 0);
+  assert.equal(compareVersions("158.0.1.2", "157.9.9999.99"), 1);
+  assert.equal(compareVersions("157.0.8103", "157.0.8103.1"), -1);
+  const release = sanitizeRelease({ tag: "v1.2.0", browserVersion: "158.0.7000.10", url: `${RELEASES}tag/v1.2.0` });
+  assert.ok(release);
+  assert.equal(isNewer(release, "157.0.8103.38"), true);
+  assert.equal(isNewer(release, "158.0.7000.10"), false);
+  assert.equal(isNewer(release, "not a version"), false);
+  assert.equal(sanitizeRelease({ tag: "v1.2.0", browserVersion: "158.0.7000.10", url: "https://example.com/" }), null);
+  assert.equal(sanitizeRelease({ tag: "1.2", browserVersion: "158", url: `${RELEASES}tag/1.2` }), null);
+  assert.equal(sanitizeRelease(null), null);
+});

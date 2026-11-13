@@ -187,3 +187,23 @@ jobs:
       - name: Run the finished browser
         if: steps.compile.outputs.done == 'true'
         run: tools/chromium/smoke.sh
+
+      - name: Package the browser for installing
+        if: steps.compile.outputs.done == 'true'
+        env:
+          MAC_CERTIFICATE_P12_BASE64: ${{ secrets.MAC_CERTIFICATE_P12_BASE64 }}
+          MAC_CERTIFICATE_PASSWORD: ${{ secrets.MAC_CERTIFICATE_PASSWORD }}
+          MAC_SIGNING_IDENTITY: ${{ secrets.MAC_SIGNING_IDENTITY }}
+          APPLE_NOTARY_KEY_P8_BASE64: ${{ secrets.APPLE_NOTARY_KEY_P8_BASE64 }}
+          APPLE_NOTARY_KEY_ID: ${{ secrets.APPLE_NOTARY_KEY_ID }}
+          APPLE_NOTARY_ISSUER_ID: ${{ secrets.APPLE_NOTARY_ISSUER_ID }}
+        run: tools/chromium/package.sh
+
+      - name: Keep the packages
+        if: steps.compile.outputs.done == 'true'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: orbit-package-${{ runner.os }}
+          path: dist/
+          retention-days: 30
+          compression-level: 0

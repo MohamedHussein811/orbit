@@ -5,6 +5,7 @@ import { addCount, emptyCounts, emptyStats, pruneStats, sanitizeStats, type Cate
 import { sanitizePrivacy } from "../shared/privacy.ts";
 import { allowRule, categoryOfMatch, cosmeticCss, cosmeticShard, hostSuffixes, normalizeHosts, siteOf, type Message, type SiteCosmetic, type TabState } from "../shared/shields.ts";
 import { applyFingerprinting, applyGenericHiding, applyWebRtc, readPrivacy, runStartupCleanup } from "./privacy.ts";
+import { checkForUpdate, scheduleUpdateCheck, UPDATE_ALARM } from "./updates.ts";
 
 const FLUSH_DELAY_MS = 500;
 const DYNAMIC_ALLOW_RULE = 1;
@@ -189,6 +190,7 @@ async function handle(message: Message): Promise<unknown> {
     case "set-privacy": {
       const privacy = sanitizePrivacy(message.settings);
       await chrome.storage.local.set({ privacy });
+      if (!privacy.checkUpdates) await chrome.storage.local.remove("update");
       await applyWebRtc(privacy);
       await applyFingerprinting(privacy, await hostsOff());
       return { ok: true };
@@ -243,3 +245,8 @@ async function startOncePerSession(): Promise<void> {
 
 chrome.runtime.onStartup.addListener(() => {});
 void startOncePerSession();
+
+chrome.alarms.onAlarm.addListener((alarm) => {
+  if (alarm.name === UPDATE_ALARM) void checkForUpdate();
+});
+void scheduleUpdateCheck();

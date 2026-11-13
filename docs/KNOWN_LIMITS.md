@@ -7,8 +7,8 @@ These are true of the current code. Each one says what a person would notice.
 | Limit | What a person notices | Path to fix |
 | --- | --- | --- |
 | No H.264, AAC or HEVC | Sites that only offer those formats do not play, including many news and social video players. YouTube works through VP9 | Operating system decoders, planned in [VIDEO.md](VIDEO.md) |
-| No installers or signed packages | There is nothing to install yet. Once there is, unsigned packages make Windows and macOS warn about an unknown publisher | Windows: SignPath's free open source signing. macOS: Developer ID signing and notarization, using the existing Apple membership |
-| No updater | Security fixes would not arrive by themselves | Chromium's own updater, or signed update feeds for each system |
+| Windows installer not code-signed | Windows SmartScreen warns about an unknown publisher on first run. The macOS disk image is signed and notarized only once the signing secrets are set | Windows: SignPath's free open source signing. macOS: the secrets listed in [RELEASING.md](RELEASING.md) |
+| Browser does not update in place | Orbit shows a note on the new tab page when a newer release is out, but people install it themselves. Shields rules do update automatically | Chromium's own updater, or signed update feeds for each system |
 | Not tested on real hardware outside CI | macOS and Linux have only run on CI machines | Testing on real machines |
 
 ## Engine limits
@@ -28,7 +28,7 @@ These also apply to unbranded Chromium builds.
   - Leftover ad space is hidden by CSS only. Filters that need a script to evaluate them are skipped, and generic filters are limited to simple selectors. Site-specific hiding applies to the top page, not to frames inside it.
   - 3,137 EasyList filters use options with no exact equivalent in the rule engine, such as popup-only and content security policy filters, and are skipped.
   - Filters in regular expression form are skipped.
-  - New rules only arrive with Orbit updates.
+  - New rules arrive with each release, through the built-in extension's own update feed.
 - **Guest windows** have no extensions, so no Shields.
 - **Fingerprinting protection** runs in the page. It covers canvas, audio and graphics readings, not fonts or every other signal, and not canvases in web workers.
 - **Protection counts** show ads, trackers and threats only. Tracking cookies blocked and bandwidth saved are not shown, because the browser reports no reliable number for them.

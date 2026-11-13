@@ -458,6 +458,21 @@
   "moreClear": {
     "message": "حذف بيانات التصفح الآن"
   },
+  "updatesTitle": {
+    "message": "تحديثات Orbit"
+  },
+  "updatesDetail": {
+    "message": "يسأل Orbit مرة يوميًا صفحة إصداراته على GitHub عن رقم أحدث إصدار، ويخبرك في صفحة علامة التبويب الجديدة عند صدور إصدار أحدث. لا يحمل الطلب أي شيء عنك أو عن تصفحك."
+  },
+  "updatesCheck": {
+    "message": "أخبرني عند صدور إصدار جديد"
+  },
+  "updateAvailable": {
+    "message": "الإصدار $1 من Orbit متاح"
+  },
+  "updateGet": {
+    "message": "تنزيله"
+  },
   "shields": {
     "message": "الدروع"
   },
