@@ -13,3 +13,4 @@ ffmpeg_branding = "Chromium"
 use_remoteexec = false
 use_siso = false
 disable_fieldtrial_testing_config = true
+dcheck_always_on = false
