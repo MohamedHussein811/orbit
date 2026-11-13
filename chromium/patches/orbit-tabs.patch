@@ -14,7 +14,15 @@ diff --git a/chrome/browser/ui/tabs/tab_style.cc b/chrome/browser/ui/tabs/tab_st
 diff --git a/chrome/browser/ui/views/tabs/common/horizontal_tab_style_views.cc b/chrome/browser/ui/views/tabs/common/horizontal_tab_style_views.cc
 --- a/chrome/browser/ui/views/tabs/common/horizontal_tab_style_views.cc
 +++ b/chrome/browser/ui/views/tabs/common/horizontal_tab_style_views.cc
-@@ -88,9 +88,12 @@
+@@ -12,6 +12,7 @@
+ #include "base/memory/raw_ptr.h"
+ #include "base/numerics/safe_conversions.h"
+ #include "cc/paint/paint_flags.h"
++#include "cc/paint/paint_shader.h"
+ #include "chrome/browser/themes/theme_properties.h"
+ #include "chrome/browser/ui/browser_window/public/browser_window_interface.h"
+ #include "chrome/browser/ui/color/chrome_color_id.h"
+@@ -88,9 +89,12 @@
                                     tab_style()->GetSeparatorSize().width()) *
                                    scale;
  
@@ -29,11 +37,35 @@ diff --git a/chrome/browser/ui/views/tabs/common/horizontal_tab_style_views.cc b
      float top_left_corner_radius = content_corner_radius;
      float top_right_corner_radius = content_corner_radius;
      float bottom_left_corner_radius = content_corner_radius;
-@@ -767,7 +770,6 @@
+@@ -767,7 +771,30 @@
                                                : kColorTabStrokeFrameInactive);
  
    PaintBackgroundStroke(canvas, group_color.value_or(tab_stroke_color));
 -  PaintSeparators(canvas);
++
++  // Orbit marks the active tab with a short horizon line at the bottom of its
++  // pill: amber and rose from the black hole's disk, then periwinkle.
++  if (delegate_->IsActive()) {
++    const gfx::RectF pill = gfx::SkRectToRectF(
++        GetPath(TabStyle::PathType::kActiveTab, 1.0f, {}).getBounds());
++    const float inset = std::min(16.0f, pill.width() / 4);
++    const gfx::RectF line(pill.x() + inset, pill.bottom() - 3.0f,
++                          pill.width() - 2 * inset, 2.0f);
++    if (!line.IsEmpty()) {
++      const SkPoint points[] = {SkPoint::Make(line.x(), 0),
++                                SkPoint::Make(line.right(), 0)};
++      const SkColor4f colors[] = {
++          SkColor4f::FromColor(SkColorSetRGB(0xFF, 0xB3, 0x6B)),
++          SkColor4f::FromColor(SkColorSetRGB(0xFF, 0x5D, 0x73)),
++          SkColor4f::FromColor(SkColorSetRGB(0x9E, 0xAC, 0xFF))};
++      const SkScalar positions[] = {0.0f, 0.45f, 1.0f};
++      cc::PaintFlags flags;
++      flags.setAntiAlias(true);
++      flags.setShader(cc::PaintShader::MakeLinearGradient(
++          points, colors, positions, 3, SkTileMode::kClamp));
++      canvas->DrawRoundRect(line, 1.0f, flags);
++    }
++  }
  }
  
  void HorizontalTabStyleViews::PaintTabBackgroundFill(

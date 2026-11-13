@@ -1,0 +1,44 @@
+/* Orbit's notes side panel. */
+
+:root {
+  --radius-inner: 0.875rem;
+}
+
+.notes-panel {
+  padding: 0.9rem 0.9rem 1.5rem;
+}
+
+.notes-panel .widget-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  min-height: 2rem;
+  margin-bottom: 0.9rem;
+}
+
+.notes-panel .widget-head h2 {
+  font-size: 0.9375rem;
+  font-weight: 500;
+}
+
+.notes-panel .widget-head .button {
+  min-height: 2rem;
+  padding: 0.2rem 0.85rem 0.2rem 0.65rem;
+  font-size: 0.875rem;
+}
+
+.notes-panel .notes-list {
+  grid-template-columns: 1fr;
+  max-height: none;
+  overflow: visible;
+}
+
+.notes-panel .note-tools > * {
+  opacity: 1;
+}
+
+.notes-panel .empty {
+  color: var(--muted);
+  font-size: 0.875rem;
+}

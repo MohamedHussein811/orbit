@@ -152,6 +152,21 @@ export const ICONS = [
     shapes: [line("M4 10 A6 6 0 1 0 5.76 5.76"), line("M3.75 3.5 V6.25 H6.5"), line("M10 6.75 V10 L12.25 11.5")],
   },
   {
+    name: "rail-shields",
+    canvas: 20,
+    targets: ["chrome/app/vector_icons/orbit_rail_shields.icon"],
+    shapes: [line("M10 3.5 L15.5 5.5 V9.75 C15.5 13.1 13.2 15.6 10 16.5 C6.8 15.6 4.5 13.1 4.5 9.75 V5.5 Z")],
+  },
+  {
+    name: "rail-notes",
+    canvas: 20,
+    targets: ["chrome/app/vector_icons/orbit_rail_notes.icon"],
+    shapes: [
+      line("M5.5 3.75 H14.5 A1.75 1.75 0 0 1 16.25 5.5 V11.5 L11.5 16.25 H5.5 A1.75 1.75 0 0 1 3.75 14.5 V5.5 A1.75 1.75 0 0 1 5.5 3.75 Z"),
+      line("M11.5 16.25 V12.5 A1 1 0 0 1 12.5 11.5 H16.25"),
+    ],
+  },
+  {
     name: "rail-settings",
     canvas: 20,
     targets: ["chrome/app/vector_icons/orbit_rail_settings.icon"],

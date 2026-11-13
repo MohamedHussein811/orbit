@@ -17,6 +17,7 @@
     "privacy",
     "scripting",
     "search",
+    "sidePanel",
     "storage",
     "tabs",
     "unlimitedStorage"
@@ -33,6 +34,7 @@
   },
   "icons": { "16": "icons/orbit-16.png", "32": "icons/orbit-32.png", "48": "icons/orbit-48.png", "128": "icons/orbit-128.png" },
   "options_page": "privacy/privacy.html",
+  "side_panel": { "default_path": "notes/notes.html" },
   "chrome_url_overrides": { "newtab": "newtab/newtab.html" },
   "web_accessible_resources": [
     { "resources": ["blocked/blocked.html"], "matches": ["<all_urls>"] }

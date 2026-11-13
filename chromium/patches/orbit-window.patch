@@ -1,13 +1,15 @@
 diff --git a/chrome/app/vector_icons/BUILD.gn b/chrome/app/vector_icons/BUILD.gn
 --- a/chrome/app/vector_icons/BUILD.gn
 +++ b/chrome/app/vector_icons/BUILD.gn
-@@ -221,6 +221,9 @@
+@@ -221,6 +221,11 @@
      "my_location_old.icon",
      "name_window_old.icon",
      "navigate_home_chrome_refresh_old.icon",
 +    "orbit_rail_bookmarks.icon",
 +    "orbit_rail_history.icon",
++    "orbit_rail_notes.icon",
 +    "orbit_rail_settings.icon",
++    "orbit_rail_shields.icon",
      "navigate_home_touch_old.icon",
      "navigate_stop_chrome_refresh_old.icon",
      "navigate_stop_touch_old.icon",
@@ -35,13 +37,21 @@ diff --git a/chrome/browser/ui/color/material_chrome_color_mixer.cc b/chrome/bro
 diff --git a/chrome/browser/ui/views/frame/browser_view.cc b/chrome/browser/ui/views/frame/browser_view.cc
 --- a/chrome/browser/ui/views/frame/browser_view.cc
 +++ b/chrome/browser/ui/views/frame/browser_view.cc
-@@ -331,6 +331,14 @@
+@@ -331,6 +331,22 @@
  #include "ui/base/ui_base_features.h"
  #include "ui/base/window_open_disposition.h"
  #include "ui/base/window_open_disposition_utils.h"
 +#include "chrome/app/vector_icons/vector_icons.h"
++#include "base/strings/strcat.h"
++#include "base/strings/string_util.h"
++#include "chrome/browser/ui/side_panel/side_panel_entry_id.h"
++#include "chrome/browser/ui/side_panel/side_panel_entry_key.h"
++#include "chrome/browser/ui/side_panel/side_panel_enums.h"
++#include "chrome/browser/ui/side_panel/side_panel_ui.h"
++#include "chrome/browser/ui/singleton_tabs.h"
 +#include "chrome/browser/ui/views/toolbar/toolbar_button.h"
 +#include "components/strings/grit/components_strings.h"
++#include "url/gurl.h"
 +#include "components/vector_icons/vector_icons.h"
 +#include "ui/accessibility/ax_enums.mojom.h"
 +#include "ui/views/background.h"
@@ -50,7 +60,7 @@ diff --git a/chrome/browser/ui/views/frame/browser_view.cc b/chrome/browser/ui/v
  #include "ui/color/color_id.h"
  #include "ui/compositor/debug_utils.h"
  #include "ui/compositor/layer.h"
-@@ -426,6 +434,54 @@
+@@ -426,6 +442,92 @@
  
  namespace {
  
@@ -75,37 +85,75 @@ diff --git a/chrome/browser/ui/views/frame/browser_view.cc b/chrome/browser/ui/v
 +  mark->SetProperty(views::kMarginsKey, gfx::Insets::TLBR(4, 0, 10, 0));
 +  mark->GetViewAccessibility().SetIsIgnored(true);
 +
-+  const auto add_button = [&](const gfx::VectorIcon& icon, int command,
-+                              int name_id) {
-+    auto* const button = rail->AddChildView(std::make_unique<ToolbarButton>(
-+        base::BindRepeating(
-+            [](BrowserWindowInterface* browser, int command,
-+               const ui::Event& event) {
-+              chrome::ExecuteCommandWithDisposition(
-+                  browser, command,
-+                  ui::DispositionFromEventFlags(event.flags()));
-+            },
-+            browser, command)));
++  const auto add_button = [&](const gfx::VectorIcon& icon,
++                              const std::u16string& name,
++                              base::RepeatingClosure action) {
++    auto* const button =
++        rail->AddChildView(std::make_unique<ToolbarButton>(std::move(action)));
 +    button->SetVectorIcon(icon);
-+    button->SetTooltipText(l10n_util::GetStringUTF16(name_id));
++    button->SetTooltipText(name);
 +  };
-+  add_button(kNavigateHomeChromeRefreshOldIcon, IDC_HOME,
-+             IDS_OVERFLOW_MENU_ITEM_TEXT_HOME);
-+  add_button(kOrbitRailBookmarksIcon, IDC_SHOW_BOOKMARK_SIDE_PANEL,
-+             IDS_BOOKMARK_MANAGER_TITLE);
-+  add_button(kOrbitRailHistoryIcon, IDC_SHOW_HISTORY, IDS_HISTORY_TITLE);
-+  add_button(kDownloadToolbarButtonChromeRefreshOldIcon, IDC_SHOW_DOWNLOADS,
-+             IDS_OVERFLOW_MENU_ITEM_TEXT_DOWNLOADS);
++  const auto command = [browser](int id) {
++    return base::BindRepeating(
++        [](BrowserWindowInterface* browser, int id) {
++          chrome::ExecuteCommand(browser, id);
++        },
++        browser, id);
++  };
++  const auto side_panel = [browser](SidePanelEntryKey key) {
++    return base::BindRepeating(
++        [](BrowserWindowInterface* browser, const SidePanelEntryKey& key) {
++          if (SidePanelUI* const ui = SidePanelUI::From(browser)) {
++            ui->Toggle(key, SidePanelOpenTrigger::kToolbarButton);
++          }
++        },
++        browser, std::move(key));
++  };
++  const auto name = [](int id) { return l10n_util::GetStringUTF16(id); };
++
++  // Orbit's own pages and panels live in its built-in extension. Its notes
++  // name comes from Orbit's two translations, since Chromium has no such
++  // string.
++  constexpr char kOrbitExtensionId[] = "kceipbaiojomdibnboffoieecidpfdck";
++  const bool arabic = base::StartsWith(
++      g_browser_process->GetApplicationLocale(), "ar",
++      base::CompareCase::SENSITIVE);
++  const std::u16string notes_name =
++      arabic ? u"\u0627\u0644\u0645\u0644\u0627\u062D\u0638\u0627\u062A"
++             : u"Notes";
++
++  add_button(kNavigateHomeChromeRefreshOldIcon,
++             name(IDS_OVERFLOW_MENU_ITEM_TEXT_HOME), command(IDC_HOME));
++  add_button(kOrbitRailShieldsIcon,
++             name(IDS_OPTIONS_ADVANCED_SECTION_TITLE_PRIVACY),
++             base::BindRepeating(
++                 [](BrowserWindowInterface* browser, const std::string& id) {
++                   ShowSingletonTab(
++                       browser, GURL(base::StrCat({"chrome-extension://", id,
++                                                   "/privacy/privacy.html"})));
++                 },
++                 browser, std::string(kOrbitExtensionId)));
++  add_button(kOrbitRailBookmarksIcon, name(IDS_BOOKMARK_MANAGER_TITLE),
++             side_panel(SidePanelEntryKey(SidePanelEntryId::kBookmarks)));
++  add_button(kOrbitRailHistoryIcon, name(IDS_HISTORY_TITLE),
++             command(IDC_SHOW_HISTORY));
++  add_button(kDownloadToolbarButtonChromeRefreshOldIcon,
++             name(IDS_OVERFLOW_MENU_ITEM_TEXT_DOWNLOADS),
++             command(IDC_SHOW_DOWNLOADS));
++  add_button(kOrbitRailNotesIcon, notes_name,
++             side_panel(SidePanelEntryKey(SidePanelEntryId::kExtension,
++                                          kOrbitExtensionId)));
 +  layout->SetFlexForView(rail->AddChildView(std::make_unique<views::View>()),
 +                         1);
-+  add_button(kOrbitRailSettingsIcon, IDC_OPTIONS, IDS_SETTINGS_SETTINGS);
++  add_button(kOrbitRailSettingsIcon, name(IDS_SETTINGS_SETTINGS),
++             command(IDC_OPTIONS));
 +  return rail;
 +}
 +
  // The visible height of the shadow above the tabs. Clicks in this area are
  // treated as clicks to the frame, rather than clicks to the tab.
  const int kTabShadowSize = 2;
-@@ -975,6 +1031,8 @@
+@@ -975,6 +1077,8 @@
  
    side_panel_ = AddChildView(std::make_unique<SidePanel>(this));
  
@@ -114,7 +162,7 @@ diff --git a/chrome/browser/ui/views/frame/browser_view.cc b/chrome/browser/ui/v
    // Tabstrip comes basically last because it should be before toolbar in the
    // focus order but also needs to paint on top of everything.
    horizontal_tab_strip_region_view_ =
-@@ -1156,6 +1214,7 @@
+@@ -1156,6 +1260,7 @@
    vertical_tab_strip_bottom_corner_ = nullptr;
    organizer_tray_ = nullptr;
    side_panel_ = nullptr;
@@ -122,7 +170,7 @@ diff --git a/chrome/browser/ui/views/frame/browser_view.cc b/chrome/browser/ui/v
  
  #if BUILDFLAG(IS_MAC)
    tab_overlay_view_ = nullptr;
-@@ -4752,6 +4811,15 @@
+@@ -4752,6 +4857,15 @@
        return HTCLIENT;
      }
  
@@ -138,7 +186,7 @@ diff --git a/chrome/browser/ui/views/frame/browser_view.cc b/chrome/browser/ui/v
      // The top few pixels of the TabStrip are a drop-shadow - as we're pretty
      // starved of draggable area, let's give it to window dragging (this also
      // makes sense visually).
-@@ -5110,6 +5178,8 @@
+@@ -5110,6 +5224,8 @@
    layout_views.vertical_tab_strip_top_corner = vertical_tab_strip_top_corner_;
    layout_views.organizer_tray = organizer_tray_;
    layout_views.toolbar = toolbar_;

@@ -1,0 +1,103 @@
+/* Sticky notes, shared by the new tab page and the notes side panel. */
+
+.notes-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr));
+  gap: 0.6rem;
+  max-height: 12.5rem;
+  margin-inline: -0.25rem;
+  padding: 0.25rem;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+.note {
+  --note: var(--accent);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-inner);
+  background: linear-gradient(180deg, color-mix(in oklab, var(--note) 14%, transparent), var(--control) 75%);
+  overflow: hidden;
+}
+
+.note::before {
+  content: "";
+  height: 2px;
+  background: var(--note);
+}
+
+.note[data-color="ion"] { --note: #8d9bff; }
+.note[data-color="amber"] { --note: #f2b75b; }
+.note[data-color="rose"] { --note: #f28ca8; }
+.note[data-color="mint"] { --note: #5fd4c8; }
+.note[data-color="slate"] { --note: #9aa3b8; }
+
+.note textarea {
+  flex: 1;
+  width: 100%;
+  min-height: 4.75rem;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  resize: none;
+  padding: 0.6rem 0.8rem 0.2rem;
+  line-height: 1.5;
+}
+
+.note textarea:focus-visible {
+  box-shadow: none;
+}
+
+.note:focus-within {
+  border-color: color-mix(in oklab, var(--note) 70%, transparent);
+}
+
+.note-tools {
+  display: flex;
+  align-items: center;
+  gap: 0.1rem;
+  padding-block: 0 0.3rem;
+  padding-inline: 0.65rem 0.3rem;
+}
+
+.note-tools .spacer {
+  flex: 1;
+}
+
+.note-tools > * {
+  opacity: 0;
+  transition: opacity 140ms linear;
+}
+
+.note:hover .note-tools > *,
+.note:focus-within .note-tools > *,
+.note-tools > .icon-button[aria-pressed="true"] {
+  opacity: 1;
+}
+
+.note-tools .icon-button {
+  width: 1.75rem;
+  height: 1.75rem;
+}
+
+.swatch {
+  width: 0.9rem;
+  height: 0.9rem;
+  margin: 0 0.12rem;
+  padding: 0;
+  border: 1px solid var(--line-strong);
+  border-radius: 50%;
+  background: var(--swatch);
+}
+
+.swatch[aria-pressed="true"] {
+  outline: 2px solid var(--text);
+  outline-offset: 1px;
+}
+
+.notes-list .empty {
+  grid-column: 1 / -1;
+  padding: 0.25rem 0 0.5rem;
+}

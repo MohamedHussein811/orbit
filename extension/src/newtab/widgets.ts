@@ -593,4 +593,11 @@ export function mountNotes(root: HTMLElement): void {
     notes = sanitizeNotes(stored.notes);
     render();
   });
+
+  // Notes edited in the side panel or another tab show up here too, unless a note is being typed in.
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area !== "local" || !changes.notes || root.contains(document.activeElement)) return;
+    notes = sanitizeNotes(changes.notes.newValue);
+    render();
+  });
 }
