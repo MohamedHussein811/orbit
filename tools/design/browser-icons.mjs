@@ -44,6 +44,17 @@ const PUZZLE =
   "M6.3 15.6 A1.5 1.5 0 0 1 4.8 14.1 V12.55 A1.6 1.6 0 1 0 4.8 9.95 V8.6 A1.5 1.5 0 0 1 6.3 7.1 H7.7 A1.6 1.6 0 1 1 10.3 7.1 H11.7 A1.5 1.5 0 0 1 13.2 8.6 V9.95 A1.6 1.6 0 1 1 13.2 12.55 V14.1 A1.5 1.5 0 0 1 11.7 15.6 Z";
 const SMALL_PUZZLE = scalePath(PUZZLE, 0.82, 3, 4);
 
+/** A five-pointed star centered in a 20 px canvas, as absolute path data. */
+function starPath() {
+  const points = [];
+  for (let i = 0; i < 10; i++) {
+    const angle = ((-90 + i * 36) * Math.PI) / 180;
+    const radius = i % 2 ? 2.95 : 6.6;
+    points.push(`${round(10 + radius * Math.cos(angle))} ${round(10.6 + radius * Math.sin(angle))}`);
+  }
+  return `M${points[0]} ${points.slice(1).map((point) => `L${point}`).join(" ")} Z`;
+}
+
 const MARK = "M23.37 8.95 A11.775 11.775 0 1 1 15.05 0.63 A1.73 1.73 0 0 1 14.15 3.96 A8.325 8.325 0 1 0 20.04 9.85 A1.73 1.73 0 0 1 23.37 8.95 Z";
 
 /** Reload: an open ring with its gap at the top right, like Orbit's mark, and an arrowhead. */
@@ -140,6 +151,18 @@ export const ICONS = [
     shapes: [line(SMALL_PUZZLE), line("M12.5 14.75 L14.25 16.5"), line("M14.25 16.5 L17.5 13")],
   },
   {
+    name: "star",
+    canvas: 20,
+    targets: ["components/omnibox/browser/vector_icons/star_chrome_refresh_old.icon", "components/omnibox/browser/vector_icons/star.icon"],
+    shapes: [line(starPath())],
+  },
+  {
+    name: "star-filled",
+    canvas: 20,
+    targets: ["components/omnibox/browser/vector_icons/star_active_chrome_refresh_old.icon", "components/omnibox/browser/vector_icons/star_filled.icon"],
+    shapes: [fill(starPath()), line(starPath())],
+  },
+  {
     name: "rail-bookmarks",
     canvas: 20,
     targets: ["chrome/app/vector_icons/orbit_rail_bookmarks.icon"],
@@ -169,7 +192,11 @@ export const ICONS = [
   {
     name: "rail-settings",
     canvas: 20,
-    targets: ["chrome/app/vector_icons/orbit_rail_settings.icon"],
+    targets: [
+      "chrome/app/vector_icons/orbit_rail_settings.icon",
+      ["components/omnibox/browser/vector_icons/secure_page_info_chrome_refresh_old.icon", 16],
+      ["components/omnibox/browser/vector_icons/page_info_custom.icon", 24],
+    ],
     shapes: [
       line("M4 6.5 H10.75"),
       line("M14.25 6.5 H16"),
