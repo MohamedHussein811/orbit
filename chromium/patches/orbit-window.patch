@@ -215,7 +215,7 @@ diff --git a/chrome/browser/ui/views/frame/browser_view.cc b/chrome/browser/ui/v
      // The top few pixels of the TabStrip are a drop-shadow - as we're pretty
      // starved of draggable area, let's give it to window dragging (this also
      // makes sense visually).
-@@ -4830,6 +4961,39 @@
+@@ -4830,6 +4961,40 @@
  ///////////////////////////////////////////////////////////////////////////////
  // BrowserView, views::View overrides:
  
@@ -229,7 +229,8 @@ diff --git a/chrome/browser/ui/views/frame/browser_view.cc b/chrome/browser/ui/v
 +  if (!orbit_side_panel_shown_subscription_) {
 +    orbit_side_panel_shown_subscription_ =
 +        ui->RegisterSidePanelShown(base::BindRepeating(
-+            &BrowserView::InvalidateLayout, base::Unretained(this)));
++            [](views::View* view) { view->InvalidateLayout(); },
++            base::Unretained(this)));
 +  }
 +  for (views::View* const child : orbit_rail_->children()) {
 +    std::optional<SidePanelEntryKey> key;
@@ -255,7 +256,7 @@ diff --git a/chrome/browser/ui/views/frame/browser_view.cc b/chrome/browser/ui/v
  void BrowserView::Layout(PassKey) {
    TRACE_EVENT0("ui", "BrowserView::Layout");
    // Do not perform layout if the view is not yet initialized, in fullscreen
-@@ -4887,6 +5051,7 @@
+@@ -4887,6 +5052,7 @@
    // TODO(jamescook): Why was this in the middle of layout code?
    toolbar_->location_bar()->UpdateFocusBehavior(IsToolbarVisible());
    GetFrameView()->UpdateMinimumSize();
@@ -263,7 +264,7 @@ diff --git a/chrome/browser/ui/views/frame/browser_view.cc b/chrome/browser/ui/v
  
    if (omnibox::IsWebUIOmniboxInBrowserViewEnabled()) {
      // When the WebUI Omnibox is embedded directly in the `BrowserView` (instead
-@@ -5110,6 +5275,9 @@
+@@ -5110,6 +5276,9 @@
    layout_views.vertical_tab_strip_top_corner = vertical_tab_strip_top_corner_;
    layout_views.organizer_tray = organizer_tray_;
    layout_views.toolbar = toolbar_;
