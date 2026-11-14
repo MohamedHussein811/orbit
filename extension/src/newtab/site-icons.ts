@@ -110,8 +110,9 @@ async function candidates(origin: string): Promise<string[]> {
     for (const link of doc.querySelectorAll<HTMLLinkElement>("link[rel][href]")) {
       const rel = link.getAttribute("rel")!.toLowerCase();
       if (!/(^|\s)(icon|apple-touch-icon|apple-touch-icon-precomposed)(\s|$)/.test(rel)) continue;
+      // Scalable icons sometimes draw blank as images, so large bitmaps come first.
       const sizes = (link.getAttribute("sizes") ?? "").toLowerCase();
-      const size = sizes === "any" ? 512 : Math.max(0, ...sizes.split(/\s+/).map((item) => Number.parseInt(item, 10) || 0));
+      const size = sizes === "any" ? 160 : Math.max(0, ...sizes.split(/\s+/).map((item) => Number.parseInt(item, 10) || 0));
       const guess = size || (rel.includes("apple-touch-icon") ? 180 : 16);
       try {
         found.push({ url: new URL(link.getAttribute("href")!, base).href, size: guess });
