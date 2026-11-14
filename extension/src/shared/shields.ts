@@ -84,7 +84,38 @@ export type Message =
   | { type: "reset-stats" }
   | { type: "set-privacy"; settings: PrivacySettings };
 
+/** Blocked requests per host for one tab, kept in memory while the tab is open. */
+export type BlockedHosts = Record<Category, Record<string, number>>;
+
+/** Hosts listed per category, so one busy page cannot grow the list without end. */
+export const MAX_BLOCKED_HOSTS = 100;
+
+export function emptyBlockedHosts(): BlockedHosts {
+  return { ads: {}, trackers: {}, threats: {} };
+}
+
+export function addBlockedHost(hosts: BlockedHosts, category: Category, url: string, count = 1): void {
+  const host = siteOf(url);
+  if (!host) return;
+  const list = hosts[category];
+  if (!(host in list) && Object.keys(list).length >= MAX_BLOCKED_HOSTS) return;
+  list[host] = (list[host] ?? 0) + count;
+}
+
+/** Most blocked first, then by name. */
+export function blockedList(hosts: Record<string, number> | undefined): BlockedHost[] {
+  return Object.entries(hosts ?? {})
+    .map(([host, count]) => ({ host, count }))
+    .sort((a, b) => b.count - a.count || a.host.localeCompare(b.host));
+}
+
+export interface BlockedHost {
+  host: string;
+  count: number;
+}
+
 export interface TabState {
   counts: Record<Category, number>;
+  blocked: Record<Category, BlockedHost[]>;
   sitesOff: string[];
 }

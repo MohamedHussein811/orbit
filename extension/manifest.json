@@ -1,12 +1,15 @@
 {
   "manifest_version": 3,
   "name": "Orbit",
-  "description": "Orbit's dashboard and Shields.",
+  "description": "__MSG_extDescription__",
+  "default_locale": "en",
+  "update_url": "https://github.com/MohamedHussein811/orbit/releases/latest/download/orbit-extension-updates.xml",
   "version": "0.0.0",
   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAtYwQ/pc9IWEOvYo3cDd90UBzrjzxLTcKo10orfYHahL8/Di+khgSVV/J/JYJ6nPUOvn/uu+l9WTWDmT3sO5iTJu1c6UBQNiYe1Nnzv7YCYnQG5l56wo0lBVq6cgc361F1vB6AjTalx+we2w01EDXPG2RuLaX8DFMxvVfJB3cX9tiQ2N/PLMf8qjsqrTi0cXeySe7mTs58d8fEvdNUlqoBks8IKU39zgbcGaqwZ4XLpn660TO0P+Ys0FmDlzyHqiWHqsxBSEKHjbKHHxWKYuMIj7ft8QQXgvd97cw6cmW54MQdhu4Ea1RfZkocGlWkwK8JA1SY97gYGNAeu6WwtnKIwIDAQAB",
   "incognito": "spanning",
   "permissions": [
     "activeTab",
+    "alarms",
     "bookmarks",
     "browsingData",
     "declarativeNetRequest",
@@ -16,7 +19,10 @@
     "privacy",
     "scripting",
     "search",
+    "sidePanel",
     "storage",
+    "tabs",
+    "topSites",
     "unlimitedStorage"
   ],
   "host_permissions": ["<all_urls>"],
@@ -31,6 +37,7 @@
   },
   "icons": { "16": "icons/orbit-16.png", "32": "icons/orbit-32.png", "48": "icons/orbit-48.png", "128": "icons/orbit-128.png" },
   "options_page": "privacy/privacy.html",
+  "side_panel": { "default_path": "notes/notes.html" },
   "chrome_url_overrides": { "newtab": "newtab/newtab.html" },
   "web_accessible_resources": [
     { "resources": ["blocked/blocked.html"], "matches": ["<all_urls>"] }
@@ -43,6 +50,6 @@
     ]
   },
   "content_security_policy": {
-    "extension_pages": "default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' data: blob: chrome-extension:; connect-src 'self' https://api.open-meteo.com https://geocoding-api.open-meteo.com https://orbit.invalid; base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
+    "extension_pages": "default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' data: blob: chrome-extension:; connect-src 'self' https: http:; base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
   }
 }

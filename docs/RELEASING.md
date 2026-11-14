@@ -4,51 +4,63 @@ This describes the process as it stands. Steps marked "not built" do not exist y
 
 ## Build
 
-```sh
-npm ci                      # type checker only. The build itself has no npm dependencies
-node tools/engine.mjs fetch # download and verify the pinned CEF
-node tools/build-host.mjs   # build orbit and orbit_test, then the extension
-```
+Builds run on GitHub's runners through `.github/workflows/browser-windows.yml`, `browser-mac.yml` and `browser-linux.yml`, on pushes to the `fork` and `design` branches that touch the browser. Each workflow chains stages of `chromium-stage.yml`, because one runner job is limited in time. A stage can continue from a stage saved by an earlier run (`resume_run`), so a small change recompiles only what depends on it.
+
+Each stage downloads and verifies the Chromium source, builds and signs the built-in extension, applies Orbit's changes with `tools/chromium/apply-fork.py`, compiles, and saves its state. The last stage runs `tools/chromium/smoke.sh`, which starts the browser and runs `tools/chromium/check-browser.mjs`.
 
 ## Test
 
 ```sh
 npm run typecheck
 npm run test:unit
-npm run test:host
+node tools/chromium/check-browser.mjs <path to a built Orbit> kceipbaiojomdibnboffoieecidpfdck
+node tools/chromium/window-shots.mjs <orbit.exe> <out folder> en dark,light
 ```
 
-`tests/package/install-smoke.mjs` installs system-wide and only runs on CI.
+`window-shots.mjs` captures Orbit's own windows on Windows for design review.
 
-## Package
+## Chromium updates
 
-```sh
-node tools/package.mjs
-```
-
-Output goes to `out/package`, with `SHA256SUMS.txt`. Windows needs Inno Setup 7. Set `ORBIT_ISCC` if it is not in a standard folder.
-
-## Engine updates
-
-`.github/workflows/engine-watch.yml` runs daily. When CEF publishes a newer stable build, it opens a pull request that changes `engine/engine.json`, and starts CI on it. Read the Chromium release notes, then merge when CI passes. Security fixes should ship within days.
-
-To update by hand: `node tools/engine.mjs check`, then `node tools/engine.mjs pin`.
-
-If the engine update changes Chromium's logos, the build stops with a message about `branding/engine-logos.json`. Find the new logo hashes through `chrome://theme/current-channel-logo` and `chrome://theme/IDR_PRODUCT_LOGO`.
+The Chromium version is pinned in `.github/workflows/chromium-stage.yml` (`CHROMIUM_VERSION`). To update it, change the version, run the patch series against the new source, and fix any patch that no longer applies. Security fixes should ship within days. **Automatic watching for new versions is not built.**
 
 ## Filter list updates
 
 `.github/workflows/filters-update.yml` runs weekly and opens a pull request with new rules in `filters/rules`. It refuses a list that looks truncated. Check the rule counts in `filters/rules/meta.json` for a large unexplained drop, then merge when CI passes.
 
-## Signing and release
+## Packaging, signing and release
 
-**Not built.** These need decisions and accounts from the owner:
+The last build stage runs `tools/chromium/package.sh` after the browser check and keeps the result as the `orbit-package-<system>` artifact for 30 days:
 
-| Step | What it needs |
+| System | Package | Notes |
+| --- | --- | --- |
+| Windows | `OrbitSetup-<version>-x64.exe` | Chromium's installer (`mini_installer`). Installs for the current user into `%LOCALAPPDATA%NovaTechOrbit`, no administrator rights. Not code-signed yet |
+| macOS | `Orbit-<version>-mac-arm64.dmg` | Signed with Chromium's `sign_chrome.py` and notarized when the signing secrets below are set; otherwise `-unsigned.dmg` |
+| Linux | `orbit_<version>_amd64.deb`, `Orbit-<version>-linux-x64.tar.xz` | Installs to `/opt/novatech/orbit` with `/usr/bin/orbit`, a desktop entry and icons |
+
+The Linux job also keeps the signed built-in extension (`orbit-extension.crx`).
+
+### macOS signing secrets
+
+Set these repository secrets to sign and notarize the disk image. Without them the build still produces an unsigned one.
+
+| Secret | Value |
 | --- | --- |
-| Windows signing | A SignPath Foundation application, which is open to open source projects |
-| macOS signing and notarization | A Developer ID certificate and an App Store Connect API key from the existing Apple membership, stored as GitHub secrets |
-| Public downloads | Approval to publish GitHub Releases |
-| Automatic updates | An EdDSA key pair kept offline, and public hosting for the update feed |
+| `MAC_CERTIFICATE_P12_BASE64` | The Developer ID Application certificate and its private key, exported as .p12, then base64 |
+| `MAC_CERTIFICATE_PASSWORD` | The .p12 export password |
+| `MAC_SIGNING_IDENTITY` | The certificate's name, such as `Developer ID Application: NovaTech (TEAMID)` |
+| `APPLE_NOTARY_KEY_P8_BASE64` | An App Store Connect API key (.p8), base64 |
+| `APPLE_NOTARY_KEY_ID` | That key's id |
+| `APPLE_NOTARY_ISSUER_ID` | The issuer id shown with App Store Connect API keys |
 
-`tools/package.mjs` reads `ORBIT_MAC_IDENTITY` for signing. With no identity it applies an ad-hoc signature, which only works on the machine that made it or after a person overrides Gatekeeper.
+Windows signing needs a SignPath Foundation application (free for open source projects); it is not set up.
+
+### Publishing a release
+
+Run the **Release** workflow by hand with a tag (`vX.Y.Z`) and the run ids of green Windows, Mac and Linux builds of the same commit. It downloads their packages, runs `tools/release-files.mjs` and publishes a GitHub Release with:
+
+- the installers and Linux packages,
+- `orbit-extension.crx` and `orbit-extension-updates.xml`: the built-in extension's `update_url` points at `releases/latest/download/orbit-extension-updates.xml`, so installed copies get new Shields rules from each release without reinstalling. Updates must be signed with the same extension key (`ORBIT_EXTENSION_KEY`), and the extension version is the commit count, so it always increases,
+- `latest.json`: the browser checks it once a day (Settings: Orbit privacy page, "Orbit updates", on by default) and shows a note on the new tab page when a release carries a newer browser,
+- `SHA256SUMS.txt` for every file.
+
+The browser itself does not update in place yet: people install the new release over the old one.

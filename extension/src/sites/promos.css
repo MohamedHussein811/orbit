@@ -1,0 +1,15 @@
+/* Other browsers' promotions on sites people use with Orbit. */
+
+/* DuckDuckGo: search results menu */
+.nav-menu__list > ul:has(a[href*="apps.apple.com"]),
+.nav-menu__promo,
+.js-side-menu-promo,
+.nav-menu__item:has(> a[href="/app"]),
+[data-testid="serp-popover-promo"],
+/* DuckDuckGo: home page */
+nav[data-testid="sidemenu"] section:has(a[data-testid="sidemenu-link-ios"]),
+nav[data-testid="sidemenu"] li:has(> a[data-testid="sidemenu-link-ddg-browser"]),
+[data-testid="cta-cards-sadbrowser"],
+#home-below-the-fold > div > :not([data-testid="product-showcase"], [data-testid="faq-section"], footer) {
+  display: none !important;
+}

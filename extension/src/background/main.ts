@@ -1,10 +1,13 @@
 // Shields: counts what the browser's rule engine really blocked, and applies per-site switches.
-// Only daily totals and per-tab totals are stored. URLs and hostnames of blocked requests never are.
+// Daily totals are stored. Per-tab totals and the hosts blocked in each tab stay in memory (session
+// storage) until the tab navigates or closes, so the Shields panel can list them. Full URLs never
+// are kept.
 
 import { addCount, emptyCounts, emptyStats, pruneStats, sanitizeStats, type Category, type Counts } from "../shared/stats.ts";
 import { sanitizePrivacy } from "../shared/privacy.ts";
-import { allowRule, categoryOfMatch, cosmeticCss, cosmeticShard, hostSuffixes, normalizeHosts, siteOf, type Message, type SiteCosmetic, type TabState } from "../shared/shields.ts";
-import { applyFingerprinting, applyGenericHiding, applyWebRtc, readPrivacy, runStartupCleanup } from "./privacy.ts";
+import { addBlockedHost, allowRule, blockedList, categoryOfMatch, emptyBlockedHosts, cosmeticCss, cosmeticShard, hostSuffixes, normalizeHosts, siteOf, type BlockedHosts, type Message, type SiteCosmetic, type TabState } from "../shared/shields.ts";
+import { applyFingerprinting, applyGenericHiding, applySiteFixes, applyWebRtc, readPrivacy, runStartupCleanup } from "./privacy.ts";
+import { checkForUpdate, scheduleUpdateCheck, UPDATE_ALARM } from "./updates.ts";
 
 const FLUSH_DELAY_MS = 500;
 const DYNAMIC_ALLOW_RULE = 1;
@@ -13,6 +16,7 @@ const SESSION_CONTINUE_RULE = 2;
 
 let pending: Counts = emptyCounts();
 const tabPending = new Map<number, Counts>();
+const tabHostsPending = new Map<number, BlockedHosts>();
 let flushTimer: ReturnType<typeof setTimeout> | null = null;
 let writes: Promise<unknown> = Promise.resolve();
 
@@ -30,6 +34,9 @@ chrome.declarativeNetRequest.onRuleMatchedDebug.addListener(({ request, rule }) 
     const counts = tabPending.get(request.tabId) ?? emptyCounts();
     counts[category]++;
     tabPending.set(request.tabId, counts);
+    const hosts = tabHostsPending.get(request.tabId) ?? emptyBlockedHosts();
+    addBlockedHost(hosts, category, request.url);
+    tabHostsPending.set(request.tabId, hosts);
   }
   flushTimer ??= setTimeout(flush, FLUSH_DELAY_MS);
 });
@@ -39,11 +46,13 @@ function flush(): Promise<void> {
   flushTimer = null;
   const daily = pending;
   const byTab = new Map(tabPending);
+  const hostsByTab = new Map(tabHostsPending);
   pending = emptyCounts();
   tabPending.clear();
+  tabHostsPending.clear();
   return serialized(async () => {
     const now = Date.now();
-    const { stats, tabCounts } = await readStored();
+    const { stats, tabCounts, tabHosts } = await readStored();
     for (const category of Object.keys(daily) as Category[]) {
       if (daily[category] > 0) addCount(stats, category, daily[category], now);
     }
@@ -53,14 +62,24 @@ function flush(): Promise<void> {
       const total = (tabCounts[tabId] ??= emptyCounts());
       for (const category of Object.keys(counts) as Category[]) total[category] += counts[category];
     }
-    await chrome.storage.session.set({ tabCounts });
+    for (const [tabId, hosts] of hostsByTab) {
+      const total = (tabHosts[tabId] ??= emptyBlockedHosts());
+      for (const category of Object.keys(hosts) as Category[]) {
+        for (const [host, count] of Object.entries(hosts[category])) addBlockedHost(total, category, `https://${host}/`, count);
+      }
+    }
+    await chrome.storage.session.set({ tabCounts, tabHosts });
     await Promise.all([...byTab.keys()].map((tabId) => showBadge(tabId, tabCounts[tabId]!)));
   });
 }
 
-async function readStored(): Promise<{ stats: ReturnType<typeof sanitizeStats>; tabCounts: Record<number, Counts> }> {
-  const [{ stats }, { tabCounts }] = await Promise.all([chrome.storage.local.get("stats"), chrome.storage.session.get("tabCounts")]);
-  return { stats: sanitizeStats(stats), tabCounts: (tabCounts as Record<number, Counts> | undefined) ?? {} };
+async function readStored(): Promise<{ stats: ReturnType<typeof sanitizeStats>; tabCounts: Record<number, Counts>; tabHosts: Record<number, BlockedHosts> }> {
+  const [{ stats }, { tabCounts, tabHosts }] = await Promise.all([chrome.storage.local.get("stats"), chrome.storage.session.get(["tabCounts", "tabHosts"])]);
+  return {
+    stats: sanitizeStats(stats),
+    tabCounts: (tabCounts as Record<number, Counts> | undefined) ?? {},
+    tabHosts: (tabHosts as Record<number, BlockedHosts> | undefined) ?? {},
+  };
 }
 
 function showBadge(tabId: number, counts: Counts): Promise<void> {
@@ -71,11 +90,13 @@ function showBadge(tabId: number, counts: Counts): Promise<void> {
 
 function clearTab(tabId: number): Promise<void> {
   tabPending.delete(tabId);
+  tabHostsPending.delete(tabId);
   return serialized(async () => {
-    const { tabCounts } = await readStored();
-    if (tabCounts[tabId]) {
+    const { tabCounts, tabHosts } = await readStored();
+    if (tabCounts[tabId] || tabHosts[tabId]) {
       delete tabCounts[tabId];
-      await chrome.storage.session.set({ tabCounts });
+      delete tabHosts[tabId];
+      await chrome.storage.session.set({ tabCounts, tabHosts });
     }
   });
 }
@@ -156,6 +177,7 @@ async function setShields(host: string, enabled: boolean, incognito: boolean): P
     await applyPersistentRules(sitesOff);
     await applyFingerprinting(await readPrivacy(), sitesOff);
     await applyGenericHiding(sitesOff);
+    await applySiteFixes(sitesOff);
   }
 }
 
@@ -176,8 +198,13 @@ async function handle(message: Message): Promise<unknown> {
   switch (message.type) {
     case "tab-state": {
       await flush();
-      const [{ tabCounts }, regular, privateHosts] = await Promise.all([readStored(), hostsOff(), privateHostsOff()]);
-      const state: TabState = { counts: tabCounts[message.tabId] ?? emptyCounts(), sitesOff: [...regular, ...privateHosts] };
+      const [{ tabCounts, tabHosts }, regular, privateHosts] = await Promise.all([readStored(), hostsOff(), privateHostsOff()]);
+      const hosts = tabHosts[message.tabId] ?? emptyBlockedHosts();
+      const state: TabState = {
+        counts: tabCounts[message.tabId] ?? emptyCounts(),
+        blocked: { ads: blockedList(hosts.ads), trackers: blockedList(hosts.trackers), threats: blockedList(hosts.threats) },
+        sitesOff: [...regular, ...privateHosts],
+      };
       return state;
     }
     case "set-shields":
@@ -189,6 +216,7 @@ async function handle(message: Message): Promise<unknown> {
     case "set-privacy": {
       const privacy = sanitizePrivacy(message.settings);
       await chrome.storage.local.set({ privacy });
+      if (!privacy.checkUpdates) await chrome.storage.local.remove("update");
       await applyWebRtc(privacy);
       await applyFingerprinting(privacy, await hostsOff());
       return { ok: true };
@@ -208,11 +236,28 @@ async function applyAll(): Promise<void> {
   await applyWebRtc(privacy);
   await applyFingerprinting(privacy, sitesOff);
   await applyGenericHiding(sitesOff);
+  await applySiteFixes(sitesOff);
 }
 
-chrome.runtime.onInstalled.addListener(() => {
+/** Tabs opened before this extension finished installing show Chromium's own new tab page.
+ * A new tab in the same place shows Orbit's page instead. */
+async function takeOverNewTabs(): Promise<void> {
+  const tabs = await chrome.tabs.query({});
+  const chromiumNewTab = /^chrome:\/\/(newtab|new-tab-page)\//;
+  await Promise.all(
+    tabs
+      .filter((tab) => tab.id !== undefined && (chromiumNewTab.test(tab.url ?? "") || chromiumNewTab.test(tab.pendingUrl ?? "")))
+      .map(async (tab) => {
+        await chrome.tabs.create({ url: "chrome://newtab/", windowId: tab.windowId, index: tab.index, active: tab.active });
+        await chrome.tabs.remove(tab.id!);
+      }),
+  );
+}
+
+chrome.runtime.onInstalled.addListener((details) => {
   void chrome.action.setBadgeBackgroundColor({ color: "#3b4ad0" });
   void chrome.action.setBadgeTextColor({ color: "#ffffff" });
+  if (details.reason === "install") void takeOverNewTabs();
 });
 
 // The browser re-registers an extension loaded from a folder at each launch, and may report that as
@@ -227,3 +272,8 @@ async function startOncePerSession(): Promise<void> {
 
 chrome.runtime.onStartup.addListener(() => {});
 void startOncePerSession();
+
+chrome.alarms.onAlarm.addListener((alarm) => {
+  if (alarm.name === UPDATE_ALARM) void checkForUpdate();
+});
+void scheduleUpdateCheck();

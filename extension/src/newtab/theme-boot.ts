@@ -1,9 +1,10 @@
-// Runs before first paint, so a light theme never flashes dark. The cached value comes from newtab.ts.
+// Runs before first paint, so the page never flashes the wrong theme or background.
+document.documentElement.dataset.theme = matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
 try {
-  const theme = localStorage.getItem("orbit-theme");
-  if (theme) document.documentElement.dataset.theme = theme;
-  const accent = localStorage.getItem("orbit-accent");
-  if (accent) document.documentElement.style.setProperty("--accent", accent);
+  const background = localStorage.getItem("orbit-background");
+  if (background) document.documentElement.dataset.background = background;
+  const color = localStorage.getItem("orbit-color");
+  if (background === "color" && color) document.documentElement.style.setProperty("--backdrop-color", color);
 } catch {
-  // Storage can be unavailable. The page still renders with its default theme.
+  // Storage can be unavailable. The page still renders with the default background.
 }

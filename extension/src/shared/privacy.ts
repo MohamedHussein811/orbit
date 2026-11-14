@@ -18,10 +18,11 @@ export interface PrivacySettings {
   webrtc: WebRtcPolicy;
   clearOnStart: ClearableData[];
   historyDays: number;
+  checkUpdates: boolean;
 }
 
 export function defaultPrivacy(): PrivacySettings {
-  return { version: 1, fingerprinting: "standard", webrtc: "default_public_interface_only", clearOnStart: [], historyDays: 0 };
+  return { version: 1, fingerprinting: "standard", webrtc: "default_public_interface_only", clearOnStart: [], historyDays: 0, checkUpdates: true };
 }
 
 export function sanitizePrivacy(raw: unknown): PrivacySettings {
@@ -34,6 +35,7 @@ export function sanitizePrivacy(raw: unknown): PrivacySettings {
     webrtc: WEBRTC_POLICIES.includes(source.webrtc as WebRtcPolicy) ? (source.webrtc as WebRtcPolicy) : defaults.webrtc,
     clearOnStart: [...new Set(clear)],
     historyDays: (HISTORY_DAYS as readonly number[]).includes(source.historyDays as number) ? (source.historyDays as number) : 0,
+    checkUpdates: source.checkUpdates !== false,
   };
 }
 

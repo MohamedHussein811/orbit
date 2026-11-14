@@ -7,3 +7,5 @@ out/
 keys/*.private*
 keys/*.key
 keys/*.pem
+/chromium/overlay/chrome/browser/resources/orbit_extensions/*.crx
+/chromium/overlay/chrome/browser/resources/orbit_extensions/*.json

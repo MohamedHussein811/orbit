@@ -1,0 +1,126 @@
+diff --git a/chrome/browser/resources/settings/about_page/about_page.html.ts b/chrome/browser/resources/settings/about_page/about_page.html.ts
+--- a/chrome/browser/resources/settings/about_page/about_page.html.ts
++++ b/chrome/browser/resources/settings/about_page/about_page.html.ts
+@@ -89,7 +89,7 @@
+     </div>
+   ` : ''}
+ </if>
+-  <cr-link-row class="hr" id="help" @click="${this.onHelpClick_}"
++  <cr-link-row class="hr" id="help" hidden @click="${this.onHelpClick_}"
+       label="$i18n{aboutGetHelpUsingChrome}" external></cr-link-row>
+ <if expr="_google_chrome">
+   <cr-link-row class="hr" id="reportIssue" @click="${this.onReportIssueClick_}"
+diff --git a/chrome/browser/resources/settings/page_visibility.ts b/chrome/browser/resources/settings/page_visibility.ts
+--- a/chrome/browser/resources/settings/page_visibility.ts
++++ b/chrome/browser/resources/settings/page_visibility.ts
+@@ -43,9 +43,33 @@
+ }
+ 
+ function createPageVisibility(): PageVisibility|undefined {
++  // <if expr="not is_chromeos">
++  if (!loadTimeData.getBoolean('isGuest')) {
++    return {
++      a11y: true,
++      ai: false,
++      appearance: true,
++      autofill: true,
++      defaultBrowser: true,
++      downloads: true,
++      extensions: true,
++      languages: true,
++      onStartup: true,
++      people: true,
++      performance: true,
++      privacy: true,
++      reset: true,
++      safetyHub: false,
++      system: true,
++      yourSavedInfo: true,
++    };
++  }
++  // </if>
++  // <if expr="is_chromeos">
+   if (!loadTimeData.getBoolean('isGuest')) {
+     return undefined;
+   }
++  // </if>
+ 
+   // <if expr="not is_chromeos">
+   const pageVisibility = {
+diff --git a/chrome/browser/resources/settings/people_page/people_page.html.ts b/chrome/browser/resources/settings/people_page/people_page.html.ts
+--- a/chrome/browser/resources/settings/people_page/people_page.html.ts
++++ b/chrome/browser/resources/settings/people_page/people_page.html.ts
+@@ -95,14 +95,14 @@
+             .subLabel="${this.getSyncAndNonPersonalizedServicesSubtext_()}"
+             @click="${this.onSyncClick_}"
+             role-description="$i18n{subpageArrowRoleDescription}"
+-            ?hidden="${this.shouldHideSyncSetupLinkRow_()}">
++            hidden>
+         </cr-link-row>
+ 
+         <cr-link-row id="google-services"
+             label="$i18n{googleServicesPageTitle}"
+             @click="${this.onGoogleServicesClick_}"
+             role-description="$i18n{subpageArrowRoleDescription}"
+-            ?hidden="${!this.shouldHideSyncSetupLinkRow_()}">
++            hidden>
+         </cr-link-row>
+ 
+ <if expr="not is_chromeos">
+diff --git a/chrome/browser/resources/settings/privacy_page/security/security_page.html b/chrome/browser/resources/settings/privacy_page/security/security_page.html
+--- a/chrome/browser/resources/settings/privacy_page/security/security_page.html
++++ b/chrome/browser/resources/settings/privacy_page/security/security_page.html
+@@ -6,7 +6,7 @@
+   <settings-subpage page-title="$i18n{securityPageTitle}"
+       learn-more-url="$i18n{safeBrowsingHelpCenterURL}"
+       route-path="${this.routePath}">
+-    <div id="safeBrowsingSection">
++    <div id="safeBrowsingSection" hidden>
+       <h2 class="cr-title-text">$i18n{safeBrowsingSectionLabel}</h2>
+       <settings-radio-group id="safeBrowsingRadioGroup" no-set-pref
+           pref-key="generated.safe_browsing"
+@@ -162,7 +162,7 @@
+     <div class="cr-row first">
+       <h2 class="cr-title-text">$i18n{advancedPageTitle}</h2>
+     </div>
+-    <settings-toggle-button id="passwordsLeakToggle"
++    <settings-toggle-button id="passwordsLeakToggle" hidden
+         label="$i18n{passwordsLeakDetectionLabel}"
+         pref-key="generated.password_leak_detection"
+         sub-label="${this.getPasswordsLeakToggleSubLabel_()}">
+diff --git a/chrome/browser/ui/webui/settings/settings_ui.cc b/chrome/browser/ui/webui/settings/settings_ui.cc
+--- a/chrome/browser/ui/webui/settings/settings_ui.cc
++++ b/chrome/browser/ui/webui/settings/settings_ui.cc
+@@ -374,10 +374,7 @@
+   html_source->AddBoolean("isOSSettings", false);
+ #endif  // BUILDFLAG(IS_CHROMEOS)
+ 
+-  bool show_privacy_guide =
+-      base::FeatureList::IsEnabled(features::kPrivacyGuideForceAvailable) ||
+-      (!ShouldDisplayManagedUi(profile) && !profile->IsChild());
+-  html_source->AddBoolean("showPrivacyGuide", show_privacy_guide);
++  html_source->AddBoolean("showPrivacyGuide", false);
+ 
+   html_source->AddBoolean("enableHandTrackingContentSetting",
+ #if BUILDFLAG(ENABLE_VR)
+@@ -679,9 +676,7 @@
+   // Within the AI subpage are separate sections for Glic, for GEIC, and for all
+   // other AI features. The visibility of these is separately controlled, but
+   // we want to show the subpage if any of them are enabled.
+-  html_source->AddBoolean("showAiPage",
+-                          show_glic_section || show_ai_features_section ||
+-                              enable_ai_mode_search || show_geic_section);
++  html_source->AddBoolean("showAiPage", false);
+   html_source->AddBoolean("showAiPageAiFeatureSection",
+                           show_ai_features_section);
+ 
+@@ -947,9 +942,6 @@
+   base::DictValue update;
+   update.Set("showGlicSettings", show_glic);
+   update.Set("glicDisallowedByAdmin", enablement.DisallowedByAdmin());
+-  if (show_glic) {
+-    update.Set("showAiPage", true);
+-  }
+ 
+   content::WebUIDataSource::Update(
+       web_ui()->GetWebContents()->GetBrowserContext(),

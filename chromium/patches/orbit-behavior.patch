@@ -1,0 +1,68 @@
+diff --git a/chrome/app/chrome_main_delegate.cc b/chrome/app/chrome_main_delegate.cc
+--- a/chrome/app/chrome_main_delegate.cc
++++ b/chrome/app/chrome_main_delegate.cc
+@@ -1220,7 +1220,6 @@
+                      "PrivacySandboxAdsAPIsM1Override,SharedStorageAPI,") +
+          kAiAndAdFeatures)
+             .c_str());
+-  merge("disable-blink-features", kAiAndAdFeatures);
+ }
+ 
+ }  // namespace
+diff --git a/chrome/browser/background/extensions/background_mode_manager.cc b/chrome/browser/background/extensions/background_mode_manager.cc
+--- a/chrome/browser/background/extensions/background_mode_manager.cc
++++ b/chrome/browser/background/extensions/background_mode_manager.cc
+@@ -351,7 +351,9 @@
+ 
+ // static
+ void BackgroundModeManager::RegisterPrefs(PrefRegistrySimple* registry) {
+-  registry->RegisterBooleanPref(prefs::kBackgroundModeEnabled, true);
++  // Orbit stops running when its last window closes, unless the person turns
++  // this on in Settings.
++  registry->RegisterBooleanPref(prefs::kBackgroundModeEnabled, false);
+ }
+ 
+ void BackgroundModeManager::RegisterProfile(Profile* profile) {
+diff --git a/chrome/browser/chrome_content_browser_client.cc b/chrome/browser/chrome_content_browser_client.cc
+--- a/chrome/browser/chrome_content_browser_client.cc
++++ b/chrome/browser/chrome_content_browser_client.cc
+@@ -3152,6 +3152,21 @@
+ #endif
+ 
+   if (process_type == switches::kRendererProcess) {
++    // Orbit's web features that are off by default. They are set here rather than on the browser
++    // command line, which would show an unsupported flag warning.
++    std::string blink_features =
++        command_line->GetSwitchValueASCII(switches::kDisableBlinkFeatures);
++    if (!blink_features.empty()) {
++      blink_features += ",";
++    }
++    command_line->AppendSwitchASCII(
++        switches::kDisableBlinkFeatures,
++        blink_features +
++            "AIPromptAPI,AISummarizationAPI,AIWriterAPI,AIRewriterAPI,"
++            "AIProofreadingAPI,TranslationAPI,LanguageDetectionAPI,Fledge,"
++            "TopicsAPI,AttributionReporting,FencedFrames,PrivateStateTokens,"
++            "AdInterestGroupAPI");
++
+     content::RenderProcessHost* process =
+         content::RenderProcessHost::FromID(child_process_id);
+     if (process) {
+diff --git a/chrome/browser/ui/safety_hub/menu_notification_service.cc b/chrome/browser/ui/safety_hub/menu_notification_service.cc
+--- a/chrome/browser/ui/safety_hub/menu_notification_service.cc
++++ b/chrome/browser/ui/safety_hub/menu_notification_service.cc
+@@ -176,6 +176,14 @@
+     const SafetyHubModuleInfoElement* info_element =
+         module_info_map_[item.first].get();
+     SafetyHubMenuNotification* notification = info_element->notification.get();
++    // Orbit turns Safe Browsing off on purpose and blocks threats with its own
++    // lists, so the menu does not ask to turn it back on.
++    if (item.first == safety_hub::SafetyHubModuleType::SAFE_BROWSING) {
++      if (notification->IsCurrentlyActive()) {
++        notification->Dismiss();
++      }
++      continue;
++    }
+     // The result in the ResultMap (item.second) is being moved away from and
+     // thus shouldn't be used again in this method.
+     notification->UpdateResult(std::move(item.second));

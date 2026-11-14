@@ -1,0 +1,207 @@
+/* Notes, shared by the new tab page and the notes side panel: a list, and a dialog to write in. */
+
+.note-row,
+.note-dialog {
+  --note: var(--accent);
+}
+
+[data-color="ion"] { --note: #7cacf8; }
+[data-color="amber"] { --note: #f2b75b; }
+[data-color="rose"] { --note: #f28ca8; }
+[data-color="mint"] { --note: #5fd4c8; }
+[data-color="slate"] { --note: #9aa3b8; }
+
+.notes-search {
+  width: 100%;
+  min-height: 2.25rem;
+  margin-bottom: 0.6rem;
+  font-size: 0.875rem;
+}
+
+.notes-list {
+  display: grid;
+  gap: 0.35rem;
+  max-height: 12.5rem;
+  margin: 0 -0.35rem;
+  padding: 0 0.35rem;
+  overflow-y: auto;
+  list-style: none;
+  scrollbar-width: thin;
+}
+
+.note-row {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  width: 100%;
+  min-height: 3rem;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  padding: 0.45rem 0.65rem;
+  background: var(--control);
+  text-align: start;
+  transition: background-color 140ms linear, border-color 140ms linear;
+}
+
+.note-row:hover {
+  border-color: color-mix(in oklab, var(--note) 40%, transparent);
+  background: color-mix(in oklab, var(--note) 10%, var(--control));
+}
+
+.note-mark {
+  flex: none;
+  align-self: stretch;
+  width: 3px;
+  border-radius: 2px;
+  background: var(--note);
+}
+
+.note-text {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+}
+
+.note-title,
+.note-body {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.note-title {
+  font-weight: 450;
+}
+
+.note-body {
+  color: var(--muted);
+  font-size: 0.8125rem;
+}
+
+.note-meta {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.note-pinned svg {
+  width: 0.85rem;
+  height: 0.85rem;
+  fill: none;
+  stroke: var(--note);
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.notes-list .empty {
+  padding: 0.25rem 0 0.5rem;
+}
+
+/* The note dialog */
+.note-dialog {
+  display: flex;
+  flex-direction: column;
+  width: min(38rem, 94vw);
+  height: min(30rem, 84vh);
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 1.25rem;
+  background: color-mix(in oklab, var(--orbit-surface) 72%, var(--orbit-container-high));
+  color: var(--text);
+  box-shadow: 0 40px 90px -36px rgb(0 0 0 / 0.8);
+  overflow: hidden;
+}
+
+.note-dialog:not([open]) {
+  display: none;
+}
+
+:root[data-theme="light"] .note-dialog {
+  background: #ffffff;
+}
+
+.note-dialog::before {
+  content: "";
+  flex: none;
+  height: 3px;
+  background: var(--note);
+}
+
+.note-dialog::backdrop {
+  background: rgb(4 4 8 / 0.5);
+  backdrop-filter: blur(3px);
+}
+
+.note-dialog-head {
+  display: flex;
+  align-items: center;
+  gap: 0.15rem;
+  padding: 0.6rem 0.6rem 0.2rem 1rem;
+}
+
+.note-dialog-head .spacer {
+  flex: 1;
+}
+
+.note-colors {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.swatch {
+  width: 1.1rem;
+  height: 1.1rem;
+  padding: 0;
+  border: 1px solid var(--line-strong);
+  border-radius: 50%;
+  background: var(--swatch);
+}
+
+.swatch[aria-pressed="true"] {
+  outline: 2px solid var(--text);
+  outline-offset: 2px;
+}
+
+.note-editor {
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+  border: 0;
+  border-radius: 0;
+  padding: 0.6rem 1.25rem;
+  background: none;
+  font-size: 1rem;
+  line-height: 1.6;
+  resize: none;
+}
+
+.note-editor:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+
+.note-dialog-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.7rem 1rem 0.9rem 1.25rem;
+  border-top: 1px solid var(--line);
+}
+
+.note-status {
+  color: var(--muted);
+  font-size: 0.8125rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .note-row {
+    transition: none;
+  }
+}

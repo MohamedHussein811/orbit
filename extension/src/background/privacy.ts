@@ -4,6 +4,9 @@ import { excludeMatches, historyCutoff, removalOptions, sanitizePrivacy, type Pr
 
 const SCRIPT_ID = "orbit-fingerprint";
 const COSMETIC_ID = "orbit-cosmetic";
+const YOUTUBE_ID = "orbit-youtube";
+const PROMOS_ID = "orbit-promos";
+const YOUTUBE_MATCHES = ["*://youtube.com/*", "*://*.youtube.com/*", "*://*.youtube-nocookie.com/*"];
 
 export async function readPrivacy(): Promise<PrivacySettings> {
   const { privacy } = await chrome.storage.local.get("privacy");
@@ -42,6 +45,30 @@ export async function applyGenericHiding(hostsOff: readonly string[]): Promise<v
       matches: ["http://*/*", "https://*/*"],
       excludeMatches: excludeMatches(hostsOff),
       allFrames: true,
+      runAt: "document_start",
+    },
+  ]);
+}
+
+/** YouTube ads and other browsers' promotions, which request blocking cannot reach. */
+export async function applySiteFixes(hostsOff: readonly string[]): Promise<void> {
+  await chrome.scripting.unregisterContentScripts({ ids: [YOUTUBE_ID, PROMOS_ID] }).catch(() => {});
+  await chrome.scripting.registerContentScripts([
+    {
+      id: YOUTUBE_ID,
+      js: ["sites/youtube.js"],
+      css: ["sites/youtube.css"],
+      matches: YOUTUBE_MATCHES,
+      excludeMatches: excludeMatches(hostsOff),
+      allFrames: true,
+      runAt: "document_start",
+      world: "MAIN",
+    },
+    {
+      id: PROMOS_ID,
+      css: ["sites/promos.css"],
+      matches: ["*://duckduckgo.com/*", "*://*.duckduckgo.com/*"],
+      excludeMatches: excludeMatches(hostsOff),
       runAt: "document_start",
     },
   ]);

@@ -1,12 +1,12 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { defaultLayout, moveWidget, sanitizeLayout, updateWidget } from "../src/shared/layout.ts";
-import { createNote, patchNote, sanitizeNotes, sortNotes } from "../src/shared/notes.ts";
+import { createNote, dropEmptyNotes, noteSummary, patchNote, sanitizeNotes, sortNotes, upsertNote } from "../src/shared/notes.ts";
 import { excludeMatches, historyCutoff, removalOptions, sanitizePrivacy } from "../src/shared/privacy.ts";
-import { DEFAULT_ACCENT, resolveTheme, sanitizeSettings } from "../src/shared/settings.ts";
-import { allowRule, ALLOW_ID_BASE, categoryOfMatch, cosmeticCss, cosmeticShard, hostSuffixes, normalizeHosts, siteOf } from "../src/shared/shields.ts";
+import { resolveTheme, sanitizeSettings, searchUrl } from "../src/shared/settings.ts";
+import { addBlockedHost, allowRule, ALLOW_ID_BASE, blockedList, categoryOfMatch, cosmeticCss, cosmeticShard, emptyBlockedHosts, hostSuffixes, MAX_BLOCKED_HOSTS, normalizeHosts, siteOf } from "../src/shared/shields.ts";
 import { addCount, dayKey, emptyStats, pruneStats, sanitizeStats, summarize } from "../src/shared/stats.ts";
-import { describeWeather, forecastUrl, isFresh, parseForecast, parsePlaces, roundCoordinate, WEATHER_CACHE_MS } from "../src/shared/weather.ts";
+import { forecastUrl, geocodeUrl, weatherConditionKey, isFresh, parseForecast, parsePlaces, roundCoordinate, WEATHER_CACHE_MS } from "../src/shared/weather.ts";
 
 const NOW = new Date(2026, 10, 9, 12).getTime();
 const DAY = 86_400_000;
@@ -77,19 +77,21 @@ test("note edits ignore invalid values", () => {
 });
 
 test("settings fall back to safe defaults", () => {
-  const settings = sanitizeSettings({ theme: "neon", accent: "red", statsPeriod: "never", temperatureUnit: "kelvin", bookmarksFolder: 4 });
-  assert.equal(settings.theme, "space");
-  assert.equal(settings.accent, DEFAULT_ACCENT);
+  const settings = sanitizeSettings({ background: "neon", statsPeriod: "never", temperatureUnit: "kelvin", bookmarksFolder: 4 });
+  assert.equal(settings.background, "default");
+  assert.equal(settings.videoPaused, false);
+  assert.equal(settings.showClock, true);
   assert.equal(settings.statsPeriod, "7d");
   assert.equal(settings.temperatureUnit, "celsius");
   assert.equal(settings.bookmarksFolder, null);
-  assert.equal(sanitizeSettings({ accent: "#ABCDEF" }).accent, "#abcdef");
+  assert.equal(sanitizeSettings({ background: "plain" }).background, "plain");
+  assert.equal(sanitizeSettings({ background: "custom", videoPaused: true }).videoPaused, true);
+  assert.equal(sanitizeSettings({ videoPaused: "yes", showClock: 0 }).videoPaused, false);
 });
 
-test("the system theme follows the operating system", () => {
-  assert.equal(resolveTheme("system", true), "dark");
-  assert.equal(resolveTheme("system", false), "light");
-  assert.equal(resolveTheme("space", false), "space");
+test("the dashboard follows the browser theme", () => {
+  assert.equal(resolveTheme(true), "dark");
+  assert.equal(resolveTheme(false), "light");
 });
 
 test("only block rules count as blocks", () => {
@@ -178,8 +180,10 @@ test("weather parsing rejects incomplete answers", () => {
   assert.equal(parseForecast({ current: {} }, NOW), null);
   assert.equal(parseForecast(null, NOW), null);
   assert.deepEqual(parsePlaces({ results: [{ name: "Cairo", latitude: 30, longitude: 31, country: "Egypt" }, { name: "x" }] }), [{ name: "Cairo", detail: "Egypt", latitude: 30, longitude: 31 }]);
-  assert.equal(describeWeather(0), "Clear sky");
-  assert.equal(describeWeather(1234), "Unknown conditions");
+  assert.equal(weatherConditionKey(0), "weatherClear");
+  assert.equal(weatherConditionKey(1234), "weatherUnknown");
+  assert.equal(new URL(geocodeUrl("Cairo", "ar")).searchParams.get("language"), "ar");
+  assert.equal(new URL(geocodeUrl("Cairo", "../x")).searchParams.get("language"), "en");
 });
 
 test("weather reports expire", () => {
@@ -187,4 +191,76 @@ test("weather reports expire", () => {
   assert.equal(isFresh(report, NOW + 1000), true);
   assert.equal(isFresh(report, NOW + WEATHER_CACHE_MS + 1), false);
   assert.equal(isFresh(null, NOW), false);
+});
+
+test("release check compares versions and accepts only Orbit's release pages", async () => {
+  const { compareVersions, isNewer, sanitizeRelease, RELEASES } = await import("../src/shared/updates.ts");
+  assert.equal(compareVersions("157.0.8103.38", "157.0.8103.38"), 0);
+  assert.equal(compareVersions("158.0.1.2", "157.9.9999.99"), 1);
+  assert.equal(compareVersions("157.0.8103", "157.0.8103.1"), -1);
+  const release = sanitizeRelease({ tag: "v1.2.0", browserVersion: "158.0.7000.10", url: `${RELEASES}tag/v1.2.0` });
+  assert.ok(release);
+  assert.equal(isNewer(release, "157.0.8103.38"), true);
+  assert.equal(isNewer(release, "158.0.7000.10"), false);
+  assert.equal(isNewer(release, "not a version"), false);
+  assert.equal(sanitizeRelease({ tag: "v1.2.0", browserVersion: "158.0.7000.10", url: "https://example.com/" }), null);
+  assert.equal(sanitizeRelease({ tag: "1.2", browserVersion: "158", url: `${RELEASES}tag/1.2` }), null);
+  assert.equal(sanitizeRelease(null), null);
+});
+
+test("blocked hosts are counted per host, capped, and listed most blocked first", () => {
+  const hosts = emptyBlockedHosts();
+  addBlockedHost(hosts, "trackers", "https://b.example/pixel?id=1");
+  addBlockedHost(hosts, "trackers", "https://a.example/t.js");
+  addBlockedHost(hosts, "trackers", "https://b.example/other", 2);
+  addBlockedHost(hosts, "ads", "not a url");
+  assert.deepEqual(blockedList(hosts.trackers), [
+    { host: "b.example", count: 3 },
+    { host: "a.example", count: 1 },
+  ]);
+  assert.deepEqual(blockedList(hosts.ads), []);
+  for (let i = 0; i < MAX_BLOCKED_HOSTS + 10; i++) addBlockedHost(hosts, "ads", `https://h${i}.example/`);
+  assert.equal(Object.keys(hosts.ads).length, MAX_BLOCKED_HOSTS);
+  addBlockedHost(hosts, "ads", "https://h0.example/");
+  assert.equal(hosts.ads["h0.example"], 2);
+});
+
+test("notes are titled by their first line, and empty ones are not kept", () => {
+  assert.deepEqual(noteSummary("\n  Groceries \nmilk\n\neggs"), { title: "Groceries", body: "milk eggs" });
+  assert.deepEqual(noteSummary(""), { title: "", body: "" });
+  const first = { ...createNote("a", NOW), text: "first" };
+  const empty = createNote("b", NOW);
+  assert.deepEqual(upsertNote([], empty), []);
+  const one = upsertNote([], first);
+  assert.deepEqual(one.map((note) => note.id), ["a"]);
+  const second = { ...createNote("c", NOW), text: "second" };
+  assert.deepEqual(upsertNote(one, second).map((note) => note.id), ["c", "a"]);
+  assert.deepEqual(upsertNote(one, { ...first, text: "  " }), []);
+  assert.deepEqual(dropEmptyNotes([first, empty]).map((note) => note.id), ["a"]);
+});
+
+test("new tab settings keep valid choices and drop bad ones", () => {
+  const good = sanitizeSettings({ background: "color", color: "nebula", clockFormat: "24", showDate: false, searchEngine: "brave", topSitesMode: "frequent", shortcutRows: 2, hiddenSites: ["https://a.example/", "https://a.example/", 5] });
+  assert.equal(good.background, "color");
+  assert.equal(good.color, "nebula");
+  assert.equal(good.clockFormat, "24");
+  assert.equal(good.showDate, false);
+  assert.equal(good.searchEngine, "brave");
+  assert.equal(good.topSitesMode, "frequent");
+  assert.equal(good.shortcutRows, 2);
+  assert.deepEqual(good.hiddenSites, ["https://a.example/"]);
+  const bad = sanitizeSettings({ background: "neon", color: "plaid", clockFormat: 13, searchEngine: "askjeeves", topSitesMode: "random", shortcutRows: 3, hiddenSites: "x" });
+  assert.equal(bad.background, "default");
+  assert.equal(bad.color, "midnight");
+  assert.equal(bad.clockFormat, "auto");
+  assert.equal(bad.searchEngine, "default");
+  assert.equal(bad.topSitesMode, "favorites");
+  assert.equal(bad.shortcutRows, 1);
+  assert.deepEqual(bad.hiddenSites, []);
+});
+
+test("searches go to the chosen engine, or to the browser's own", () => {
+  assert.equal(searchUrl("default", "cats"), null);
+  assert.equal(searchUrl("google", "cats & dogs"), "https://www.google.com/search?q=cats%20%26%20dogs");
+  assert.equal(searchUrl("startpage", "a"), "https://www.startpage.com/do/search?query=a");
 });

@@ -1,53 +1,180 @@
-// Dashboard page: loads settings and layout, draws the widgets, and runs the Customize panel.
+// Dashboard page: background, layout, widgets and the Customize dialog.
 
 import { ALLOWED_SIZES, defaultLayout, moveWidget, sanitizeLayout, updateWidget, type Layout, type WidgetId, type WidgetSize } from "../shared/layout.ts";
-import { ACCENTS, resolveTheme, sanitizeSettings, THEME_MODES, type Settings, type ThemeMode } from "../shared/settings.ts";
-import { h, iconButton } from "./dom.ts";
-import { mountBookmarks, mountNotes, mountSearch, mountStats, mountWeather, type WidgetContext } from "./widgets.ts";
+import { localizePage, t } from "../shared/i18n.ts";
+import {
+  CLOCK_FORMATS,
+  COLOR_IDS,
+  COLORS,
+  resolveTheme,
+  sanitizeSettings,
+  SEARCH_ENGINE_IDS,
+  TOP_SITES_MODES,
+  type Background,
+  type ClockFormat,
+  type ColorId,
+  type SearchEngine,
+  type Settings,
+  type TopSitesMode,
+} from "../shared/settings.ts";
+import { h, icon, iconButton } from "./dom.ts";
+import { loadCustomMedia, MAX_MEDIA_BYTES, MEDIA_TYPES, removeCustomMedia, saveCustomMedia } from "./media-store.ts";
+import { ENGINE_NAMES, mountBookmarks, mountNotes, mountSearch, mountStats, mountWeather, type WidgetContext } from "./widgets.ts";
+import { installContextMenu } from "./context-menu.ts";
+import { isNewer, runningVersion, sanitizeRelease } from "../shared/updates.ts";
 
-const WIDGET_NAMES: Record<WidgetId, string> = { search: "Search", stats: "Protection", bookmarks: "Bookmarks", weather: "Weather", notes: "Notes" };
-const SIZE_NAMES: Record<WidgetSize, string> = { small: "Small", medium: "Medium", large: "Large" };
-const THEME_NAMES: Record<ThemeMode, string> = { system: "System", light: "Light", dark: "Dark", space: "Space" };
-const MAX_WALLPAPER_BYTES = 12 * 1024 * 1024;
+const DEFAULT_VIDEO = "media/blackhole.webm";
+const DEFAULT_POSTER = "media/blackhole.jpg";
+const VIDEO_SOURCE = "https://svs.gsfc.nasa.gov/13326/";
+
+const WIDGET_NAMES: Record<WidgetId, string> = {
+  search: "widgetSearch",
+  stats: "widgetProtection",
+  bookmarks: "widgetShortcuts",
+  weather: "widgetWeather",
+  notes: "widgetNotes",
+};
+const SIZE_NAMES: Record<WidgetSize, string> = { small: "sizeSmall", medium: "sizeMedium", large: "sizeLarge" };
+const PICTURE_BACKGROUNDS = ["default", "custom", "plain"] as const satisfies readonly Background[];
+const BACKGROUND_NAMES: Record<(typeof PICTURE_BACKGROUNDS)[number], string> = { default: "backgroundDefault", custom: "backgroundCustom", plain: "backgroundPlain" };
+const COLOR_NAMES: Record<ColorId, string> = {
+  graphite: "colorGraphite",
+  midnight: "colorMidnight",
+  ocean: "colorOcean",
+  forest: "colorForest",
+  wine: "colorWine",
+  slate: "colorSlateGray",
+  aurora: "colorAurora",
+  nebula: "colorNebula",
+  ember: "colorEmber",
+  lagoon: "colorLagoon",
+  dusk: "colorDusk",
+  orchid: "colorOrchid",
+};
+const CLOCK_FORMAT_NAMES: Record<ClockFormat, string> = { auto: "clockAuto", "12": "clock12", "24": "clock24" };
+const TOP_SITES_NAMES: Record<TopSitesMode, [string, string]> = {
+  favorites: ["topSitesFavorites", "topSitesFavoritesNote"],
+  frequent: ["topSitesFrequent", "topSitesFrequentNote"],
+};
+const DOCK = new Set<WidgetId>(["stats", "weather", "notes"]);
+
+const SECTIONS = ["background", "clock", "search", "topSites", "widgets", "theme"] as const;
+type Section = (typeof SECTIONS)[number];
+const SECTION_NAMES: Record<Section, string> = {
+  background: "background",
+  clock: "sectionClock",
+  search: "sectionSearch",
+  topSites: "sectionTopSites",
+  widgets: "widgets",
+  theme: "sectionTheme",
+};
+const SECTION_ICONS: Record<Section, string> = { background: "image", clock: "clock", search: "search", topSites: "grid", widgets: "widgets", theme: "palette" };
 
 let settings: Settings;
 let layout: Layout;
+let customMedia: Blob | null = null;
+let customUrl: string | null = null;
+let customFailed = false;
+let mediaNotice = "";
+let section: Section = "background";
 
-const board = document.getElementById("board")!;
-const drawer = document.getElementById("customize") as HTMLDialogElement;
+const root = document.documentElement;
+const top = document.getElementById("top")!;
+const searchSlot = document.getElementById("search")!;
+const dock = document.getElementById("dock")!;
+const credit = document.getElementById("credit")!;
+const motion = document.getElementById("motion") as HTMLButtonElement;
+const video = document.getElementById("backdrop-video") as HTMLVideoElement;
+const image = document.getElementById("backdrop-image") as HTMLImageElement;
+const customize = document.getElementById("customize") as HTMLDialogElement;
+const openButton = document.getElementById("open-customize") as HTMLButtonElement;
 const prefersDark = matchMedia("(prefers-color-scheme: dark)");
+const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)");
 
-// Theme
+// Theme and background
 function applyTheme(): void {
-  const theme = resolveTheme(settings.theme, prefersDark.matches);
-  document.documentElement.dataset.theme = theme;
-  document.documentElement.style.setProperty("--accent", settings.accent);
+  root.dataset.theme = resolveTheme(prefersDark.matches);
+  root.dataset.background = settings.background;
+  const color = COLORS[settings.color];
+  if (settings.background === "color") root.style.setProperty("--backdrop-color", color);
+  else root.style.removeProperty("--backdrop-color");
   try {
-    localStorage.setItem("orbit-theme", theme);
-    localStorage.setItem("orbit-accent", settings.accent);
+    localStorage.setItem("orbit-background", settings.background);
+    localStorage.setItem("orbit-color", color);
   } catch {
-    // Only the fast first paint depends on this cache.
+    // Only the first paint depends on this cache.
   }
 }
 
-/** Asks the host to color the browser window to match. The dashboard works without it. */
-function applyBrowserTheme(): void {
-  void fetch("https://orbit.invalid/theme", {
-    method: "POST",
-    credentials: "omit",
-    body: JSON.stringify({ mode: settings.theme, accent: settings.accent }),
-  }).catch(() => {});
+const isVideo = (blob: Blob) => blob.type.startsWith("video/");
+
+function setCustomMedia(blob: Blob | null): void {
+  if (customUrl) URL.revokeObjectURL(customUrl);
+  customMedia = blob;
+  customUrl = blob ? URL.createObjectURL(blob) : null;
+  customFailed = false;
 }
 
-async function applyWallpaper(): Promise<void> {
-  const { wallpaper } = await chrome.storage.local.get("wallpaper");
-  if (typeof wallpaper === "string" && wallpaper.startsWith("data:image/")) {
-    document.body.style.setProperty("--wallpaper", `url("${wallpaper}")`);
-    document.body.classList.add("has-wallpaper");
+function hasVideo(): boolean {
+  return !video.hidden && Boolean(video.getAttribute("src"));
+}
+
+function syncPlayback(): void {
+  motion.hidden = !hasVideo() || reducedMotion.matches;
+  if (!hasVideo()) return;
+  if (settings.videoPaused || reducedMotion.matches || document.hidden) video.pause();
+  else void video.play().catch(() => {});
+  const label = t(settings.videoPaused ? "playVideo" : "pauseVideo");
+  motion.replaceChildren(icon(settings.videoPaused ? "play" : "pause"));
+  motion.setAttribute("aria-label", label);
+  motion.title = label;
+}
+
+function showVideo(src: string, poster: string | null): void {
+  image.hidden = true;
+  image.removeAttribute("src");
+  video.hidden = false;
+  if (poster) video.poster = poster;
+  else video.removeAttribute("poster");
+  if (video.getAttribute("src") !== src) video.src = src;
+}
+
+function showImage(src: string): void {
+  video.pause();
+  video.removeAttribute("src");
+  video.hidden = true;
+  image.hidden = false;
+  image.src = src;
+}
+
+function showNoMedia(): void {
+  video.pause();
+  video.removeAttribute("src");
+  video.hidden = true;
+  image.hidden = true;
+  image.removeAttribute("src");
+}
+
+function applyBackground(): void {
+  credit.replaceChildren();
+  if (settings.background === "plain" || settings.background === "color") {
+    showNoMedia();
+  } else if (settings.background === "custom" && customMedia && customUrl && !customFailed) {
+    if (isVideo(customMedia)) showVideo(customUrl, null);
+    else showImage(customUrl);
   } else {
-    document.body.style.removeProperty("--wallpaper");
-    document.body.classList.remove("has-wallpaper");
+    showVideo(DEFAULT_VIDEO, DEFAULT_POSTER);
+    credit.append(h("a", { href: VIDEO_SOURCE }, t("videoCredit")));
   }
+  syncPlayback();
+}
+
+function customMediaFailed(): void {
+  if (!customUrl || settings.background !== "custom") return;
+  customFailed = true;
+  mediaNotice = t("mediaUnplayable");
+  applyBackground();
+  if (customize.open) drawCustomize();
 }
 
 async function saveSettings(patch: Partial<Settings>): Promise<void> {
@@ -55,229 +182,481 @@ async function saveSettings(patch: Partial<Settings>): Promise<void> {
   await chrome.storage.local.set({ settings });
 }
 
-const context: WidgetContext = { settings: () => settings, saveSettings };
-
-// Board
-const MOUNT: Record<WidgetId, (root: HTMLElement) => void> = {
-  search: (root) => mountSearch(root),
-  stats: (root) => mountStats(root, context),
-  bookmarks: (root) => mountBookmarks(root, context),
-  weather: (root) => mountWeather(root, context),
-  notes: (root) => mountNotes(root),
-};
-
-function drawBoard(): void {
-  board.replaceChildren();
-  for (const widget of layout.widgets) {
-    const frame = h("section", { class: `widget size-${widget.size}`, "data-id": widget.id, "aria-label": WIDGET_NAMES[widget.id], hidden: !widget.visible });
-    board.append(frame);
-    if (widget.visible) {
-      try {
-        MOUNT[widget.id](frame);
-      } catch (error) {
-        console.error(`widget ${widget.id} failed`, error);
-        frame.classList.add("pane");
-        frame.textContent = `${WIDGET_NAMES[widget.id]} could not load. The rest of the page still works.`;
-      }
-    }
-    attachDrag(frame, widget.id);
-  }
+async function chooseBackground(background: Background, color?: ColorId): Promise<void> {
+  mediaNotice = "";
+  await saveSettings(color ? { background, color } : { background });
+  applyTheme();
+  applyBackground();
+  drawCustomize();
 }
 
-function attachDrag(frame: HTMLElement, id: WidgetId): void {
-  frame.addEventListener("dragstart", (event) => {
-    if (!document.body.classList.contains("editing") || event.target !== frame) return;
-    event.dataTransfer!.setData("application/x-orbit-widget", id);
-    event.dataTransfer!.effectAllowed = "move";
-    frame.classList.add("is-dragging");
-  });
-  frame.addEventListener("dragend", () => frame.classList.remove("is-dragging"));
-  frame.addEventListener("dragover", (event) => {
-    if (document.body.classList.contains("editing")) event.preventDefault();
-  });
-  frame.addEventListener("drop", (event) => {
-    const moved = event.dataTransfer?.getData("application/x-orbit-widget") as WidgetId | undefined;
-    if (!moved || moved === id) return;
-    event.preventDefault();
-    const target = layout.widgets.findIndex((widget) => widget.id === id);
-    void setLayout(moveWidget(layout, moved, target));
-  });
+async function useFile(chosen: File): Promise<void> {
+  if (!MEDIA_TYPES.includes(chosen.type)) {
+    mediaNotice = t("mediaUnsupported");
+  } else if (chosen.size > MAX_MEDIA_BYTES) {
+    mediaNotice = t("mediaTooLarge");
+  } else {
+    try {
+      await saveCustomMedia(chosen);
+    } catch {
+      mediaNotice = t("mediaNotSaved");
+      drawCustomize();
+      return;
+    }
+    setCustomMedia(chosen);
+    await chooseBackground("custom");
+    return;
+  }
+  drawCustomize();
+}
+
+const context: WidgetContext = { settings: () => settings, saveSettings, relayout: () => {} };
+
+// Board
+const MOUNT: Record<WidgetId, (frame: HTMLElement) => void> = {
+  search: (frame) => mountSearch(frame, context),
+  stats: (frame) => mountStats(frame, context),
+  bookmarks: (frame) => mountBookmarks(frame, context),
+  weather: (frame) => mountWeather(frame, context),
+  notes: (frame) => mountNotes(frame),
+};
+
+function slotFor(id: WidgetId): HTMLElement {
+  if (id === "search") return searchSlot;
+  if (id === "bookmarks") return top;
+  return dock;
+}
+
+function drawBoard(): void {
+  top.replaceChildren();
+  searchSlot.replaceChildren();
+  dock.replaceChildren();
+  for (const widget of layout.widgets) {
+    const frame = h("div", { class: `widget size-${widget.size}`, "data-id": widget.id, role: "region", "aria-label": t(WIDGET_NAMES[widget.id]), hidden: !widget.visible });
+    slotFor(widget.id).append(frame);
+    if (!widget.visible) continue;
+    try {
+      MOUNT[widget.id](frame);
+    } catch (error) {
+      console.error(`widget ${widget.id} failed`, error);
+      frame.classList.add("pane");
+      frame.textContent = t("widgetFailed", t(WIDGET_NAMES[widget.id]));
+    }
+  }
+  dock.hidden = ![...dock.children].some((child) => !(child as HTMLElement).hidden);
 }
 
 async function setLayout(next: Layout): Promise<void> {
   layout = next;
   await chrome.storage.local.set({ layout });
   drawBoard();
-  markEditable(drawer.open);
-  drawDrawer();
+  if (customize.open) drawCustomize();
 }
 
-function markEditable(editing: boolean): void {
-  document.body.classList.toggle("editing", editing);
-  for (const frame of board.querySelectorAll<HTMLElement>(".widget")) {
-    frame.draggable = editing;
-  }
+async function setBoardSetting(patch: Partial<Settings>): Promise<void> {
+  await saveSettings(patch);
+  drawBoard();
+  drawCustomize();
 }
 
-// Customize panel
-function drawDrawer(): void {
-  const themeRow = h(
-    "div",
-    { class: "choice-row", role: "group", "aria-label": "Theme" },
-    ...THEME_MODES.map((mode) =>
-      h(
-        "button",
-        {
-          type: "button",
-          "aria-pressed": String(settings.theme === mode),
-          onclick: async () => {
-            await saveSettings({ theme: mode });
-            applyTheme();
-            applyBrowserTheme();
-            drawDrawer();
-          },
-        },
-        THEME_NAMES[mode],
-      ),
-    ),
-  );
+/** Index of the next dock widget before or after this one, or -1 at either end. */
+function dockNeighbor(id: WidgetId, step: -1 | 1): number {
+  const order = layout.widgets.filter((widget) => DOCK.has(widget.id)).map((widget) => widget.id);
+  const neighbor = order[order.indexOf(id) + step];
+  return neighbor ? layout.widgets.findIndex((widget) => widget.id === neighbor) : -1;
+}
 
-  const setAccent = async (accent: string) => {
-    await saveSettings({ accent });
-    applyTheme();
-    applyBrowserTheme();
-    drawDrawer();
-  };
-  const picker = h("input", { type: "color", value: settings.accent, "aria-label": "Custom accent color", onchange: () => void setAccent(picker.value) });
-  const accentRow = h(
+const isVisible = (id: WidgetId) => layout.widgets.find((widget) => widget.id === id)?.visible ?? false;
+
+// Customize dialog: parts
+function toggleRow(label: string, input: HTMLInputElement, note?: string): HTMLElement {
+  return h("label", { class: "toggle-row" }, h("span", {}, label, note ? h("small", {}, note) : null), input);
+}
+
+function switchInput(key: string, checked: boolean, onChange: (checked: boolean) => void, disabled = false): HTMLInputElement {
+  const input = h("input", { type: "checkbox", class: "switch", role: "switch", "data-focus-key": key, checked, disabled });
+  input.addEventListener("change", () => onChange(input.checked));
+  return input;
+}
+
+/** A set of choices drawn as cards, one of which is picked. */
+function choiceGroup<T extends string>(name: string, label: string, options: ReadonlyArray<{ value: T; title: string; note?: string }>, current: T, onChange: (value: T) => void): HTMLElement {
+  return h(
     "div",
-    { class: "accent-row" },
-    ...ACCENTS.map((accent) => {
-      const swatch = h("button", { type: "button", class: "swatch", "aria-label": `Accent ${accent}`, "aria-pressed": String(settings.accent === accent), onclick: () => void setAccent(accent) });
-      swatch.style.setProperty("--swatch", accent);
-      return swatch;
+    { class: "choices", role: "radiogroup", "aria-label": label },
+    ...options.map((option) => {
+      const input = h("input", { type: "radio", name, value: option.value, checked: option.value === current, "data-focus-key": `${name}-${option.value}` });
+      input.addEventListener("change", () => input.checked && onChange(option.value));
+      return h("label", { class: "choice" }, input, h("span", { class: "choice-text" }, h("span", {}, option.title), option.note ? h("small", {}, option.note) : null));
     }),
-    picker,
   );
+}
 
+function backgroundThumb(background: (typeof PICTURE_BACKGROUNDS)[number]): HTMLElement {
+  const thumb = h("span", { class: "bg-thumb", "data-kind": background });
+  if (background === "default") {
+    thumb.append(h("img", { src: DEFAULT_POSTER, alt: "", decoding: "async" }));
+  } else if (background === "custom" && customMedia && customUrl && !customFailed) {
+    thumb.append(isVideo(customMedia) ? h("video", { src: `${customUrl}#t=0.1`, muted: true, playsinline: true, preload: "auto" }) : h("img", { src: customUrl, alt: "", decoding: "async" }));
+  } else if (background === "custom") {
+    thumb.append(icon("upload"));
+  }
+  thumb.append(h("span", { class: "bg-check" }, icon("check")));
+  return thumb;
+}
+
+// Customize dialog: sections
+function backgroundSection(): HTMLElement[] {
+  const usable = Boolean(customMedia && !customFailed);
   const file = h("input", {
     type: "file",
-    accept: "image/png,image/jpeg,image/webp",
-    "aria-label": "Choose a wallpaper",
+    class: "visually-hidden",
+    accept: MEDIA_TYPES.join(","),
+    tabindex: "-1",
+    "aria-hidden": "true",
     onchange: () => {
       const chosen = file.files?.[0];
-      if (!chosen) return;
-      if (chosen.size > MAX_WALLPAPER_BYTES) {
-        wallpaperNotice.textContent = "Choose an image smaller than 12 MB.";
-        return;
-      }
-      const reader = new FileReader();
-      reader.onload = async () => {
-        await chrome.storage.local.set({ wallpaper: String(reader.result) });
-        wallpaperNotice.textContent = "";
-        await applyWallpaper();
-      };
-      reader.readAsDataURL(chosen);
+      if (chosen) void useFile(chosen);
     },
   });
-  const wallpaperNotice = h("p", { class: "notice", role: "status" });
-
-  const widgetList = h(
-    "ul",
-    { class: "widget-list" },
-    ...layout.widgets.map((widget, index) => {
-      const visible = h("input", {
-        type: "checkbox",
-        checked: widget.visible,
-        onchange: () => void setLayout(updateWidget(layout, widget.id, { visible: visible.checked })),
-      });
-      const sizes = ALLOWED_SIZES[widget.id];
-      const size = h(
-        "select",
-        { "aria-label": `${WIDGET_NAMES[widget.id]} size`, disabled: sizes.length < 2, onchange: () => void setLayout(updateWidget(layout, widget.id, { size: size.value as WidgetSize })) },
-        ...sizes.map((option) => h("option", { value: option }, SIZE_NAMES[option])),
-      );
-      size.value = widget.size;
-      return h(
-        "li",
-        {},
-        h("label", {}, visible, WIDGET_NAMES[widget.id]),
-        size,
-        iconButton("up", `Move ${WIDGET_NAMES[widget.id]} up`, () => void setLayout(moveWidget(layout, widget.id, index - 1)), { disabled: index === 0 }),
-        iconButton("down", `Move ${WIDGET_NAMES[widget.id]} down`, () => void setLayout(moveWidget(layout, widget.id, index + 1)), { disabled: index === layout.widgets.length - 1 }),
-      );
-    }),
-  );
-
-  drawer.replaceChildren(
-    h("div", { class: "drawer-head" }, h("h2", { id: "customize-title" }, "Customize"), iconButton("close", "Close", () => drawer.close())),
-    h("h3", {}, "Theme"),
-    themeRow,
-    h("h3", {}, "Accent color"),
-    accentRow,
-    h("h3", {}, "Wallpaper"),
-    file,
-    wallpaperNotice,
-    h(
-      "p",
-      {},
+  const pictures = h(
+    "div",
+    { class: "bg-options", role: "group", "aria-label": t("background") },
+    ...PICTURE_BACKGROUNDS.map((background) =>
       h(
         "button",
         {
           type: "button",
-          class: "link",
-          onclick: async () => {
-            await chrome.storage.local.remove("wallpaper");
-            await applyWallpaper();
+          class: "bg-option",
+          "data-focus-key": `bg-${background}`,
+          "aria-pressed": String(settings.background === background),
+          onclick: () => {
+            if (background === "custom" && !usable) file.click();
+            else void chooseBackground(background);
           },
         },
-        "Remove wallpaper",
+        backgroundThumb(background),
+        h("span", { class: "bg-label" }, t(BACKGROUND_NAMES[background])),
       ),
     ),
-    h("h3", {}, "Widgets"),
-    widgetList,
-    h("p", { class: "notice" }, "While this panel is open, you can also drag widgets on the page."),
-    h("div", { class: "foot" }, h("button", { type: "button", class: "link", onclick: () => void setLayout(defaultLayout()) }, "Restore default layout")),
   );
+  const colors = h(
+    "div",
+    { class: "color-options", role: "group", "aria-label": t("backgroundColors") },
+    ...COLOR_IDS.map((color) => {
+      const swatch = h(
+        "button",
+        {
+          type: "button",
+          class: "color-option",
+          "data-focus-key": `color-${color}`,
+          "aria-pressed": String(settings.background === "color" && settings.color === color),
+          "aria-label": t(COLOR_NAMES[color]),
+          title: t(COLOR_NAMES[color]),
+          onclick: () => void chooseBackground("color", color),
+        },
+        h("span", { class: "bg-check" }, icon("check")),
+      );
+      swatch.style.setProperty("--swatch", COLORS[color]);
+      return swatch;
+    }),
+  );
+  const playback = switchInput("playback", !settings.videoPaused && !reducedMotion.matches, async (checked) => {
+    await saveSettings({ videoPaused: !checked });
+    syncPlayback();
+  }, reducedMotion.matches);
+  return [
+    h("h3", {}, t("backgroundPictures")),
+    pictures,
+    file,
+    h(
+      "div",
+      { class: "drawer-row" },
+      h("button", { type: "button", class: "button quiet", "data-focus-key": "media-choose", onclick: () => file.click() }, icon("upload"), t("chooseMedia")),
+      customMedia &&
+        h(
+          "button",
+          {
+            type: "button",
+            class: "button quiet",
+            "data-focus-key": "media-remove",
+            onclick: async () => {
+              await removeCustomMedia();
+              setCustomMedia(null);
+              await chooseBackground(settings.background === "custom" ? "default" : settings.background);
+            },
+          },
+          t("removeMedia"),
+        ),
+    ),
+    h("p", { class: "notice" }, t("mediaHint")),
+    h("p", { class: "notice alert", role: "status" }, mediaNotice),
+    h("h3", {}, t("backgroundColors")),
+    colors,
+    h("div", { class: "group" }, toggleRow(t("playVideoSetting"), playback, reducedMotion.matches ? t("reducedMotionNote") : undefined)),
+  ];
+}
+
+function clockSection(): HTMLElement[] {
+  return [
+    h(
+      "div",
+      { class: "group" },
+      toggleRow(t("showClock"), switchInput("clock", settings.showClock, async (checked) => {
+        await saveSettings({ showClock: checked });
+        applyClock();
+        drawCustomize();
+      })),
+      toggleRow(t("showDate"), switchInput("date", settings.showDate, async (checked) => {
+        await saveSettings({ showDate: checked });
+        tick();
+      }, !settings.showClock)),
+    ),
+    h("h3", {}, t("clockFormat")),
+    choiceGroup("clock-format", t("clockFormat"), CLOCK_FORMATS.map((value) => ({ value, title: t(CLOCK_FORMAT_NAMES[value]) })), settings.clockFormat, async (clockFormat) => {
+      await saveSettings({ clockFormat });
+      tick();
+    }),
+  ];
+}
+
+function searchSection(): HTMLElement[] {
+  const engines = SEARCH_ENGINE_IDS.map((value: SearchEngine) => ({ value, title: value === "default" ? t("browserDefaultEngine") : ENGINE_NAMES[value], note: value === "default" ? t("browserDefaultEngineNote") : undefined }));
+  return [
+    h("div", { class: "group" }, toggleRow(t("showSearch"), switchInput("search-visible", isVisible("search"), (checked) => void setLayout(updateWidget(layout, "search", { visible: checked }))))),
+    h("h3", {}, t("searchEngine")),
+    choiceGroup("engine", t("searchEngine"), engines, settings.searchEngine, (searchEngine) => void setBoardSetting({ searchEngine })),
+    h("p", { class: "notice" }, t("searchEngineNote")),
+    h("button", { type: "button", class: "button quiet", "data-focus-key": "engine-settings", onclick: () => void chrome.tabs.update({ url: "chrome://settings/search" }) }, t("openSearchSettings")),
+  ];
+}
+
+function topSitesSection(): HTMLElement[] {
+  const hidden = settings.hiddenSites.length;
+  return [
+    h("div", { class: "group" }, toggleRow(t("showTopSites"), switchInput("top-visible", isVisible("bookmarks"), (checked) => void setLayout(updateWidget(layout, "bookmarks", { visible: checked }))))),
+    h("h3", {}, t("topSitesShow")),
+    choiceGroup("top-mode", t("topSitesShow"), TOP_SITES_MODES.map((value) => ({ value, title: t(TOP_SITES_NAMES[value][0]), note: t(TOP_SITES_NAMES[value][1]) })), settings.topSitesMode, (topSitesMode) => void setBoardSetting({ topSitesMode })),
+    h("h3", {}, t("topSitesRows")),
+    choiceGroup("top-rows", t("topSitesRows"), [{ value: "1", title: t("oneRow") }, { value: "2", title: t("twoRows") }], String(settings.shortcutRows) as "1" | "2", (rows) => void setBoardSetting({ shortcutRows: rows === "2" ? 2 : 1 })),
+    hidden > 0 && settings.topSitesMode === "frequent"
+      ? h("button", { type: "button", class: "button quiet", "data-focus-key": "unhide", onclick: () => void setBoardSetting({ hiddenSites: [] }) }, t("showHiddenSites", hidden))
+      : h("span", { hidden: true }),
+  ];
+}
+
+function widgetsSection(): HTMLElement[] {
+  const list = h(
+    "ul",
+    { class: "widget-list" },
+    ...layout.widgets
+      .filter((widget) => DOCK.has(widget.id))
+      .map((widget) => {
+        const name = t(WIDGET_NAMES[widget.id]);
+        const visible = switchInput(`${widget.id}-visible`, widget.visible, (checked) => void setLayout(updateWidget(layout, widget.id, { visible: checked })));
+        const sizes = ALLOWED_SIZES[widget.id];
+        const size =
+          sizes.length > 1
+            ? h(
+                "select",
+                { "aria-label": t("widgetSize", name), "data-focus-key": `${widget.id}-size`, onchange: () => void setLayout(updateWidget(layout, widget.id, { size: size!.value as WidgetSize })) },
+                ...sizes.map((option) => h("option", { value: option }, t(SIZE_NAMES[option]))),
+              )
+            : null;
+        if (size) size.value = widget.size;
+        const before = dockNeighbor(widget.id, -1);
+        const after = dockNeighbor(widget.id, 1);
+        return h(
+          "li",
+          {},
+          h("label", {}, visible, h("span", {}, name)),
+          size,
+          iconButton("up", t("moveUp", name), () => void setLayout(moveWidget(layout, widget.id, before)), { disabled: before < 0, "data-focus-key": `${widget.id}-up` }),
+          iconButton("down", t("moveDown", name), () => void setLayout(moveWidget(layout, widget.id, after)), { disabled: after < 0, "data-focus-key": `${widget.id}-down` }),
+        );
+      }),
+  );
+  return [list, h("button", { type: "button", class: "link", "data-focus-key": "restore", onclick: () => void setLayout(defaultLayout()) }, t("restoreLayout"))];
+}
+
+function themeSection(): HTMLElement[] {
+  return [
+    h("p", { class: "notice lead" }, t("browserThemeExplained")),
+    h(
+      "div",
+      { class: "theme-links" },
+      h("button", { type: "button", class: "row-link", "data-focus-key": "theme-mode", onclick: () => void chrome.tabs.update({ url: "chrome://settings/appearance" }) }, icon("palette"), h("span", {}, t("themeMode"), h("small", {}, t("themeModeNote")))),
+      h("button", { type: "button", class: "row-link", "data-focus-key": "theme-color", onclick: () => void chrome.tabs.update({ url: "chrome://settings/manageProfile" }) }, icon("drop"), h("span", {}, t("themeColor"), h("small", {}, t("themeColorNote")))),
+    ),
+  ];
+}
+
+const SECTION_BODY: Record<Section, () => HTMLElement[]> = {
+  background: backgroundSection,
+  clock: clockSection,
+  search: searchSection,
+  topSites: topSitesSection,
+  widgets: widgetsSection,
+  theme: themeSection,
+};
+
+// Customize dialog
+function drawCustomize(): void {
+  if (!customize.open) return;
+  const focused = (document.activeElement as HTMLElement | null)?.dataset?.focusKey;
+  const scroll = customize.querySelector(".customize-panel")?.scrollTop ?? 0;
+  const nav = h(
+    "nav",
+    { class: "customize-nav", role: "tablist", "aria-orientation": "vertical", "aria-label": t("customize") },
+    ...SECTIONS.map((id) =>
+      h(
+        "button",
+        {
+          type: "button",
+          role: "tab",
+          id: `tab-${id}`,
+          "aria-selected": String(id === section),
+          "aria-controls": "customize-panel",
+          tabindex: id === section ? "0" : "-1",
+          "data-focus-key": `tab-${id}`,
+          onclick: () => {
+            const changed = id !== section;
+            section = id;
+            drawCustomize();
+            if (changed) customize.querySelector<HTMLElement>(".customize-panel")!.scrollTop = 0;
+          },
+        },
+        icon(SECTION_ICONS[id]),
+        h("span", {}, t(SECTION_NAMES[id])),
+      ),
+    ),
+  );
+  nav.addEventListener("keydown", (event) => {
+    const step = { ArrowDown: 1, ArrowRight: 1, ArrowUp: -1, ArrowLeft: -1 }[event.key];
+    if (!step) return;
+    event.preventDefault();
+    section = SECTIONS[(SECTIONS.indexOf(section) + step + SECTIONS.length) % SECTIONS.length]!;
+    drawCustomize();
+    customize.querySelector<HTMLElement>(`#tab-${section}`)?.focus();
+  });
+  const panel = h(
+    "div",
+    { class: "customize-panel", id: "customize-panel", role: "tabpanel", "aria-labelledby": `tab-${section}` },
+    h("h2", { class: "panel-title" }, t(SECTION_NAMES[section])),
+    ...SECTION_BODY[section](),
+  );
+  customize.replaceChildren(
+    h("div", { class: "customize-head" }, h("h2", { id: "customize-title" }, t("customize")), iconButton("close", t("close"), () => customize.close(), { "data-focus-key": "close" })),
+    h("div", { class: "customize-body" }, nav, panel),
+  );
+  panel.scrollTop = scroll;
+  if (focused) customize.querySelector<HTMLElement>(`[data-focus-key="${focused}"]`)?.focus();
+}
+
+async function openCustomize(): Promise<void> {
+  if (!customMedia) setCustomMedia(await loadCustomMedia());
+  customize.showModal();
+  openButton.setAttribute("aria-expanded", "true");
+  drawCustomize();
+  customize.querySelector<HTMLElement>(`#tab-${section}`)?.focus();
 }
 
 // Clock
-const timeElement = document.getElementById("time")!;
-const dateElement = document.getElementById("date")!;
+const timeElement = document.getElementById("time") as HTMLTimeElement;
+
+function applyClock(): void {
+  timeElement.hidden = !settings.showClock;
+}
+
+let tickTimer: ReturnType<typeof setTimeout> | undefined;
 
 function tick(): void {
+  clearTimeout(tickTimer);
   const now = new Date();
-  timeElement.textContent = now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-  dateElement.textContent = now.toLocaleDateString([], { weekday: "long", month: "long", day: "numeric" });
-  setTimeout(tick, 60_000 - (now.getSeconds() * 1000 + now.getMilliseconds()));
+  const locale = chrome.i18n.getUILanguage();
+  const hour12 = settings.clockFormat === "auto" ? undefined : settings.clockFormat === "12";
+  timeElement.dateTime = now.toISOString();
+  const parts = new Intl.DateTimeFormat(locale, { hour: "numeric", minute: "2-digit", hour12 }).formatToParts(now);
+  timeElement.replaceChildren(
+    h(
+      "span",
+      { class: "time" },
+      ...parts.map((part) => (part.type === "dayPeriod" ? h("span", { class: "period" }, part.value) : part.type === "literal" && /^\s+$/.test(part.value) ? "" : part.value)),
+    ),
+    settings.showDate ? h("span", { class: "date" }, now.toLocaleDateString(locale, { weekday: "long", month: "long", day: "numeric" })) : "",
+  );
+  tickTimer = setTimeout(tick, 60_000 - (now.getSeconds() * 1000 + now.getMilliseconds()));
 }
 
 async function main(): Promise<void> {
+  localizePage();
   const stored = await chrome.storage.local.get(["settings", "layout"]);
   settings = sanitizeSettings(stored.settings);
   layout = sanitizeLayout(stored.layout);
   applyTheme();
+  applyClock();
   tick();
-  await applyWallpaper();
+  if (settings.background === "custom") setCustomMedia(await loadCustomMedia());
+  video.addEventListener("error", () => {
+    if (customUrl && video.getAttribute("src") === customUrl) customMediaFailed();
+  });
+  image.addEventListener("error", () => {
+    if (customUrl && image.getAttribute("src") === customUrl) customMediaFailed();
+  });
+  applyBackground();
   drawBoard();
-  drawDrawer();
+  installContextMenu({ customize: () => void openCustomize() });
   prefersDark.addEventListener("change", applyTheme);
-  document.getElementById("open-customize")!.addEventListener("click", () => {
-    drawDrawer();
-    drawer.show();
-    markEditable(true);
-    drawer.querySelector<HTMLElement>("button")?.focus();
+  reducedMotion.addEventListener("change", () => {
+    syncPlayback();
+    drawCustomize();
   });
-  drawer.addEventListener("close", () => markEditable(false));
-  document.addEventListener("keydown", (event) => {
-    if (event.key === "Escape" && drawer.open) drawer.close();
+  document.addEventListener("visibilitychange", syncPlayback);
+  motion.addEventListener("click", async () => {
+    await saveSettings({ videoPaused: !settings.videoPaused });
+    syncPlayback();
+    drawCustomize();
   });
-  chrome.storage.onChanged.addListener((changes, area) => {
-    if (area === "local" && changes.settings) {
-      settings = sanitizeSettings(changes.settings.newValue);
-      applyTheme();
+  openButton.addEventListener("click", () => void openCustomize());
+  customize.addEventListener("click", (event) => {
+    if (event.target === customize) customize.close();
+  });
+  customize.addEventListener("close", () => {
+    openButton.setAttribute("aria-expanded", "false");
+    openButton.focus();
+  });
+  chrome.storage.onChanged.addListener(async (changes, area) => {
+    if (area !== "local" || !changes.settings) return;
+    const next = sanitizeSettings(changes.settings.newValue);
+    const backgroundChanged = next.background !== settings.background || next.color !== settings.color;
+    settings = next;
+    applyTheme();
+    applyClock();
+    tick();
+    if (backgroundChanged) {
+      setCustomMedia(await loadCustomMedia());
+      applyBackground();
+    } else {
+      syncPlayback();
     }
   });
 }
 
+// A quiet note in the corner when a newer Orbit is out. The background check stores it.
+async function showUpdate(): Promise<void> {
+  const { update } = await chrome.storage.local.get("update");
+  const release = sanitizeRelease(update);
+  document.querySelector(".update-chip")?.remove();
+  if (!release || !isNewer(release, await runningVersion())) return;
+  const label = t("updateAvailable", release.tag.slice(1));
+  document.body.append(
+    h("a", { class: "update-chip", href: release.url, target: "_blank", rel: "noopener" }, h("span", { class: "update-dot", "aria-hidden": "true" }), h("span", {}, label), h("strong", {}, t("updateGet"))),
+  );
+}
+
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area === "local" && changes.update) void showUpdate();
+});
+
 void main();
+void showUpdate();

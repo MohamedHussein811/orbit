@@ -1,28 +1,46 @@
 <!doctype html>
-<html lang="en" data-theme="space">
+<html lang="en" data-theme="dark" data-background="default">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>New Tab</title>
+<meta name="color-scheme" content="dark light">
+<title data-i18n="newTabTitle">New Tab</title>
 <link rel="icon" href="../icons/orbit-32.png">
+<link rel="stylesheet" href="../shared/tokens.css">
+<link rel="stylesheet" href="../shared/base.css">
 <link rel="stylesheet" href="newtab.css">
+<link rel="stylesheet" href="../shared/notes.css">
 <script src="theme-boot.js"></script>
 </head>
 <body>
 <div class="backdrop" aria-hidden="true">
-  <div class="stars"></div>
-  <div class="limb"></div>
+  <video id="backdrop-video" class="backdrop-media" muted loop playsinline preload="auto" poster="media/blackhole.jpg" disablepictureinpicture disableremoteplayback></video>
+  <img id="backdrop-image" class="backdrop-media" alt="" hidden>
+  <div class="scrim"></div>
 </div>
 
-<div class="page">
-  <header class="topbar">
-    <p class="clock"><time id="time"></time><span id="date"></span></p>
-    <button id="open-customize" class="ghost" type="button" aria-haspopup="dialog">Customize</button>
-  </header>
-  <main id="board" class="board"></main>
-</div>
+<main class="page">
+  <div id="top" class="top"></div>
 
-<dialog id="customize" class="drawer" aria-labelledby="customize-title"></dialog>
+  <button id="open-customize" class="corner-button" type="button" aria-haspopup="dialog" aria-controls="customize" aria-expanded="false" data-i18n-label="customize" data-i18n-title="customize">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h8.5M17.5 8H20M4 16h2.5M11.5 16H20"/><circle cx="15" cy="8" r="2.5"/><circle cx="9" cy="16" r="2.5"/></svg>
+  </button>
+
+  <div class="center">
+    <time id="time" class="clock"></time>
+    <div id="search" class="search-slot"></div>
+  </div>
+
+  <div class="bottom">
+    <div id="dock" class="dock"></div>
+    <div class="page-foot">
+      <button id="motion" class="chip-button" type="button" hidden></button>
+      <p id="credit" class="credit"></p>
+    </div>
+  </div>
+</main>
+
+<dialog id="customize" class="customize" aria-labelledby="customize-title"></dialog>
 
 <script type="module" src="newtab.js"></script>
 </body>
