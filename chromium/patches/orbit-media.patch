@@ -26,6 +26,76 @@ diff --git a/media/BUILD.gn b/media/BUILD.gn
    assert(
        ffmpeg_branding != "Chromium",
        "proprietary codecs and ffmpeg_branding set to Chromium are incompatible")
+diff --git a/media/ffmpeg/ffmpeg_common.cc b/media/ffmpeg/ffmpeg_common.cc
+--- a/media/ffmpeg/ffmpeg_common.cc
++++ b/media/ffmpeg/ffmpeg_common.cc
+@@ -409,6 +409,15 @@
+       sample_format = kSampleFormatMpegHAudio;
+       break;
+ #endif
++#if BUILDFLAG(USE_PROPRIETARY_CODECS)
++    // Orbit's FFmpeg reads AAC without decoding it, so the operating system's
++    // decoder picks the real output format.
++    case AudioCodec::kAAC:
++      if (sample_format == kUnknownSampleFormat) {
++        sample_format = kSampleFormatS16;
++      }
++      break;
++#endif
+ 
+     default:
+       break;
+@@ -477,6 +486,9 @@
+       if (aac_parser.Parse(extra_data, &media_log))
+         config->set_profile(aac_parser.GetProfile());
+     }
++    if (codec_context->sample_fmt == AV_SAMPLE_FMT_NONE) {
++      return true;
++    }
+   }
+ #endif
+ 
+diff --git a/media/filters/ffmpeg_aac_bitstream_converter.cc b/media/filters/ffmpeg_aac_bitstream_converter.cc
+--- a/media/filters/ffmpeg_aac_bitstream_converter.cc
++++ b/media/filters/ffmpeg_aac_bitstream_converter.cc
+@@ -192,9 +192,18 @@
+   if (sample_rate_index > 12) {
+     sample_rate_index = 4;
+   }
++  int audio_profile = stream_codec_parameters_->profile;
++  if (audio_profile == AV_PROFILE_UNKNOWN) {
++    // Without an AAC decoder FFmpeg leaves the profile unset, so read the
++    // object type from the AudioSpecificConfig. HE-AAC is signalled as LC.
++    const int object_type = stream_codec_parameters_->extradata[0] >> 3;
++    audio_profile =
++        (object_type == 5 || object_type == 29) ? AV_PROFILE_AAC_LOW
++                                                : object_type - 1;
++  }
+ 
+   if (!header_generated_ || codec_ != stream_codec_parameters_->codec_id ||
+-      audio_profile_ != stream_codec_parameters_->profile ||
++      audio_profile_ != audio_profile ||
+       sample_rate_index_ != sample_rate_index ||
+       channel_configuration_ !=
+           stream_codec_parameters_->ch_layout.nb_channels ||
+@@ -202,7 +211,7 @@
+     header_generated_ =
+         GenerateAdtsHeader(stream_codec_parameters_->codec_id,
+                            0,  // layer
+-                           stream_codec_parameters_->profile, sample_rate_index,
++                           audio_profile, sample_rate_index,
+                            0,  // private stream
+                            stream_codec_parameters_->ch_layout.nb_channels,
+                            0,  // originality
+@@ -214,7 +223,7 @@
+                            0,      // one frame per packet
+                            hdr_);
+     codec_ = stream_codec_parameters_->codec_id;
+-    audio_profile_ = stream_codec_parameters_->profile;
++    audio_profile_ = audio_profile;
+     sample_rate_index_ = sample_rate_index;
+     channel_configuration_ = stream_codec_parameters_->ch_layout.nb_channels;
+     frame_length_ = header_plus_packet_size;
 diff --git a/media/filters/mac/audio_toolbox_audio_decoder.cc b/media/filters/mac/audio_toolbox_audio_decoder.cc
 --- a/media/filters/mac/audio_toolbox_audio_decoder.cc
 +++ b/media/filters/mac/audio_toolbox_audio_decoder.cc
