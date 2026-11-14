@@ -57,7 +57,7 @@ diff --git a/chrome/browser/ui/views/tabs/common/horizontal_tab_style_views.cc b
 +      const SkColor4f colors[] = {
 +          SkColor4f::FromColor(SkColorSetRGB(0xFF, 0xB3, 0x6B)),
 +          SkColor4f::FromColor(SkColorSetRGB(0xFF, 0x5D, 0x73)),
-+          SkColor4f::FromColor(SkColorSetRGB(0x9E, 0xAC, 0xFF))};
++          SkColor4f::FromColor(SkColorSetRGB(0x81, 0xB2, 0xFE))};
 +      const SkScalar positions[] = {0.0f, 0.45f, 1.0f};
 +      cc::PaintFlags flags;
 +      flags.setAntiAlias(true);

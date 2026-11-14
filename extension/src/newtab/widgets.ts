@@ -533,7 +533,7 @@ export function mountWeather(root: HTMLElement, context: WidgetContext): void {
 }
 
 // Notes
-const NOTE_SWATCH: Record<NoteColor, string> = { ion: "#8d9bff", amber: "#f2b75b", rose: "#f28ca8", mint: "#5fd4c8", slate: "#9aa3b8" };
+const NOTE_SWATCH: Record<NoteColor, string> = { ion: "#7cacf8", amber: "#f2b75b", rose: "#f28ca8", mint: "#5fd4c8", slate: "#9aa3b8" };
 const NOTE_COLOR_NAME: Record<NoteColor, string> = { ion: "colorBlue", amber: "colorAmber", rose: "colorRose", mint: "colorMint", slate: "colorSlate" };
 
 export function mountNotes(root: HTMLElement): void {

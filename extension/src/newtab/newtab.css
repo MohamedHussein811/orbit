@@ -1387,5 +1387,5 @@ body.editing .dock > .widget.is-dragging {
   width: 0.5rem;
   height: 0.5rem;
   border-radius: 50%;
-  background: linear-gradient(135deg, #ffb36b, #ff5d73 50%, #9eacff);
+  background: linear-gradient(135deg, #ffb36b, #ff5d73 50%, #81b2fe);
 }

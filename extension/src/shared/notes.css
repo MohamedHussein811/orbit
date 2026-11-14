@@ -28,7 +28,7 @@
   background: var(--note);
 }
 
-.note[data-color="ion"] { --note: #8d9bff; }
+.note[data-color="ion"] { --note: #7cacf8; }
 .note[data-color="amber"] { --note: #f2b75b; }
 .note[data-color="rose"] { --note: #f28ca8; }
 .note[data-color="mint"] { --note: #5fd4c8; }

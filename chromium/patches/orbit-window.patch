@@ -493,22 +493,13 @@ diff --git a/chrome/browser/ui/views/frame/layout/browser_view_tabbed_layout_imp
 diff --git a/chrome/browser/ui/views/toolbar/toolbar_view.cc b/chrome/browser/ui/views/toolbar/toolbar_view.cc
 --- a/chrome/browser/ui/views/toolbar/toolbar_view.cc
 +++ b/chrome/browser/ui/views/toolbar/toolbar_view.cc
-@@ -153,6 +153,8 @@
- #include "ui/color/color_id.h"
- #include "ui/color/color_provider.h"
- #include "ui/compositor/layer.h"
-+#include "cc/paint/paint_flags.h"
-+#include "cc/paint/paint_shader.h"
- #include "ui/gfx/canvas.h"
- #include "ui/gfx/geometry/insets.h"
- #include "ui/gfx/image/canvas_image_source.h"
-@@ -189,6 +191,41 @@
+@@ -189,6 +189,19 @@
  
  namespace {
  
 +// Orbit's address bar keeps this width in the toolbar row; the tabs take the
 +// rest, and always keep at least the minimum.
-+constexpr int kOrbitLocationBarWidth = 480;
++constexpr int kOrbitLocationBarWidth = 400;
 +constexpr int kOrbitMinimumTabSlotWidth = 160;
 +
 +gfx::Size OrbitLocationBarSize(const views::View* view,
@@ -519,32 +510,10 @@ diff --git a/chrome/browser/ui/views/toolbar/toolbar_view.cc b/chrome/browser/ui
 +  return gfx::Size(width, view->GetPreferredSize().height());
 +}
 +
-+// Orbit's horizon: a thin line under the toolbar row that runs from periwinkle
-+// through the amber and rose of the black hole's disk.
-+class OrbitHorizonBackground : public views::Background {
-+ public:
-+  void Paint(gfx::Canvas* canvas, views::View* view) const override {
-+    const gfx::Rect bounds = view->GetLocalBounds();
-+    const SkPoint points[] = {SkPoint::Make(bounds.x(), 0),
-+                              SkPoint::Make(bounds.right(), 0)};
-+    const SkColor4f colors[] = {
-+        SkColor4f::FromColor(SkColorSetARGB(0x1A, 0x9E, 0xAC, 0xFF)),
-+        SkColor4f::FromColor(SkColorSetARGB(0x8C, 0xFF, 0xB3, 0x6B)),
-+        SkColor4f::FromColor(SkColorSetARGB(0xB3, 0xFF, 0x5D, 0x73)),
-+        SkColor4f::FromColor(SkColorSetARGB(0xFF, 0x9E, 0xAC, 0xFF)),
-+        SkColor4f::FromColor(SkColorSetARGB(0x1A, 0x9E, 0xAC, 0xFF))};
-+    const SkScalar positions[] = {0.f, 0.38f, 0.48f, 0.6f, 1.f};
-+    cc::PaintFlags flags;
-+    flags.setShader(cc::PaintShader::MakeLinearGradient(
-+        points, colors, positions, 5, SkTileMode::kClamp));
-+    canvas->DrawRect(bounds, flags);
-+  }
-+};
-+
  // Gets the display mode for a given browser.
  ToolbarView::DisplayMode GetDisplayMode(BrowserWindowInterface* browser) {
    // Checked in this order because even tabbed PWAs use the CUSTOM_TAB
-@@ -480,6 +517,18 @@
+@@ -480,6 +493,12 @@
      location_bar_ = toolbar_webview_->GetLocationBar();
    }
  
@@ -554,16 +523,10 @@ diff --git a/chrome/browser/ui/views/toolbar/toolbar_view.cc b/chrome/browser/ui
 +  orbit_tab_slot_->SetPreferredSize(gfx::Size(kOrbitMinimumTabSlotWidth, 0));
 +  orbit_tab_slot_->GetViewAccessibility().SetIsIgnored(true);
 +
-+  orbit_horizon_ = AddChildView(std::make_unique<views::View>());
-+  orbit_horizon_->SetBackground(std::make_unique<OrbitHorizonBackground>());
-+  orbit_horizon_->SetProperty(views::kViewIgnoredByLayoutKey, true);
-+  orbit_horizon_->SetCanProcessEventsWithinSubtree(false);
-+  orbit_horizon_->GetViewAccessibility().SetIsIgnored(true);
-+
    bool is_glic_left_of_profile =
        features::kGlicToolbarButtonLocationParam.Get() ==
            features::GlicToolbarButtonLocation::kLeftOfProfileChip ||
-@@ -723,9 +772,27 @@
+@@ -723,9 +742,27 @@
    }
  }
  
@@ -591,18 +554,7 @@ diff --git a/chrome/browser/ui/views/toolbar/toolbar_view.cc b/chrome/browser/ui
    UpdateGlicButtonVisibility();
    UpdateGlicActorVisibility();
    // Invalidate the layout cache so responsive buttons (forward, home, split,
-@@ -1501,6 +1568,10 @@
-   // Call super implementation to ensure layout manager and child layouts
-   // happen.
-   LayoutSuperclass<AccessiblePaneView>(this);
-+
-+  if (orbit_horizon_) {
-+    orbit_horizon_->SetBounds(0, height() - 1, width(), 1);
-+  }
- }
- 
- void ToolbarView::OnThemeChanged() {
-@@ -1587,13 +1658,23 @@
+@@ -1587,13 +1624,23 @@
        .SetDefault(views::kMarginsKey, gfx::Insets::VH(0, default_margin));
  
    // If the Views location bar is in use, set its properties here.
@@ -645,12 +597,11 @@ diff --git a/chrome/browser/ui/views/toolbar/toolbar_view.h b/chrome/browser/ui/
    LocationBar* location_bar() const { return location_bar_; }
    CustomTabBarView* custom_tab_bar() { return custom_tab_bar_; }
    BatterySaverButton* battery_saver_button() const {
-@@ -414,6 +421,9 @@
+@@ -414,6 +421,8 @@
    raw_ptr<SplitTabsToolbarButton> split_tabs_ = nullptr;
    raw_ptr<CustomTabBarView> custom_tab_bar_ = nullptr;
    raw_ptr<LocationBarView> location_bar_view_ = nullptr;
 +  raw_ptr<views::View> orbit_tab_slot_ = nullptr;
-+  raw_ptr<views::View> orbit_horizon_ = nullptr;
 +  int orbit_location_bar_flex_order_ = 0;
  
    // An alias for `location_bar_view_` or `toolbar_webview_->GetLocationBar()`.

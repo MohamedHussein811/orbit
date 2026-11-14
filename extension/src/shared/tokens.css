@@ -4,39 +4,39 @@
 
 :root,
 :root[data-theme="dark"] {
-  --orbit-surface: #1a1c22;
-  --orbit-header: #1e1f26;
-  --orbit-base: #393b42;
-  --orbit-field: #24252c;
-  --orbit-container-high: #282930;
-  --orbit-on-surface: #e1e3e7;
-  --orbit-on-surface-variant: #c4c6ce;
-  --orbit-outline: #8d9099;
-  --orbit-primary: #9eacff;
-  --orbit-on-primary: #261e84;
-  --orbit-primary-container: #38399e;
-  --orbit-on-primary-container: #cdd5ff;
+  --orbit-surface: #181c21;
+  --orbit-header: #1c1f25;
+  --orbit-base: #383b41;
+  --orbit-field: #23262c;
+  --orbit-container-high: #272b30;
+  --orbit-on-surface: #e0e2e7;
+  --orbit-on-surface-variant: #c2c7ce;
+  --orbit-outline: #8c9199;
+  --orbit-primary: #81b2fe;
+  --orbit-on-primary: #012c6e;
+  --orbit-primary-container: #00429b;
+  --orbit-on-primary-container: #c1d9fe;
   --orbit-tertiary: #82d4d8;
   --orbit-error: #f2b8b5;
-  --orbit-deep: #0c0e13;
-  --orbit-media-primary: #9eacff;
-  --orbit-media-on-primary: #261e84;
+  --orbit-deep: #0b0e14;
+  --orbit-media-primary: #81b2fe;
+  --orbit-media-on-primary: #012c6e;
 }
 
 :root[data-theme="light"] {
   --orbit-surface: #ffffff;
-  --orbit-header: #dbe1fe;
+  --orbit-header: #d2e3ff;
   --orbit-base: #ffffff;
-  --orbit-field: #ecedf4;
-  --orbit-container-high: #e6e7ee;
-  --orbit-on-surface: #171b2c;
-  --orbit-on-surface-variant: #3f465e;
-  --orbit-outline: #6f778b;
-  --orbit-primary: #4c52ba;
+  --orbit-field: #eaeef4;
+  --orbit-container-high: #e5e9ee;
+  --orbit-on-surface: #111c2c;
+  --orbit-on-surface-variant: #3a485d;
+  --orbit-outline: #6b788b;
+  --orbit-primary: #1f5bb9;
   --orbit-on-primary: #ffffff;
-  --orbit-primary-container: #dbe1fe;
-  --orbit-on-primary-container: #170164;
+  --orbit-primary-container: #d2e3ff;
+  --orbit-on-primary-container: #001945;
   --orbit-tertiary: #036a6e;
   --orbit-error: #b3261e;
-  --orbit-deep: #0a0d1d;
+  --orbit-deep: #060e1e;
 }
