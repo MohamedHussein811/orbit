@@ -20,15 +20,30 @@ if [ -f out/remaining-steps ] && [ -z "${CHANGED_SOURCE:-}" ]; then
   fi
 fi
 
+# On Windows, compilers that ninja already started keep the log pipe open after ninja stops, so
+# they are stopped when the budget runs out.
+stop_windows_tools() {
+  taskkill //F //T //IM ninja.exe
+  taskkill //F //IM clang-cl.exe
+  taskkill //F //IM lld-link.exe
+  taskkill //F //IM python3.exe
+  taskkill //F //IM python.exe
+}
+watchdog=""
+case "$(uname -s)" in
+  MINGW*|MSYS*) { sleep $((COMPILE_SECONDS + 200)); stop_windows_tools; } > /dev/null 2>&1 & watchdog=$! ;;
+esac
+
 started=$SECONDS
 timeout --signal=INT --kill-after=180 "$COMPILE_SECONDS" ninja -C out/Release -k 0 $TARGETS 2>&1 |
   tee ../ninja.log |
   grep -E --line-buffered "^\[[0-9]+000/|^FAILED|^ninja: " |
   awk '{ print substr($0, 1, 200); fflush() }'
 status=${PIPESTATUS[0]}
-case "$(uname -s)" in
-  MINGW*|MSYS*) taskkill //F //T //IM ninja.exe > /dev/null 2>&1; taskkill //F //IM clang-cl.exe > /dev/null 2>&1; taskkill //F //IM lld-link.exe > /dev/null 2>&1 ;;
-esac
+if [ -n "$watchdog" ]; then
+  kill "$watchdog" 2> /dev/null
+  stop_windows_tools > /dev/null 2>&1
+fi
 echo "compiled for $((SECONDS - started)) seconds, ninja status $status"
 { free -h 2>/dev/null || vm_stat 2>/dev/null || true; } | head -6
 df -h .
