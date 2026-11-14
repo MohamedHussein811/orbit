@@ -532,5 +532,11 @@
   },
   "notesEmpty": {
     "message": "No notes yet. Notes stay on this device."
+  },
+  "showBlocked": {
+    "message": "See what was blocked"
+  },
+  "nothingBlocked": {
+    "message": "Nothing was blocked on this page yet."
   }
 }

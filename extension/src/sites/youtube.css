@@ -1,0 +1,22 @@
+/* YouTube's ad slots in the feed, beside videos and under the player. The player's own ad layer is
+   left alone, since hiding it can stop the video. */
+ytd-ad-slot-renderer,
+ytd-in-feed-ad-layout-renderer,
+ytd-display-ad-renderer,
+ytd-promoted-sparkles-web-renderer,
+ytd-promoted-video-renderer,
+ytd-companion-slot-renderer,
+ytd-action-companion-ad-renderer,
+ytd-player-legacy-desktop-watch-ads-renderer,
+ytd-banner-promo-renderer,
+ytd-search-pyv-renderer,
+ytd-rich-item-renderer:has(> #content > ytd-ad-slot-renderer),
+ytd-rich-section-renderer:has(ytd-ad-slot-renderer),
+ytd-engagement-panel-section-list-renderer[target-id="engagement-panel-ads"],
+#player-ads,
+#masthead-ad,
+ytm-promoted-sparkles-web-renderer,
+ytm-companion-ad-renderer,
+ad-slot-renderer {
+  display: none !important;
+}

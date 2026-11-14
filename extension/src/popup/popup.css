@@ -145,3 +145,103 @@ body.off #shield-check {
 .row-button:hover {
   background: var(--control);
 }
+
+.details {
+  margin: 0.5rem 0.75rem 0;
+}
+
+.details summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 2.25rem;
+  border-radius: var(--radius-sm);
+  padding: 0 0.6rem;
+  color: var(--muted);
+  font-size: 0.8125rem;
+  list-style: none;
+  cursor: pointer;
+}
+
+.details summary::-webkit-details-marker {
+  display: none;
+}
+
+.details summary::after {
+  content: "";
+  flex: none;
+  width: 1rem;
+  height: 1rem;
+  background: currentColor;
+  mask: url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27black%27 stroke-width=%272%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27%3E%3Cpath d=%27m6 9 6 6 6-6%27/%3E%3C/svg%3E") center / contain no-repeat;
+  transition: rotate 160ms ease;
+}
+
+.details[open] summary::after {
+  rotate: 180deg;
+}
+
+.details summary:hover {
+  background: var(--control);
+  color: var(--text);
+}
+
+.blocked-list {
+  max-height: 14rem;
+  overflow-y: auto;
+  padding: 0.25rem 0.1rem 0.25rem;
+  scrollbar-width: thin;
+}
+
+.blocked-list h2 {
+  margin: 0.5rem 0.5rem 0.25rem;
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+
+.blocked-list ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.blocked-list li {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+  padding: 0.3rem 0.5rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.8125rem;
+}
+
+.blocked-list li:hover {
+  background: var(--control);
+}
+
+.blocked-host {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.blocked-count {
+  flex: none;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.blocked-empty {
+  padding: 0.25rem 0.5rem 0.5rem;
+  color: var(--muted);
+  font-size: 0.8125rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .details summary::after {
+    transition: none;
+  }
+}

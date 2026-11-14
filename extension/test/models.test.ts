@@ -4,7 +4,7 @@ import { defaultLayout, moveWidget, sanitizeLayout, updateWidget } from "../src/
 import { createNote, patchNote, sanitizeNotes, sortNotes } from "../src/shared/notes.ts";
 import { excludeMatches, historyCutoff, removalOptions, sanitizePrivacy } from "../src/shared/privacy.ts";
 import { resolveTheme, sanitizeSettings } from "../src/shared/settings.ts";
-import { allowRule, ALLOW_ID_BASE, categoryOfMatch, cosmeticCss, cosmeticShard, hostSuffixes, normalizeHosts, siteOf } from "../src/shared/shields.ts";
+import { addBlockedHost, allowRule, ALLOW_ID_BASE, blockedList, categoryOfMatch, cosmeticCss, cosmeticShard, emptyBlockedHosts, hostSuffixes, MAX_BLOCKED_HOSTS, normalizeHosts, siteOf } from "../src/shared/shields.ts";
 import { addCount, dayKey, emptyStats, pruneStats, sanitizeStats, summarize } from "../src/shared/stats.ts";
 import { forecastUrl, geocodeUrl, weatherConditionKey, isFresh, parseForecast, parsePlaces, roundCoordinate, WEATHER_CACHE_MS } from "../src/shared/weather.ts";
 
@@ -206,4 +206,21 @@ test("release check compares versions and accepts only Orbit's release pages", a
   assert.equal(sanitizeRelease({ tag: "v1.2.0", browserVersion: "158.0.7000.10", url: "https://example.com/" }), null);
   assert.equal(sanitizeRelease({ tag: "1.2", browserVersion: "158", url: `${RELEASES}tag/1.2` }), null);
   assert.equal(sanitizeRelease(null), null);
+});
+
+test("blocked hosts are counted per host, capped, and listed most blocked first", () => {
+  const hosts = emptyBlockedHosts();
+  addBlockedHost(hosts, "trackers", "https://b.example/pixel?id=1");
+  addBlockedHost(hosts, "trackers", "https://a.example/t.js");
+  addBlockedHost(hosts, "trackers", "https://b.example/other", 2);
+  addBlockedHost(hosts, "ads", "not a url");
+  assert.deepEqual(blockedList(hosts.trackers), [
+    { host: "b.example", count: 3 },
+    { host: "a.example", count: 1 },
+  ]);
+  assert.deepEqual(blockedList(hosts.ads), []);
+  for (let i = 0; i < MAX_BLOCKED_HOSTS + 10; i++) addBlockedHost(hosts, "ads", `https://h${i}.example/`);
+  assert.equal(Object.keys(hosts.ads).length, MAX_BLOCKED_HOSTS);
+  addBlockedHost(hosts, "ads", "https://h0.example/");
+  assert.equal(hosts.ads["h0.example"], 2);
 });
