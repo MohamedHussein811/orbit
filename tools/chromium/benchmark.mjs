@@ -37,7 +37,19 @@ async function stop(child, profile) {
     } catch {}
   }
   await sleep(1500);
-  fs.rmSync(profile, { recursive: true, force: true, maxRetries: 5, retryDelay: 500 });
+  // A helper process can hold the folder for a few seconds after the browser exits.
+  for (let attempt = 0; ; attempt++) {
+    try {
+      fs.rmSync(profile, { recursive: true, force: true, maxRetries: 5, retryDelay: 500 });
+      return;
+    } catch (error) {
+      if (attempt >= 10) {
+        console.warn(`could not remove ${profile}: ${error.code}`);
+        return;
+      }
+      await sleep(1000);
+    }
+  }
 }
 
 /** Checks that the browser really uses the temporary profile before anything else happens. */
