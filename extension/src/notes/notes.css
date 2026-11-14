@@ -29,13 +29,12 @@
 }
 
 .notes-panel .notes-list {
-  grid-template-columns: 1fr;
   max-height: none;
   overflow: visible;
 }
 
-.notes-panel .note-tools > * {
-  opacity: 1;
+.notes-panel .note-dialog {
+  height: min(30rem, 92vh);
 }
 
 .notes-panel .empty {

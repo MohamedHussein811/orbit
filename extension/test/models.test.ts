@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { defaultLayout, moveWidget, sanitizeLayout, updateWidget } from "../src/shared/layout.ts";
-import { createNote, patchNote, sanitizeNotes, sortNotes } from "../src/shared/notes.ts";
+import { createNote, dropEmptyNotes, noteSummary, patchNote, sanitizeNotes, sortNotes, upsertNote } from "../src/shared/notes.ts";
 import { excludeMatches, historyCutoff, removalOptions, sanitizePrivacy } from "../src/shared/privacy.ts";
-import { resolveTheme, sanitizeSettings } from "../src/shared/settings.ts";
+import { resolveTheme, sanitizeSettings, searchUrl } from "../src/shared/settings.ts";
 import { addBlockedHost, allowRule, ALLOW_ID_BASE, blockedList, categoryOfMatch, cosmeticCss, cosmeticShard, emptyBlockedHosts, hostSuffixes, MAX_BLOCKED_HOSTS, normalizeHosts, siteOf } from "../src/shared/shields.ts";
 import { addCount, dayKey, emptyStats, pruneStats, sanitizeStats, summarize } from "../src/shared/stats.ts";
 import { forecastUrl, geocodeUrl, weatherConditionKey, isFresh, parseForecast, parsePlaces, roundCoordinate, WEATHER_CACHE_MS } from "../src/shared/weather.ts";
@@ -223,4 +223,44 @@ test("blocked hosts are counted per host, capped, and listed most blocked first"
   assert.equal(Object.keys(hosts.ads).length, MAX_BLOCKED_HOSTS);
   addBlockedHost(hosts, "ads", "https://h0.example/");
   assert.equal(hosts.ads["h0.example"], 2);
+});
+
+test("notes are titled by their first line, and empty ones are not kept", () => {
+  assert.deepEqual(noteSummary("\n  Groceries \nmilk\n\neggs"), { title: "Groceries", body: "milk eggs" });
+  assert.deepEqual(noteSummary(""), { title: "", body: "" });
+  const first = { ...createNote("a", NOW), text: "first" };
+  const empty = createNote("b", NOW);
+  assert.deepEqual(upsertNote([], empty), []);
+  const one = upsertNote([], first);
+  assert.deepEqual(one.map((note) => note.id), ["a"]);
+  const second = { ...createNote("c", NOW), text: "second" };
+  assert.deepEqual(upsertNote(one, second).map((note) => note.id), ["c", "a"]);
+  assert.deepEqual(upsertNote(one, { ...first, text: "  " }), []);
+  assert.deepEqual(dropEmptyNotes([first, empty]).map((note) => note.id), ["a"]);
+});
+
+test("new tab settings keep valid choices and drop bad ones", () => {
+  const good = sanitizeSettings({ background: "color", color: "nebula", clockFormat: "24", showDate: false, searchEngine: "brave", topSitesMode: "frequent", shortcutRows: 2, hiddenSites: ["https://a.example/", "https://a.example/", 5] });
+  assert.equal(good.background, "color");
+  assert.equal(good.color, "nebula");
+  assert.equal(good.clockFormat, "24");
+  assert.equal(good.showDate, false);
+  assert.equal(good.searchEngine, "brave");
+  assert.equal(good.topSitesMode, "frequent");
+  assert.equal(good.shortcutRows, 2);
+  assert.deepEqual(good.hiddenSites, ["https://a.example/"]);
+  const bad = sanitizeSettings({ background: "neon", color: "plaid", clockFormat: 13, searchEngine: "askjeeves", topSitesMode: "random", shortcutRows: 3, hiddenSites: "x" });
+  assert.equal(bad.background, "default");
+  assert.equal(bad.color, "midnight");
+  assert.equal(bad.clockFormat, "auto");
+  assert.equal(bad.searchEngine, "default");
+  assert.equal(bad.topSitesMode, "favorites");
+  assert.equal(bad.shortcutRows, 1);
+  assert.deepEqual(bad.hiddenSites, []);
+});
+
+test("searches go to the chosen engine, or to the browser's own", () => {
+  assert.equal(searchUrl("default", "cats"), null);
+  assert.equal(searchUrl("google", "cats & dogs"), "https://www.google.com/search?q=cats%20%26%20dogs");
+  assert.equal(searchUrl("startpage", "a"), "https://www.startpage.com/do/search?query=a");
 });

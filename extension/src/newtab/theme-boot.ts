@@ -3,6 +3,8 @@ document.documentElement.dataset.theme = matchMedia("(prefers-color-scheme: dark
 try {
   const background = localStorage.getItem("orbit-background");
   if (background) document.documentElement.dataset.background = background;
+  const color = localStorage.getItem("orbit-color");
+  if (background === "color" && color) document.documentElement.style.setProperty("--backdrop-color", color);
 } catch {
   // Storage can be unavailable. The page still renders with the default background.
 }

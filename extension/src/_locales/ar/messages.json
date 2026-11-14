@@ -538,5 +538,203 @@
   },
   "nothingBlocked": {
     "message": "لم يُحظر أي شيء في هذه الصفحة بعد."
+  },
+  "searchNotes": {
+    "message": "ابحث في الملاحظات"
+  },
+  "noNotesFound": {
+    "message": "لا توجد ملاحظات تطابق بحثك."
+  },
+  "noteSavedAt": {
+    "message": "محفوظة على هذا الجهاز، $1"
+  },
+  "noteNotSavedYet": {
+    "message": "تُحفظ عندما تكتب شيئًا"
+  },
+  "noteColors": {
+    "message": "لون الملاحظة"
+  },
+  "done": {
+    "message": "تم"
+  },
+  "backgroundPictures": {
+    "message": "الصور"
+  },
+  "backgroundColors": {
+    "message": "الألوان والتدرجات"
+  },
+  "colorGraphite": {
+    "message": "جرافيت"
+  },
+  "colorMidnight": {
+    "message": "منتصف الليل"
+  },
+  "colorOcean": {
+    "message": "المحيط"
+  },
+  "colorForest": {
+    "message": "الغابة"
+  },
+  "colorWine": {
+    "message": "نبيذي"
+  },
+  "colorSlateGray": {
+    "message": "رمادي أردوازي"
+  },
+  "colorAurora": {
+    "message": "الشفق"
+  },
+  "colorNebula": {
+    "message": "السديم"
+  },
+  "colorEmber": {
+    "message": "الجمر"
+  },
+  "colorLagoon": {
+    "message": "البحيرة"
+  },
+  "colorDusk": {
+    "message": "الغسق"
+  },
+  "colorOrchid": {
+    "message": "الأوركيد"
+  },
+  "sectionClock": {
+    "message": "الساعة"
+  },
+  "sectionSearch": {
+    "message": "البحث"
+  },
+  "sectionTopSites": {
+    "message": "المواقع المفضلة"
+  },
+  "sectionTheme": {
+    "message": "المظهر"
+  },
+  "showDate": {
+    "message": "إظهار التاريخ"
+  },
+  "clockFormat": {
+    "message": "تنسيق الوقت"
+  },
+  "clockAuto": {
+    "message": "تلقائي، حسب لغتك"
+  },
+  "clock12": {
+    "message": "12 ساعة"
+  },
+  "clock24": {
+    "message": "24 ساعة"
+  },
+  "showSearch": {
+    "message": "إظهار مربع البحث"
+  },
+  "searchEngine": {
+    "message": "البحث باستخدام"
+  },
+  "browserDefaultEngine": {
+    "message": "محرك بحث المتصفح"
+  },
+  "browserDefaultEngineNote": {
+    "message": "نفس المحرك الذي يستخدمه شريط العناوين"
+  },
+  "searchEngineNote": {
+    "message": "ينطبق هذا على مربع البحث في هذه الصفحة. يستخدم شريط العناوين محرك بحث المتصفح، ويمكنك تغييره من الإعدادات."
+  },
+  "openSearchSettings": {
+    "message": "تغيير محرك بحث المتصفح"
+  },
+  "searchWithEngine": {
+    "message": "ابحث في $1 أو أدخل عنوانًا"
+  },
+  "showTopSites": {
+    "message": "إظهار المواقع المفضلة"
+  },
+  "topSitesShow": {
+    "message": "أي المواقع"
+  },
+  "topSitesFavorites": {
+    "message": "المفضلة"
+  },
+  "topSitesFavoritesNote": {
+    "message": "أنت من يختار المواقع"
+  },
+  "topSitesFrequent": {
+    "message": "الأكثر زيارة"
+  },
+  "topSitesFrequentNote": {
+    "message": "تُقترح المواقع من الصفحات التي تزورها كثيرًا"
+  },
+  "topSitesRows": {
+    "message": "الصفوف"
+  },
+  "oneRow": {
+    "message": "صف واحد"
+  },
+  "twoRows": {
+    "message": "صفان"
+  },
+  "showHiddenSites": {
+    "message": "إظهار $1 من المواقع المخفية مجددًا"
+  },
+  "hideSite": {
+    "message": "إخفاء $1"
+  },
+  "frequentEmpty": {
+    "message": "ستظهر هنا المواقع التي تزورها كثيرًا."
+  },
+  "themeMode": {
+    "message": "فاتح أو داكن أو حسب الجهاز"
+  },
+  "themeModeNote": {
+    "message": "الإعدادات > المظهر"
+  },
+  "themeColor": {
+    "message": "لون المظهر"
+  },
+  "themeColorNote": {
+    "message": "اختر لون المتصفح"
+  },
+  "fieldIcon": {
+    "message": "الأيقونة"
+  },
+  "chooseIcon": {
+    "message": "اختر صورة"
+  },
+  "useSiteIcon": {
+    "message": "استخدم أيقونة الموقع"
+  },
+  "iconUnusable": {
+    "message": "تعذّر استخدام هذه الصورة. جرّب PNG أو JPEG أو WebP أو SVG."
+  },
+  "pageMenu": {
+    "message": "قائمة الصفحة"
+  },
+  "back": {
+    "message": "رجوع"
+  },
+  "forward": {
+    "message": "تقدّم"
+  },
+  "reload": {
+    "message": "إعادة التحميل"
+  },
+  "openInNewTab": {
+    "message": "فتح في علامة تبويب جديدة"
+  },
+  "openInNewWindow": {
+    "message": "فتح في نافذة جديدة"
+  },
+  "openInPrivateWindow": {
+    "message": "فتح في نافذة خاصة"
+  },
+  "copyLink": {
+    "message": "نسخ عنوان الرابط"
+  },
+  "bookmarksManager": {
+    "message": "الإشارات المرجعية"
+  },
+  "historyPage": {
+    "message": "السجل"
   }
 }

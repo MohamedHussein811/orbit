@@ -1,11 +1,26 @@
-// Dashboard page: background, layout, widgets and the Customize panel.
+// Dashboard page: background, layout, widgets and the Customize dialog.
 
 import { ALLOWED_SIZES, defaultLayout, moveWidget, sanitizeLayout, updateWidget, type Layout, type WidgetId, type WidgetSize } from "../shared/layout.ts";
 import { localizePage, t } from "../shared/i18n.ts";
-import { BACKGROUNDS, resolveTheme, sanitizeSettings, type Background, type Settings } from "../shared/settings.ts";
+import {
+  CLOCK_FORMATS,
+  COLOR_IDS,
+  COLORS,
+  resolveTheme,
+  sanitizeSettings,
+  SEARCH_ENGINE_IDS,
+  TOP_SITES_MODES,
+  type Background,
+  type ClockFormat,
+  type ColorId,
+  type SearchEngine,
+  type Settings,
+  type TopSitesMode,
+} from "../shared/settings.ts";
 import { h, icon, iconButton } from "./dom.ts";
 import { loadCustomMedia, MAX_MEDIA_BYTES, MEDIA_TYPES, removeCustomMedia, saveCustomMedia } from "./media-store.ts";
-import { mountBookmarks, mountNotes, mountSearch, mountStats, mountWeather, type WidgetContext } from "./widgets.ts";
+import { ENGINE_NAMES, mountBookmarks, mountNotes, mountSearch, mountStats, mountWeather, type WidgetContext } from "./widgets.ts";
+import { installContextMenu } from "./context-menu.ts";
 import { isNewer, runningVersion, sanitizeRelease } from "../shared/updates.ts";
 
 const DEFAULT_VIDEO = "media/blackhole.webm";
@@ -20,8 +35,40 @@ const WIDGET_NAMES: Record<WidgetId, string> = {
   notes: "widgetNotes",
 };
 const SIZE_NAMES: Record<WidgetSize, string> = { small: "sizeSmall", medium: "sizeMedium", large: "sizeLarge" };
-const BACKGROUND_NAMES: Record<Background, string> = { default: "backgroundDefault", custom: "backgroundCustom", plain: "backgroundPlain" };
+const PICTURE_BACKGROUNDS = ["default", "custom", "plain"] as const satisfies readonly Background[];
+const BACKGROUND_NAMES: Record<(typeof PICTURE_BACKGROUNDS)[number], string> = { default: "backgroundDefault", custom: "backgroundCustom", plain: "backgroundPlain" };
+const COLOR_NAMES: Record<ColorId, string> = {
+  graphite: "colorGraphite",
+  midnight: "colorMidnight",
+  ocean: "colorOcean",
+  forest: "colorForest",
+  wine: "colorWine",
+  slate: "colorSlateGray",
+  aurora: "colorAurora",
+  nebula: "colorNebula",
+  ember: "colorEmber",
+  lagoon: "colorLagoon",
+  dusk: "colorDusk",
+  orchid: "colorOrchid",
+};
+const CLOCK_FORMAT_NAMES: Record<ClockFormat, string> = { auto: "clockAuto", "12": "clock12", "24": "clock24" };
+const TOP_SITES_NAMES: Record<TopSitesMode, [string, string]> = {
+  favorites: ["topSitesFavorites", "topSitesFavoritesNote"],
+  frequent: ["topSitesFrequent", "topSitesFrequentNote"],
+};
 const DOCK = new Set<WidgetId>(["stats", "weather", "notes"]);
+
+const SECTIONS = ["background", "clock", "search", "topSites", "widgets", "theme"] as const;
+type Section = (typeof SECTIONS)[number];
+const SECTION_NAMES: Record<Section, string> = {
+  background: "background",
+  clock: "sectionClock",
+  search: "sectionSearch",
+  topSites: "sectionTopSites",
+  widgets: "widgets",
+  theme: "sectionTheme",
+};
+const SECTION_ICONS: Record<Section, string> = { background: "image", clock: "clock", search: "search", topSites: "grid", widgets: "widgets", theme: "palette" };
 
 let settings: Settings;
 let layout: Layout;
@@ -29,6 +76,7 @@ let customMedia: Blob | null = null;
 let customUrl: string | null = null;
 let customFailed = false;
 let mediaNotice = "";
+let section: Section = "background";
 
 const root = document.documentElement;
 const top = document.getElementById("top")!;
@@ -38,7 +86,7 @@ const credit = document.getElementById("credit")!;
 const motion = document.getElementById("motion") as HTMLButtonElement;
 const video = document.getElementById("backdrop-video") as HTMLVideoElement;
 const image = document.getElementById("backdrop-image") as HTMLImageElement;
-const drawer = document.getElementById("customize") as HTMLDialogElement;
+const customize = document.getElementById("customize") as HTMLDialogElement;
 const openButton = document.getElementById("open-customize") as HTMLButtonElement;
 const prefersDark = matchMedia("(prefers-color-scheme: dark)");
 const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)");
@@ -47,8 +95,12 @@ const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)");
 function applyTheme(): void {
   root.dataset.theme = resolveTheme(prefersDark.matches);
   root.dataset.background = settings.background;
+  const color = COLORS[settings.color];
+  if (settings.background === "color") root.style.setProperty("--backdrop-color", color);
+  else root.style.removeProperty("--backdrop-color");
   try {
     localStorage.setItem("orbit-background", settings.background);
+    localStorage.setItem("orbit-color", color);
   } catch {
     // Only the first paint depends on this cache.
   }
@@ -105,7 +157,7 @@ function showNoMedia(): void {
 
 function applyBackground(): void {
   credit.replaceChildren();
-  if (settings.background === "plain") {
+  if (settings.background === "plain" || settings.background === "color") {
     showNoMedia();
   } else if (settings.background === "custom" && customMedia && customUrl && !customFailed) {
     if (isVideo(customMedia)) showVideo(customUrl, null);
@@ -122,7 +174,7 @@ function customMediaFailed(): void {
   customFailed = true;
   mediaNotice = t("mediaUnplayable");
   applyBackground();
-  if (drawer.open) drawDrawer();
+  if (customize.open) drawCustomize();
 }
 
 async function saveSettings(patch: Partial<Settings>): Promise<void> {
@@ -130,12 +182,12 @@ async function saveSettings(patch: Partial<Settings>): Promise<void> {
   await chrome.storage.local.set({ settings });
 }
 
-async function chooseBackground(background: Background): Promise<void> {
+async function chooseBackground(background: Background, color?: ColorId): Promise<void> {
   mediaNotice = "";
-  await saveSettings({ background });
+  await saveSettings(color ? { background, color } : { background });
   applyTheme();
   applyBackground();
-  drawDrawer();
+  drawCustomize();
 }
 
 async function useFile(chosen: File): Promise<void> {
@@ -148,21 +200,21 @@ async function useFile(chosen: File): Promise<void> {
       await saveCustomMedia(chosen);
     } catch {
       mediaNotice = t("mediaNotSaved");
-      drawDrawer();
+      drawCustomize();
       return;
     }
     setCustomMedia(chosen);
     await chooseBackground("custom");
     return;
   }
-  drawDrawer();
+  drawCustomize();
 }
 
 const context: WidgetContext = { settings: () => settings, saveSettings, relayout: () => {} };
 
 // Board
 const MOUNT: Record<WidgetId, (frame: HTMLElement) => void> = {
-  search: (frame) => mountSearch(frame),
+  search: (frame) => mountSearch(frame, context),
   stats: (frame) => mountStats(frame, context),
   bookmarks: (frame) => mountBookmarks(frame, context),
   weather: (frame) => mountWeather(frame, context),
@@ -182,50 +234,29 @@ function drawBoard(): void {
   for (const widget of layout.widgets) {
     const frame = h("div", { class: `widget size-${widget.size}`, "data-id": widget.id, role: "region", "aria-label": t(WIDGET_NAMES[widget.id]), hidden: !widget.visible });
     slotFor(widget.id).append(frame);
-    if (widget.visible) {
-      try {
-        MOUNT[widget.id](frame);
-      } catch (error) {
-        console.error(`widget ${widget.id} failed`, error);
-        frame.classList.add("pane");
-        frame.textContent = t("widgetFailed", t(WIDGET_NAMES[widget.id]));
-      }
+    if (!widget.visible) continue;
+    try {
+      MOUNT[widget.id](frame);
+    } catch (error) {
+      console.error(`widget ${widget.id} failed`, error);
+      frame.classList.add("pane");
+      frame.textContent = t("widgetFailed", t(WIDGET_NAMES[widget.id]));
     }
-    if (DOCK.has(widget.id)) attachDrag(frame, widget.id);
   }
   dock.hidden = ![...dock.children].some((child) => !(child as HTMLElement).hidden);
-}
-
-function attachDrag(frame: HTMLElement, id: WidgetId): void {
-  frame.addEventListener("dragstart", (event) => {
-    if (!document.body.classList.contains("editing") || event.target !== frame) return;
-    event.dataTransfer!.setData("application/x-orbit-widget", id);
-    event.dataTransfer!.effectAllowed = "move";
-    frame.classList.add("is-dragging");
-  });
-  frame.addEventListener("dragend", () => frame.classList.remove("is-dragging"));
-  frame.addEventListener("dragover", (event) => {
-    if (document.body.classList.contains("editing")) event.preventDefault();
-  });
-  frame.addEventListener("drop", (event) => {
-    const moved = event.dataTransfer?.getData("application/x-orbit-widget") as WidgetId | undefined;
-    if (!moved || moved === id) return;
-    event.preventDefault();
-    void setLayout(moveWidget(layout, moved, layout.widgets.findIndex((widget) => widget.id === id)));
-  });
 }
 
 async function setLayout(next: Layout): Promise<void> {
   layout = next;
   await chrome.storage.local.set({ layout });
   drawBoard();
-  markEditable(drawer.open);
-  if (drawer.open) drawDrawer();
+  if (customize.open) drawCustomize();
 }
 
-function markEditable(editing: boolean): void {
-  document.body.classList.toggle("editing", editing);
-  for (const frame of dock.querySelectorAll<HTMLElement>(".widget")) frame.draggable = editing;
+async function setBoardSetting(patch: Partial<Settings>): Promise<void> {
+  await saveSettings(patch);
+  drawBoard();
+  drawCustomize();
 }
 
 /** Index of the next dock widget before or after this one, or -1 at either end. */
@@ -235,8 +266,33 @@ function dockNeighbor(id: WidgetId, step: -1 | 1): number {
   return neighbor ? layout.widgets.findIndex((widget) => widget.id === neighbor) : -1;
 }
 
-// Customize panel
-function backgroundThumb(background: Background): HTMLElement {
+const isVisible = (id: WidgetId) => layout.widgets.find((widget) => widget.id === id)?.visible ?? false;
+
+// Customize dialog: parts
+function toggleRow(label: string, input: HTMLInputElement, note?: string): HTMLElement {
+  return h("label", { class: "toggle-row" }, h("span", {}, label, note ? h("small", {}, note) : null), input);
+}
+
+function switchInput(key: string, checked: boolean, onChange: (checked: boolean) => void, disabled = false): HTMLInputElement {
+  const input = h("input", { type: "checkbox", class: "switch", role: "switch", "data-focus-key": key, checked, disabled });
+  input.addEventListener("change", () => onChange(input.checked));
+  return input;
+}
+
+/** A set of choices drawn as cards, one of which is picked. */
+function choiceGroup<T extends string>(name: string, label: string, options: ReadonlyArray<{ value: T; title: string; note?: string }>, current: T, onChange: (value: T) => void): HTMLElement {
+  return h(
+    "div",
+    { class: "choices", role: "radiogroup", "aria-label": label },
+    ...options.map((option) => {
+      const input = h("input", { type: "radio", name, value: option.value, checked: option.value === current, "data-focus-key": `${name}-${option.value}` });
+      input.addEventListener("change", () => input.checked && onChange(option.value));
+      return h("label", { class: "choice" }, input, h("span", { class: "choice-text" }, h("span", {}, option.title), option.note ? h("small", {}, option.note) : null));
+    }),
+  );
+}
+
+function backgroundThumb(background: (typeof PICTURE_BACKGROUNDS)[number]): HTMLElement {
   const thumb = h("span", { class: "bg-thumb", "data-kind": background });
   if (background === "default") {
     thumb.append(h("img", { src: DEFAULT_POSTER, alt: "", decoding: "async" }));
@@ -249,14 +305,9 @@ function backgroundThumb(background: Background): HTMLElement {
   return thumb;
 }
 
-function toggleRow(label: string, input: HTMLInputElement, note?: string): HTMLElement {
-  return h("label", { class: "toggle-row" }, h("span", {}, label, note ? h("small", {}, note) : null), input);
-}
-
-function drawDrawer(): void {
-  const focused = (document.activeElement as HTMLElement | null)?.dataset?.focusKey;
+// Customize dialog: sections
+function backgroundSection(): HTMLElement[] {
   const usable = Boolean(customMedia && !customFailed);
-
   const file = h("input", {
     type: "file",
     class: "visually-hidden",
@@ -268,11 +319,10 @@ function drawDrawer(): void {
       if (chosen) void useFile(chosen);
     },
   });
-
-  const options = h(
+  const pictures = h(
     "div",
     { class: "bg-options", role: "group", "aria-label": t("background") },
-    ...BACKGROUNDS.map((background) =>
+    ...PICTURE_BACKGROUNDS.map((background) =>
       h(
         "button",
         {
@@ -290,124 +340,225 @@ function drawDrawer(): void {
       ),
     ),
   );
-
-  const clock = h("input", {
-    type: "checkbox",
-    class: "switch",
-    "data-focus-key": "clock",
-    checked: settings.showClock,
-    onchange: async () => {
-      await saveSettings({ showClock: clock.checked });
-      applyClock();
-    },
-  });
-
-  const playback = h("input", {
-    type: "checkbox",
-    class: "switch",
-    "data-focus-key": "playback",
-    checked: !settings.videoPaused && !reducedMotion.matches,
-    disabled: reducedMotion.matches,
-    onchange: async () => {
-      await saveSettings({ videoPaused: !playback.checked });
-      syncPlayback();
-    },
-  });
-
-  const widgetList = h(
-    "ul",
-    { class: "widget-list" },
-    ...layout.widgets.map((widget) => {
-      const name = t(WIDGET_NAMES[widget.id]);
-      const visible = h("input", {
-        type: "checkbox",
-        class: "switch",
-        "data-focus-key": `${widget.id}-visible`,
-        checked: widget.visible,
-        onchange: () => void setLayout(updateWidget(layout, widget.id, { visible: visible.checked })),
-      });
-      const sizes = ALLOWED_SIZES[widget.id];
-      const inDock = DOCK.has(widget.id);
-      const size =
-        inDock && sizes.length > 1
-          ? h(
-              "select",
-              { "aria-label": t("widgetSize", name), "data-focus-key": `${widget.id}-size`, onchange: () => void setLayout(updateWidget(layout, widget.id, { size: size!.value as WidgetSize })) },
-              ...sizes.map((option) => h("option", { value: option }, t(SIZE_NAMES[option]))),
-            )
-          : null;
-      if (size) size.value = widget.size;
-      const before = dockNeighbor(widget.id, -1);
-      const after = dockNeighbor(widget.id, 1);
-      return h(
-        "li",
-        {},
-        h("label", {}, visible, h("span", {}, name)),
-        size,
-        inDock && iconButton("up", t("moveUp", name), () => void setLayout(moveWidget(layout, widget.id, before)), { disabled: before < 0, "data-focus-key": `${widget.id}-up` }),
-        inDock && iconButton("down", t("moveDown", name), () => void setLayout(moveWidget(layout, widget.id, after)), { disabled: after < 0, "data-focus-key": `${widget.id}-down` }),
+  const colors = h(
+    "div",
+    { class: "color-options", role: "group", "aria-label": t("backgroundColors") },
+    ...COLOR_IDS.map((color) => {
+      const swatch = h(
+        "button",
+        {
+          type: "button",
+          class: "color-option",
+          "data-focus-key": `color-${color}`,
+          "aria-pressed": String(settings.background === "color" && settings.color === color),
+          "aria-label": t(COLOR_NAMES[color]),
+          title: t(COLOR_NAMES[color]),
+          onclick: () => void chooseBackground("color", color),
+        },
+        h("span", { class: "bg-check" }, icon("check")),
       );
+      swatch.style.setProperty("--swatch", COLORS[color]);
+      return swatch;
     }),
   );
-
-  drawer.replaceChildren(
-    h("div", { class: "drawer-head" }, h("h2", { id: "customize-title" }, t("customize")), iconButton("close", t("close"), () => drawer.close(), { "data-focus-key": "close" })),
+  const playback = switchInput("playback", !settings.videoPaused && !reducedMotion.matches, async (checked) => {
+    await saveSettings({ videoPaused: !checked });
+    syncPlayback();
+  }, reducedMotion.matches);
+  return [
+    h("h3", {}, t("backgroundPictures")),
+    pictures,
+    file,
     h(
-      "section",
-      {},
-      h("h3", {}, t("background")),
-      options,
-      file,
-      h(
-        "div",
-        { class: "drawer-row" },
-        h("button", { type: "button", class: "button quiet", "data-focus-key": "media-choose", onclick: () => file.click() }, icon("upload"), t("chooseMedia")),
-        customMedia &&
-          h(
-            "button",
-            {
-              type: "button",
-              class: "button quiet",
-              "data-focus-key": "media-remove",
-              onclick: async () => {
-                await removeCustomMedia();
-                setCustomMedia(null);
-                await chooseBackground(settings.background === "custom" ? "default" : settings.background);
-              },
+      "div",
+      { class: "drawer-row" },
+      h("button", { type: "button", class: "button quiet", "data-focus-key": "media-choose", onclick: () => file.click() }, icon("upload"), t("chooseMedia")),
+      customMedia &&
+        h(
+          "button",
+          {
+            type: "button",
+            class: "button quiet",
+            "data-focus-key": "media-remove",
+            onclick: async () => {
+              await removeCustomMedia();
+              setCustomMedia(null);
+              await chooseBackground(settings.background === "custom" ? "default" : settings.background);
             },
-            t("removeMedia"),
-          ),
-      ),
-      h("p", { class: "notice" }, t("mediaHint")),
-      h("p", { class: "notice alert", role: "status" }, mediaNotice),
+          },
+          t("removeMedia"),
+        ),
     ),
-    h("section", {}, toggleRow(t("showClock"), clock), toggleRow(t("playVideoSetting"), playback, reducedMotion.matches ? t("reducedMotionNote") : undefined)),
-    h(
-      "section",
-      {},
-      h("h3", {}, t("browserTheme")),
-      h("p", { class: "notice" }, t("browserThemeExplained")),
-      h("button", { type: "button", class: "button quiet", "data-focus-key": "theme", onclick: () => void chrome.tabs.update({ url: "chrome://settings/appearance" }) }, t("openThemeSettings")),
-    ),
-    h(
-      "section",
-      {},
-      h("h3", {}, t("widgets")),
-      widgetList,
-      h("p", { class: "notice" }, t("dragHint")),
-      h("button", { type: "button", class: "link", "data-focus-key": "restore", onclick: () => void setLayout(defaultLayout()) }, t("restoreLayout")),
-    ),
-  );
-  if (focused) drawer.querySelector<HTMLElement>(`[data-focus-key="${focused}"]`)?.focus();
+    h("p", { class: "notice" }, t("mediaHint")),
+    h("p", { class: "notice alert", role: "status" }, mediaNotice),
+    h("h3", {}, t("backgroundColors")),
+    colors,
+    h("div", { class: "group" }, toggleRow(t("playVideoSetting"), playback, reducedMotion.matches ? t("reducedMotionNote") : undefined)),
+  ];
 }
 
-async function openDrawer(): Promise<void> {
+function clockSection(): HTMLElement[] {
+  return [
+    h(
+      "div",
+      { class: "group" },
+      toggleRow(t("showClock"), switchInput("clock", settings.showClock, async (checked) => {
+        await saveSettings({ showClock: checked });
+        applyClock();
+        drawCustomize();
+      })),
+      toggleRow(t("showDate"), switchInput("date", settings.showDate, async (checked) => {
+        await saveSettings({ showDate: checked });
+        tick();
+      }, !settings.showClock)),
+    ),
+    h("h3", {}, t("clockFormat")),
+    choiceGroup("clock-format", t("clockFormat"), CLOCK_FORMATS.map((value) => ({ value, title: t(CLOCK_FORMAT_NAMES[value]) })), settings.clockFormat, async (clockFormat) => {
+      await saveSettings({ clockFormat });
+      tick();
+    }),
+  ];
+}
+
+function searchSection(): HTMLElement[] {
+  const engines = SEARCH_ENGINE_IDS.map((value: SearchEngine) => ({ value, title: value === "default" ? t("browserDefaultEngine") : ENGINE_NAMES[value], note: value === "default" ? t("browserDefaultEngineNote") : undefined }));
+  return [
+    h("div", { class: "group" }, toggleRow(t("showSearch"), switchInput("search-visible", isVisible("search"), (checked) => void setLayout(updateWidget(layout, "search", { visible: checked }))))),
+    h("h3", {}, t("searchEngine")),
+    choiceGroup("engine", t("searchEngine"), engines, settings.searchEngine, (searchEngine) => void setBoardSetting({ searchEngine })),
+    h("p", { class: "notice" }, t("searchEngineNote")),
+    h("button", { type: "button", class: "button quiet", "data-focus-key": "engine-settings", onclick: () => void chrome.tabs.update({ url: "chrome://settings/search" }) }, t("openSearchSettings")),
+  ];
+}
+
+function topSitesSection(): HTMLElement[] {
+  const hidden = settings.hiddenSites.length;
+  return [
+    h("div", { class: "group" }, toggleRow(t("showTopSites"), switchInput("top-visible", isVisible("bookmarks"), (checked) => void setLayout(updateWidget(layout, "bookmarks", { visible: checked }))))),
+    h("h3", {}, t("topSitesShow")),
+    choiceGroup("top-mode", t("topSitesShow"), TOP_SITES_MODES.map((value) => ({ value, title: t(TOP_SITES_NAMES[value][0]), note: t(TOP_SITES_NAMES[value][1]) })), settings.topSitesMode, (topSitesMode) => void setBoardSetting({ topSitesMode })),
+    h("h3", {}, t("topSitesRows")),
+    choiceGroup("top-rows", t("topSitesRows"), [{ value: "1", title: t("oneRow") }, { value: "2", title: t("twoRows") }], String(settings.shortcutRows) as "1" | "2", (rows) => void setBoardSetting({ shortcutRows: rows === "2" ? 2 : 1 })),
+    hidden > 0 && settings.topSitesMode === "frequent"
+      ? h("button", { type: "button", class: "button quiet", "data-focus-key": "unhide", onclick: () => void setBoardSetting({ hiddenSites: [] }) }, t("showHiddenSites", hidden))
+      : h("span", { hidden: true }),
+  ];
+}
+
+function widgetsSection(): HTMLElement[] {
+  const list = h(
+    "ul",
+    { class: "widget-list" },
+    ...layout.widgets
+      .filter((widget) => DOCK.has(widget.id))
+      .map((widget) => {
+        const name = t(WIDGET_NAMES[widget.id]);
+        const visible = switchInput(`${widget.id}-visible`, widget.visible, (checked) => void setLayout(updateWidget(layout, widget.id, { visible: checked })));
+        const sizes = ALLOWED_SIZES[widget.id];
+        const size =
+          sizes.length > 1
+            ? h(
+                "select",
+                { "aria-label": t("widgetSize", name), "data-focus-key": `${widget.id}-size`, onchange: () => void setLayout(updateWidget(layout, widget.id, { size: size!.value as WidgetSize })) },
+                ...sizes.map((option) => h("option", { value: option }, t(SIZE_NAMES[option]))),
+              )
+            : null;
+        if (size) size.value = widget.size;
+        const before = dockNeighbor(widget.id, -1);
+        const after = dockNeighbor(widget.id, 1);
+        return h(
+          "li",
+          {},
+          h("label", {}, visible, h("span", {}, name)),
+          size,
+          iconButton("up", t("moveUp", name), () => void setLayout(moveWidget(layout, widget.id, before)), { disabled: before < 0, "data-focus-key": `${widget.id}-up` }),
+          iconButton("down", t("moveDown", name), () => void setLayout(moveWidget(layout, widget.id, after)), { disabled: after < 0, "data-focus-key": `${widget.id}-down` }),
+        );
+      }),
+  );
+  return [list, h("button", { type: "button", class: "link", "data-focus-key": "restore", onclick: () => void setLayout(defaultLayout()) }, t("restoreLayout"))];
+}
+
+function themeSection(): HTMLElement[] {
+  return [
+    h("p", { class: "notice lead" }, t("browserThemeExplained")),
+    h(
+      "div",
+      { class: "theme-links" },
+      h("button", { type: "button", class: "row-link", "data-focus-key": "theme-mode", onclick: () => void chrome.tabs.update({ url: "chrome://settings/appearance" }) }, icon("palette"), h("span", {}, t("themeMode"), h("small", {}, t("themeModeNote")))),
+      h("button", { type: "button", class: "row-link", "data-focus-key": "theme-color", onclick: () => void chrome.tabs.update({ url: "chrome://settings/manageProfile" }) }, icon("drop"), h("span", {}, t("themeColor"), h("small", {}, t("themeColorNote")))),
+    ),
+  ];
+}
+
+const SECTION_BODY: Record<Section, () => HTMLElement[]> = {
+  background: backgroundSection,
+  clock: clockSection,
+  search: searchSection,
+  topSites: topSitesSection,
+  widgets: widgetsSection,
+  theme: themeSection,
+};
+
+// Customize dialog
+function drawCustomize(): void {
+  if (!customize.open) return;
+  const focused = (document.activeElement as HTMLElement | null)?.dataset?.focusKey;
+  const scroll = customize.querySelector(".customize-panel")?.scrollTop ?? 0;
+  const nav = h(
+    "nav",
+    { class: "customize-nav", role: "tablist", "aria-orientation": "vertical", "aria-label": t("customize") },
+    ...SECTIONS.map((id) =>
+      h(
+        "button",
+        {
+          type: "button",
+          role: "tab",
+          id: `tab-${id}`,
+          "aria-selected": String(id === section),
+          "aria-controls": "customize-panel",
+          tabindex: id === section ? "0" : "-1",
+          "data-focus-key": `tab-${id}`,
+          onclick: () => {
+            const changed = id !== section;
+            section = id;
+            drawCustomize();
+            if (changed) customize.querySelector<HTMLElement>(".customize-panel")!.scrollTop = 0;
+          },
+        },
+        icon(SECTION_ICONS[id]),
+        h("span", {}, t(SECTION_NAMES[id])),
+      ),
+    ),
+  );
+  nav.addEventListener("keydown", (event) => {
+    const step = { ArrowDown: 1, ArrowRight: 1, ArrowUp: -1, ArrowLeft: -1 }[event.key];
+    if (!step) return;
+    event.preventDefault();
+    section = SECTIONS[(SECTIONS.indexOf(section) + step + SECTIONS.length) % SECTIONS.length]!;
+    drawCustomize();
+    customize.querySelector<HTMLElement>(`#tab-${section}`)?.focus();
+  });
+  const panel = h(
+    "div",
+    { class: "customize-panel", id: "customize-panel", role: "tabpanel", "aria-labelledby": `tab-${section}` },
+    h("h2", { class: "panel-title" }, t(SECTION_NAMES[section])),
+    ...SECTION_BODY[section](),
+  );
+  customize.replaceChildren(
+    h("div", { class: "customize-head" }, h("h2", { id: "customize-title" }, t("customize")), iconButton("close", t("close"), () => customize.close(), { "data-focus-key": "close" })),
+    h("div", { class: "customize-body" }, nav, panel),
+  );
+  panel.scrollTop = scroll;
+  if (focused) customize.querySelector<HTMLElement>(`[data-focus-key="${focused}"]`)?.focus();
+}
+
+async function openCustomize(): Promise<void> {
   if (!customMedia) setCustomMedia(await loadCustomMedia());
-  drawDrawer();
-  drawer.show();
+  customize.showModal();
   openButton.setAttribute("aria-expanded", "true");
-  markEditable(true);
-  drawer.querySelector<HTMLElement>(".bg-option[aria-pressed='true']")?.focus();
+  drawCustomize();
+  customize.querySelector<HTMLElement>(`#tab-${section}`)?.focus();
 }
 
 // Clock
@@ -417,20 +568,24 @@ function applyClock(): void {
   timeElement.hidden = !settings.showClock;
 }
 
+let tickTimer: ReturnType<typeof setTimeout> | undefined;
+
 function tick(): void {
+  clearTimeout(tickTimer);
   const now = new Date();
   const locale = chrome.i18n.getUILanguage();
+  const hour12 = settings.clockFormat === "auto" ? undefined : settings.clockFormat === "12";
   timeElement.dateTime = now.toISOString();
-  const parts = new Intl.DateTimeFormat(locale, { hour: "numeric", minute: "2-digit" }).formatToParts(now);
+  const parts = new Intl.DateTimeFormat(locale, { hour: "numeric", minute: "2-digit", hour12 }).formatToParts(now);
   timeElement.replaceChildren(
     h(
       "span",
       { class: "time" },
       ...parts.map((part) => (part.type === "dayPeriod" ? h("span", { class: "period" }, part.value) : part.type === "literal" && /^\s+$/.test(part.value) ? "" : part.value)),
     ),
-    h("span", { class: "date" }, now.toLocaleDateString(locale, { weekday: "long", month: "long", day: "numeric" })),
+    settings.showDate ? h("span", { class: "date" }, now.toLocaleDateString(locale, { weekday: "long", month: "long", day: "numeric" })) : "",
   );
-  setTimeout(tick, 60_000 - (now.getSeconds() * 1000 + now.getMilliseconds()));
+  tickTimer = setTimeout(tick, 60_000 - (now.getSeconds() * 1000 + now.getMilliseconds()));
 }
 
 async function main(): Promise<void> {
@@ -450,36 +605,34 @@ async function main(): Promise<void> {
   });
   applyBackground();
   drawBoard();
+  installContextMenu({ customize: () => void openCustomize() });
   prefersDark.addEventListener("change", applyTheme);
   reducedMotion.addEventListener("change", () => {
     syncPlayback();
-    if (drawer.open) drawDrawer();
+    drawCustomize();
   });
   document.addEventListener("visibilitychange", syncPlayback);
   motion.addEventListener("click", async () => {
     await saveSettings({ videoPaused: !settings.videoPaused });
     syncPlayback();
-    if (drawer.open) drawDrawer();
+    drawCustomize();
   });
-  openButton.addEventListener("click", () => {
-    if (drawer.open) drawer.close();
-    else void openDrawer();
+  openButton.addEventListener("click", () => void openCustomize());
+  customize.addEventListener("click", (event) => {
+    if (event.target === customize) customize.close();
   });
-  drawer.addEventListener("close", () => {
-    markEditable(false);
+  customize.addEventListener("close", () => {
     openButton.setAttribute("aria-expanded", "false");
     openButton.focus();
-  });
-  document.addEventListener("keydown", (event) => {
-    if (event.key === "Escape" && drawer.open) drawer.close();
   });
   chrome.storage.onChanged.addListener(async (changes, area) => {
     if (area !== "local" || !changes.settings) return;
     const next = sanitizeSettings(changes.settings.newValue);
-    const backgroundChanged = next.background !== settings.background;
+    const backgroundChanged = next.background !== settings.background || next.color !== settings.color;
     settings = next;
     applyTheme();
     applyClock();
+    tick();
     if (backgroundChanged) {
       setCustomMedia(await loadCustomMedia());
       applyBackground();

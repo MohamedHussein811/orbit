@@ -1,7 +1,7 @@
 // The dashboard's widgets. Each one renders into its own frame and keeps working when another fails.
 
 import { t, uiLanguage } from "../shared/i18n.ts";
-import type { Settings } from "../shared/settings.ts";
+import { searchUrl, type SearchEngine, type Settings } from "../shared/settings.ts";
 import { CATEGORIES, PERIODS, sanitizeStats, summarize, type Category, type Period } from "../shared/stats.ts";
 import type { Message } from "../shared/shields.ts";
 import {
@@ -17,8 +17,9 @@ import {
   type WeatherPlace,
   type WeatherReport,
 } from "../shared/weather.ts";
-import { createNote, NOTE_COLORS, patchNote, sanitizeNotes, sortNotes, type Note, type NoteColor } from "../shared/notes.ts";
+import { createNote, dropEmptyNotes, MAX_NOTE_LENGTH, NOTE_COLORS, noteSummary, patchNote, sanitizeNotes, sortNotes, upsertNote, type Note, type NoteColor } from "../shared/notes.ts";
 import { debounce, h, icon, iconButton } from "./dom.ts";
+import { hasCustomIcon, resetIcon, setCustomIcon, siteIcon } from "./site-icons.ts";
 
 export interface WidgetContext {
   settings: () => Settings;
@@ -36,8 +37,18 @@ function looksLikeAddress(text: string): boolean {
   return /^[a-z][a-z0-9+.-]*:\/\//i.test(text) || /^[^\s/]+\.[a-z]{2,}(:\d+)?(\/\S*)?$/i.test(text) || /^localhost(:\d+)?(\/\S*)?$/i.test(text);
 }
 
-export function mountSearch(root: HTMLElement): void {
-  const label = t("searchPlaceholder");
+export const ENGINE_NAMES: Record<Exclude<SearchEngine, "default">, string> = {
+  duckduckgo: "DuckDuckGo",
+  google: "Google",
+  bing: "Bing",
+  ecosia: "Ecosia",
+  brave: "Brave Search",
+  startpage: "Startpage",
+};
+
+export function mountSearch(root: HTMLElement, context: WidgetContext): void {
+  const engine = context.settings().searchEngine;
+  const label = engine === "default" ? t("searchPlaceholder") : t("searchWithEngine", ENGINE_NAMES[engine]);
   const input = h("input", { type: "search", name: "q", placeholder: label, "aria-label": label, autocomplete: "off", spellcheck: "false", autofocus: true });
   const form = h(
     "form",
@@ -51,7 +62,9 @@ export function mountSearch(root: HTMLElement): void {
         if (looksLikeAddress(text)) {
           location.href = /^[a-z][a-z0-9+.-]*:\/\//i.test(text) ? text : `https://${text}`;
         } else {
-          void chrome.search.query({ text, disposition: "CURRENT_TAB" });
+          const url = searchUrl(context.settings().searchEngine, text);
+          if (url) location.href = url;
+          else void chrome.search.query({ text, disposition: "CURRENT_TAB" });
         }
       },
     },
@@ -127,9 +140,14 @@ export function mountStats(root: HTMLElement, context: WidgetContext): void {
     h("dl", { class: "meters" }, ...CATEGORIES.map((category) => rows[category].row)),
     h("div", { class: "foot" }, h("span", {}, t("countedLocally")), footEnd),
   );
-  chrome.storage.onChanged.addListener((changes, area) => {
+  const changed = (changes: Record<string, chrome.storage.StorageChange>, area: string) => {
+    if (!root.isConnected) {
+      chrome.storage.onChanged.removeListener(changed);
+      return;
+    }
     if (area === "local" && changes.stats) void refresh();
-  });
+  };
+  chrome.storage.onChanged.addListener(changed);
   void refresh();
 }
 
@@ -178,6 +196,46 @@ function bookmarkEditor(options: {
     dialog.close();
     dialog.remove();
   };
+
+  // The shortcut's icon: the site's own, or an image the person picks.
+  let chosenIcon: File | null = null;
+  let resetChosen = false;
+  const preview = h("img", { class: "icon-preview", alt: "", width: 40, height: 40 });
+  const useSiteIcon = h("button", { type: "button", class: "button quiet", hidden: true }, t("useSiteIcon"));
+  const iconFile = h("input", { type: "file", accept: "image/*", class: "visually-hidden", tabindex: "-1", "aria-hidden": "true" });
+  const showSiteIcon = () => {
+    const url = urlInput && validBookmarkUrl(urlInput.value.trim());
+    preview.src = url ? faviconUrl(url) : "";
+    if (url) void siteIcon(url).then((src) => src && !chosenIcon && (preview.src = src));
+  };
+  iconFile.addEventListener("change", () => {
+    const file = iconFile.files?.[0];
+    if (!file) return;
+    chosenIcon = file;
+    resetChosen = false;
+    preview.src = URL.createObjectURL(file);
+    useSiteIcon.hidden = false;
+  });
+  useSiteIcon.addEventListener("click", () => {
+    chosenIcon = null;
+    resetChosen = true;
+    useSiteIcon.hidden = true;
+    showSiteIcon();
+  });
+  if (urlInput) {
+    showSiteIcon();
+    urlInput.addEventListener("change", showSiteIcon);
+    if (options.url) void hasCustomIcon(options.url).then((custom) => (useSiteIcon.hidden = !custom));
+  }
+  const iconRow = urlInput
+    ? h(
+        "div",
+        { class: "field icon-field" },
+        h("span", {}, t("fieldIcon")),
+        h("div", { class: "icon-row" }, preview, h("button", { type: "button", class: "button quiet", onclick: () => iconFile.click() }, icon("upload"), t("chooseIcon")), useSiteIcon, iconFile),
+      )
+    : null;
+
   dialog.append(
     h(
       "form",
@@ -194,6 +252,11 @@ function bookmarkEditor(options: {
               return;
             }
             url = valid;
+            if (chosenIcon && !(await setCustomIcon(url, chosenIcon))) {
+              error.textContent = t("iconUnusable");
+              return;
+            }
+            if (resetChosen) await resetIcon(url);
           }
           await options.onSave(title, url);
           close();
@@ -202,6 +265,7 @@ function bookmarkEditor(options: {
       h("h2", {}, options.heading),
       h("label", { class: "field" }, h("span", {}, t("fieldName")), titleInput),
       urlInput && h("label", { class: "field" }, h("span", {}, t("fieldAddress")), urlInput),
+      iconRow,
       error,
       h(
         "div",
@@ -244,6 +308,19 @@ function bookmarkEditor(options: {
   titleInput.select();
 }
 
+/** A shortcut's icon: the browser's favicon first, then the site's sharp icon once it is known. */
+function shortcutIcon(url: string): HTMLImageElement {
+  const image = h("img", { src: faviconUrl(url), alt: "", width: 28, height: 28, loading: "lazy" });
+  void siteIcon(url).then((src) => {
+    if (src) image.src = src;
+  });
+  return image;
+}
+
+// The page menu's "Add shortcut" opens the editor of the shortcuts widget on the page.
+let addShortcut: (() => void) | null = null;
+document.addEventListener("orbit:add-shortcut", () => addShortcut?.());
+
 export function mountBookmarks(root: HTMLElement, context: WidgetContext): void {
   const collections = h("div", { class: "segmented", role: "tablist", "aria-label": t("bookmarkCollections") });
   const newFolder = iconButton("folder-plus", t("newFolder"), () => editNew(true));
@@ -285,6 +362,8 @@ export function mountBookmarks(root: HTMLElement, context: WidgetContext): void 
     });
   }
 
+  addShortcut = () => editNew(false);
+
   function openFolder(id: string): void {
     current = id;
     void context.saveSettings({ bookmarksFolder: id });
@@ -313,7 +392,7 @@ export function mountBookmarks(root: HTMLElement, context: WidgetContext): void 
       { class: "icon-button edit" },
     );
     const iconBox = h("span", { class: "tile-icon" });
-    iconBox.append(isFolder ? icon("folder") : h("img", { src: faviconUrl(node.url!), alt: "", width: 28, height: 28, loading: "lazy" }));
+    iconBox.append(isFolder ? icon("folder") : shortcutIcon(node.url!));
     const label = h("span", { class: "tile-title", dir: "auto" }, name);
     const open = isFolder
       ? h("button", { type: "button", class: "open-folder", onclick: () => openFolder(node.id) }, iconBox, label)
@@ -354,7 +433,43 @@ export function mountBookmarks(root: HTMLElement, context: WidgetContext): void 
     return h("li", { class: "tile" }, h("button", { type: "button", class: "add-tile", onclick: () => editNew(false) }, iconBox, h("span", { class: "tile-title" }, t("addShortcut"))));
   }
 
+  function siteTile(site: chrome.topSites.MostVisitedURL): HTMLElement {
+    let name = site.title;
+    try {
+      name ||= new URL(site.url).hostname;
+    } catch {
+      name ||= site.url;
+    }
+    const hide = iconButton(
+      "close",
+      t("hideSite", name),
+      () => void context.saveSettings({ hiddenSites: [...context.settings().hiddenSites, site.url] }).then(render),
+      { class: "icon-button edit" },
+    );
+    const iconBox = h("span", { class: "tile-icon" }, shortcutIcon(site.url));
+    return h("li", { class: "tile" }, h("a", { href: site.url, title: name }, iconBox, h("span", { class: "tile-title", dir: "auto" }, name)), hide);
+  }
+
+  async function renderFrequent(): Promise<void> {
+    bar.replaceChildren();
+    bar.hidden = true;
+    const hidden = new Set(context.settings().hiddenSites);
+    const sites = (await chrome.topSites.get()).filter((site) => /^https?:/i.test(site.url) && !hidden.has(site.url)).slice(0, 20);
+    list = h("ul", { class: "tiles" }, ...sites.map(siteTile));
+    list.addEventListener("scroll", updateRail, { passive: true });
+    railSize.disconnect();
+    railSize.observe(list);
+    body.replaceChildren(list, ...(sites.length ? [] : [h("p", { class: "empty" }, t("frequentEmpty"))]));
+    updateRail();
+    context.relayout();
+  }
+
   async function render(): Promise<void> {
+    root.dataset.rows = String(context.settings().shortcutRows);
+    if (context.settings().topSitesMode === "frequent") {
+      await renderFrequent();
+      return;
+    }
     const [tree] = await chrome.bookmarks.getTree();
     const roots = (tree?.children ?? []).filter((node) => node.id === BOOKMARKS_BAR || (node.children?.length ?? 0) > 0);
     const [folder] = await chrome.bookmarks.getSubTree(current).catch(() => chrome.bookmarks.getSubTree(BOOKMARKS_BAR));
@@ -389,9 +504,15 @@ export function mountBookmarks(root: HTMLElement, context: WidgetContext): void 
     context.relayout();
   }
 
-  for (const event of [chrome.bookmarks.onCreated, chrome.bookmarks.onRemoved, chrome.bookmarks.onChanged, chrome.bookmarks.onMoved, chrome.bookmarks.onChildrenReordered]) {
-    (event as chrome.events.Event<() => void>).addListener(() => void render());
-  }
+  const events = [chrome.bookmarks.onCreated, chrome.bookmarks.onRemoved, chrome.bookmarks.onChanged, chrome.bookmarks.onMoved, chrome.bookmarks.onChildrenReordered] as Array<chrome.events.Event<() => void>>;
+  const changed = () => {
+    if (!root.isConnected) {
+      for (const event of events) event.removeListener(changed);
+      return;
+    }
+    void render();
+  };
+  for (const event of events) event.addListener(changed);
   void render();
 }
 
@@ -536,68 +657,128 @@ export function mountWeather(root: HTMLElement, context: WidgetContext): void {
 const NOTE_SWATCH: Record<NoteColor, string> = { ion: "#7cacf8", amber: "#f2b75b", rose: "#f28ca8", mint: "#5fd4c8", slate: "#9aa3b8" };
 const NOTE_COLOR_NAME: Record<NoteColor, string> = { ion: "colorBlue", amber: "colorAmber", rose: "colorRose", mint: "colorMint", slate: "colorSlate" };
 
+function noteDate(time: number): string {
+  const date = new Date(time);
+  const sameDay = date.toDateString() === new Date().toDateString();
+  return sameDay ? date.toLocaleTimeString(locale(), { hour: "numeric", minute: "2-digit" }) : date.toLocaleDateString(locale(), { month: "short", day: "numeric" });
+}
+
 export function mountNotes(root: HTMLElement): void {
-  root.classList.add("pane");
+  root.classList.add("pane", "notes-widget");
   let notes: Note[] = [];
-  const list = h("div", { class: "notes-list" });
-  root.append(h("div", { class: "widget-head" }, h("h2", {}, t("widgetNotes")), h("button", { type: "button", class: "button quiet", onclick: () => add() }, icon("plus"), t("addNote"))), list);
+  const search = h("input", { type: "search", class: "notes-search", placeholder: t("searchNotes"), "aria-label": t("searchNotes"), hidden: true, oninput: () => render() });
+  const list = h("ul", { class: "notes-list" });
+  root.append(h("div", { class: "widget-head" }, h("h2", {}, t("widgetNotes")), h("button", { type: "button", class: "button quiet", onclick: () => openNote(null) }, icon("plus"), t("addNote"))), search, list);
 
   const persist = () => chrome.storage.local.set({ notes });
-  const persistSoon = debounce(() => void persist(), 400);
 
-  function add(): void {
-    const note = createNote(crypto.randomUUID(), Date.now());
-    notes = [note, ...notes];
-    void persist();
-    render();
-    list.querySelector<HTMLTextAreaElement>(`[data-note="${note.id}"] textarea`)?.focus();
-  }
-
-  function update(id: string, patch: Partial<Pick<Note, "text" | "color" | "pinned">>, redraw: boolean): void {
-    notes = patchNote(notes, id, patch, Date.now());
-    if (redraw) {
-      void persist();
-      render();
-    } else {
-      persistSoon();
-    }
-  }
-
-  function noteCard(note: Note): HTMLElement {
-    const text = h("textarea", { dir: "auto", "aria-label": t("noteText"), placeholder: t("notePlaceholder"), oninput: () => update(note.id, { text: text.value }, false) });
-    text.value = note.text;
-    const tools = h(
-      "div",
-      { class: "note-tools" },
-      ...NOTE_COLORS.map((color) => {
-        const swatch = h("button", { type: "button", class: "swatch", "aria-label": t("noteColor", t(NOTE_COLOR_NAME[color])), "aria-pressed": String(note.color === color), onclick: () => update(note.id, { color }, true) });
-        swatch.style.setProperty("--swatch", NOTE_SWATCH[color]);
-        return swatch;
-      }),
-      h("span", { class: "spacer" }),
-      iconButton("pin", note.pinned ? t("unpinNote") : t("pinNote"), () => update(note.id, { pinned: !note.pinned }, true), { "aria-pressed": String(note.pinned) }),
-      iconButton("trash", t("deleteNote"), () => {
-        notes = notes.filter((other) => other.id !== note.id);
-        void persist();
-        render();
-      }),
+  function row(note: Note): HTMLElement {
+    const { title, body } = noteSummary(note.text);
+    return h(
+      "li",
+      {},
+      h(
+        "button",
+        { type: "button", class: "note-row", "data-color": note.color, onclick: () => openNote(note.id) },
+        h("span", { class: "note-mark", "aria-hidden": "true" }),
+        h("span", { class: "note-text" }, h("span", { class: "note-title", dir: "auto" }, title), body ? h("span", { class: "note-body", dir: "auto" }, body) : null),
+        h("span", { class: "note-meta" }, note.pinned ? h("span", { class: "note-pinned", title: t("pinNote") }, icon("pin")) : null, h("time", { dateTime: new Date(note.updated).toISOString() }, noteDate(note.updated))),
+      ),
     );
-    return h("article", { class: "note", "data-note": note.id, "data-color": note.color }, text, tools);
   }
 
   function render(): void {
-    list.replaceChildren(...(notes.length ? sortNotes(notes).map(noteCard) : [h("p", { class: "empty" }, t("notesEmpty"))]));
+    search.hidden = notes.length < 6;
+    const query = search.hidden ? "" : search.value.trim().toLowerCase();
+    const shown = sortNotes(notes).filter((note) => !query || note.text.toLowerCase().includes(query));
+    list.replaceChildren(...(shown.length ? shown.map(row) : [h("li", { class: "empty" }, query ? t("noNotesFound") : t("notesEmpty"))]));
+  }
+
+  // A note opens in a dialog. A new note is saved once it has text, so an empty one leaves nothing.
+  function openNote(id: string | null): void {
+    let draft = notes.find((note) => note.id === id) ?? createNote(crypto.randomUUID(), Date.now());
+    const dialog = h("dialog", { class: "note-dialog", "data-color": draft.color, "aria-label": t("widgetNotes") });
+    const text = h("textarea", { class: "note-editor", dir: "auto", "aria-label": t("noteText"), placeholder: t("notePlaceholder"), maxlength: MAX_NOTE_LENGTH });
+    text.value = draft.text;
+    const status = h("span", { class: "note-status" });
+
+    const showStatus = () => {
+      status.textContent = draft.text.trim() ? t("noteSavedAt", noteDate(draft.updated)) : t("noteNotSavedYet");
+    };
+    const commit = () => {
+      notes = upsertNote(notes, draft);
+      void persist();
+      render();
+      showStatus();
+    };
+    const commitSoon = debounce(commit, 400);
+    const change = (patch: Partial<Pick<Note, "text" | "color" | "pinned">>, now: boolean) => {
+      draft = patchNote([draft], draft.id, patch, Date.now())[0]!;
+      dialog.dataset.color = draft.color;
+      if (now) commit();
+      else commitSoon();
+    };
+
+    const swatches = NOTE_COLORS.map((color) => {
+      const swatch = h("button", { type: "button", class: "swatch", "aria-label": t("noteColor", t(NOTE_COLOR_NAME[color])), "aria-pressed": String(draft.color === color) });
+      swatch.style.setProperty("--swatch", NOTE_SWATCH[color]);
+      swatch.addEventListener("click", () => {
+        for (const other of swatches) other.setAttribute("aria-pressed", String(other === swatch));
+        change({ color }, true);
+      });
+      return swatch;
+    });
+    const pin = iconButton("pin", draft.pinned ? t("unpinNote") : t("pinNote"), () => {
+      change({ pinned: !draft.pinned }, true);
+      pin.setAttribute("aria-pressed", String(draft.pinned));
+      const label = draft.pinned ? t("unpinNote") : t("pinNote");
+      pin.setAttribute("aria-label", label);
+      pin.title = label;
+    }, { "aria-pressed": String(draft.pinned) });
+    const remove = iconButton("trash", t("deleteNote"), () => {
+      notes = notes.filter((note) => note.id !== draft.id);
+      draft = { ...draft, text: "" };
+      void persist();
+      render();
+      dialog.close();
+    });
+    text.addEventListener("input", () => {
+      change({ text: text.value }, false);
+      status.textContent = "";
+    });
+
+    dialog.append(
+      h("div", { class: "note-dialog-head" }, h("div", { class: "note-colors", role: "group", "aria-label": t("noteColors") }, ...swatches), h("span", { class: "spacer" }), pin, remove, iconButton("close", t("close"), () => dialog.close())),
+      text,
+      h("div", { class: "note-dialog-foot" }, status, h("button", { type: "button", class: "button primary", onclick: () => dialog.close() }, t("done"))),
+    );
+    dialog.addEventListener("close", () => {
+      commit();
+      dialog.remove();
+    });
+    document.body.append(dialog);
+    showStatus();
+    dialog.showModal();
+    text.focus();
+    text.setSelectionRange(text.value.length, text.value.length);
   }
 
   void chrome.storage.local.get("notes").then((stored) => {
-    notes = sanitizeNotes(stored.notes);
+    const loaded = sanitizeNotes(stored.notes);
+    notes = dropEmptyNotes(loaded);
+    if (notes.length !== loaded.length) void persist();
     render();
   });
 
-  // Notes edited in the side panel or another tab show up here too, unless a note is being typed in.
-  chrome.storage.onChanged.addListener((changes, area) => {
-    if (area !== "local" || !changes.notes || root.contains(document.activeElement)) return;
-    notes = sanitizeNotes(changes.notes.newValue);
+  // Notes edited in the side panel or another tab show up here too.
+  const changed = (changes: Record<string, chrome.storage.StorageChange>, area: string) => {
+    if (!root.isConnected) {
+      chrome.storage.onChanged.removeListener(changed);
+      return;
+    }
+    if (area !== "local" || !changes.notes) return;
+    notes = dropEmptyNotes(sanitizeNotes(changes.notes.newValue));
     render();
-  });
+  };
+  chrome.storage.onChanged.addListener(changed);
 }

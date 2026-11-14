@@ -8,8 +8,8 @@ Orbit is a free, privacy-focused desktop browser by NovaTech, built as a fork of
 
 - Chromium 157 built from Google's source archive with Orbit's changes on top (`chromium/`), on GitHub's free runners for Windows, macOS and Linux.
 - Orbit's name, logo, color palette, pill-shaped tabs and toolbar icons, and `orbit://` addresses for internal pages.
-- Privacy defaults: DuckDuckGo search, secure DNS through Quad9, HTTPS-only mode, no prediction, translation or sign-in, AI and advertising web APIs off.
-- A built-in extension with the new tab page (black hole video or the person's own background, search, shortcuts, protection counts, weather, notes) and Shields, which blocks ads, trackers and listed threats with Chromium's own rule engine.
+- Privacy defaults: DuckDuckGo search, secure DNS through Quad9, HTTPS-only mode, no prediction, translation or sign-in, AI and advertising web APIs off, no background apps after the last window closes.
+- A built-in extension with the new tab page (black hole video, the person's own background or a color, search with a choice of engine, favorite or frequently visited sites, protection counts, weather, notes) and Shields, which blocks ads, trackers and listed threats with Chromium's own rule engine, removes YouTube's video ads, and lists what it blocked on each page.
 - A privacy page for fingerprinting protection levels, WebRTC handling, clearing data at startup and history cleanup.
 
 ## Known limits

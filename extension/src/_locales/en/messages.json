@@ -538,5 +538,203 @@
   },
   "nothingBlocked": {
     "message": "Nothing was blocked on this page yet."
+  },
+  "searchNotes": {
+    "message": "Search notes"
+  },
+  "noNotesFound": {
+    "message": "No notes match your search."
+  },
+  "noteSavedAt": {
+    "message": "Saved on this device, $1"
+  },
+  "noteNotSavedYet": {
+    "message": "Saved once you write something"
+  },
+  "noteColors": {
+    "message": "Note color"
+  },
+  "done": {
+    "message": "Done"
+  },
+  "backgroundPictures": {
+    "message": "Pictures"
+  },
+  "backgroundColors": {
+    "message": "Colors and gradients"
+  },
+  "colorGraphite": {
+    "message": "Graphite"
+  },
+  "colorMidnight": {
+    "message": "Midnight"
+  },
+  "colorOcean": {
+    "message": "Ocean"
+  },
+  "colorForest": {
+    "message": "Forest"
+  },
+  "colorWine": {
+    "message": "Wine"
+  },
+  "colorSlateGray": {
+    "message": "Slate"
+  },
+  "colorAurora": {
+    "message": "Aurora"
+  },
+  "colorNebula": {
+    "message": "Nebula"
+  },
+  "colorEmber": {
+    "message": "Ember"
+  },
+  "colorLagoon": {
+    "message": "Lagoon"
+  },
+  "colorDusk": {
+    "message": "Dusk"
+  },
+  "colorOrchid": {
+    "message": "Orchid"
+  },
+  "sectionClock": {
+    "message": "Clock"
+  },
+  "sectionSearch": {
+    "message": "Search"
+  },
+  "sectionTopSites": {
+    "message": "Top sites"
+  },
+  "sectionTheme": {
+    "message": "Theme"
+  },
+  "showDate": {
+    "message": "Show the date"
+  },
+  "clockFormat": {
+    "message": "Time format"
+  },
+  "clockAuto": {
+    "message": "Automatic, from your language"
+  },
+  "clock12": {
+    "message": "12-hour"
+  },
+  "clock24": {
+    "message": "24-hour"
+  },
+  "showSearch": {
+    "message": "Show the search box"
+  },
+  "searchEngine": {
+    "message": "Search with"
+  },
+  "browserDefaultEngine": {
+    "message": "The browser's search engine"
+  },
+  "browserDefaultEngineNote": {
+    "message": "The same one the address bar uses"
+  },
+  "searchEngineNote": {
+    "message": "This applies to the search box on this page. The address bar uses the browser's search engine, which you can change in Settings."
+  },
+  "openSearchSettings": {
+    "message": "Change the browser's search engine"
+  },
+  "searchWithEngine": {
+    "message": "Search $1 or enter an address"
+  },
+  "showTopSites": {
+    "message": "Show top sites"
+  },
+  "topSitesShow": {
+    "message": "Which sites"
+  },
+  "topSitesFavorites": {
+    "message": "Favorites"
+  },
+  "topSitesFavoritesNote": {
+    "message": "Top sites are curated by you"
+  },
+  "topSitesFrequent": {
+    "message": "Frequently visited"
+  },
+  "topSitesFrequentNote": {
+    "message": "Top sites are suggested from the websites you visit often"
+  },
+  "topSitesRows": {
+    "message": "Rows"
+  },
+  "oneRow": {
+    "message": "One row"
+  },
+  "twoRows": {
+    "message": "Two rows"
+  },
+  "showHiddenSites": {
+    "message": "Show $1 hidden sites again"
+  },
+  "hideSite": {
+    "message": "Hide $1"
+  },
+  "frequentEmpty": {
+    "message": "Sites you visit often will show up here."
+  },
+  "themeMode": {
+    "message": "Light, dark or device"
+  },
+  "themeModeNote": {
+    "message": "Settings > Appearance"
+  },
+  "themeColor": {
+    "message": "Theme color"
+  },
+  "themeColorNote": {
+    "message": "Pick the browser's color"
+  },
+  "fieldIcon": {
+    "message": "Icon"
+  },
+  "chooseIcon": {
+    "message": "Choose an image"
+  },
+  "useSiteIcon": {
+    "message": "Use the site's icon"
+  },
+  "iconUnusable": {
+    "message": "That image could not be used. Try a PNG, JPEG, WebP or SVG."
+  },
+  "pageMenu": {
+    "message": "Page menu"
+  },
+  "back": {
+    "message": "Back"
+  },
+  "forward": {
+    "message": "Forward"
+  },
+  "reload": {
+    "message": "Reload"
+  },
+  "openInNewTab": {
+    "message": "Open in new tab"
+  },
+  "openInNewWindow": {
+    "message": "Open in new window"
+  },
+  "openInPrivateWindow": {
+    "message": "Open in private window"
+  },
+  "copyLink": {
+    "message": "Copy link address"
+  },
+  "bookmarksManager": {
+    "message": "Bookmarks"
+  },
+  "historyPage": {
+    "message": "History"
   }
 }

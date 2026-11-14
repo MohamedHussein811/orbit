@@ -26,10 +26,12 @@ Chromium 157 source archive (pinned version, verified)
 ## Data flow
 
 - **Blocking:** Chromium evaluates rules before a request leaves the browser. No page address leaves the device for this.
-- **Counts:** the rule engine reports each match to the extension's worker, which adds it to daily totals. It stores no address.
+- **Counts:** the rule engine reports each match to the extension's worker, which adds it to daily totals. For each open tab it also keeps the blocked hosts in memory, for the Shields panel's list, until the tab navigates or closes. Full addresses are never kept.
 - **Preferences:** Orbit changes default values only, so a choice made in Settings still wins.
 - **Weather:** after a person enters a city, the new tab page sends the city name to Open-Meteo's geocoder, then coordinates rounded to about 11 km to its forecast service. Nothing is sent before that.
 - **Background:** the new tab page's video ships inside the browser. A person's own image or video stays on the device.
+- **Shortcut icons:** for each shortcut on the new tab page, the page asks that shortcut's own site once for its large icon (its home page, then the icon file), without cookies or a referrer, and stores the icon. Retries wait 14 days. An image the person chooses stays on the device.
+- **Frequently visited sites:** when a person picks this for the new tab page, the list comes from the browser's own history and stays on the device.
 
 ## Security boundaries
 

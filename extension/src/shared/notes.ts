@@ -62,3 +62,19 @@ export function patchNote(notes: readonly Note[], id: string, patch: Partial<Pic
     return next;
   });
 }
+
+/** A note's first line as its title and the rest, on one line, as a preview. */
+export function noteSummary(text: string): { title: string; body: string } {
+  const lines = text.split("\n").map((line) => line.trim()).filter(Boolean);
+  return { title: lines[0] ?? "", body: lines.slice(1).join(" ") };
+}
+
+/** Saves a note that has text, and removes one that was emptied. New notes go first. */
+export function upsertNote(notes: readonly Note[], note: Note): Note[] {
+  if (!note.text.trim()) return notes.filter((other) => other.id !== note.id);
+  return notes.some((other) => other.id === note.id) ? notes.map((other) => (other.id === note.id ? note : other)) : [note, ...notes];
+}
+
+export function dropEmptyNotes(notes: readonly Note[]): Note[] {
+  return notes.filter((note) => note.text.trim() !== "");
+}

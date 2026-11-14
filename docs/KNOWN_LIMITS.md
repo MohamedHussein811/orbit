@@ -29,6 +29,7 @@ These also apply to unbranded Chromium builds.
   - 3,137 EasyList filters use options with no exact equivalent in the rule engine, such as popup-only and content security policy filters, and are skipped.
   - Filters in regular expression form are skipped.
   - New rules arrive with each release, through the built-in extension's own update feed.
+  - YouTube ads are removed by a page script that strips the ad entries from YouTube's player data. Tested on two videos on 2026-11-14: the ad entries were gone and the videos played. YouTube changes often, and ads stitched into the video stream itself cannot be removed this way.
 - **Guest windows** have no extensions, so no Shields.
 - **Fingerprinting protection** runs in the page. It covers canvas, audio and graphics readings, not fonts or every other signal, and not canvases in web workers.
 - **Protection counts** show ads, trackers and threats only. Tracking cookies blocked and bandwidth saved are not shown, because the browser reports no reliable number for them.
