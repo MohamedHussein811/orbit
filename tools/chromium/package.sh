@@ -1,6 +1,6 @@
 #!/bin/bash
 # Packages the finished browser for people to install, into dist/:
-#   Windows  OrbitSetup-<version>-x64.exe (Chromium's installer, per-user)
+#   Windows  OrbitSetup-<version>-x64.exe (a setup window around Chromium's per-user installer)
 #   macOS    Orbit-<version>-mac-arm64.dmg, signed and notarized when the signing secrets are set
 #   Linux    orbit_<version>_amd64.deb and Orbit-<version>-linux-x64.tar.xz
 set -euo pipefail
@@ -47,9 +47,17 @@ if [ "$(uname)" = "Darwin" ]; then
       "$dist/$product-$version-mac-arm64-unsigned.dmg"
   fi
 elif is_windows; then
-  cp mini_installer.exe "$dist/${product}Setup-$version-x64.exe"
+  # A setup window around Chromium's installer, which has none.
+  iscc="/c/Program Files (x86)/Inno Setup 6/ISCC.exe"
+  [ -x "$iscc" ] || choco install innosetup -y --no-progress > /dev/null
+  MSYS_NO_PATHCONV=1 MSYS2_ARG_CONV_EXCL="*" "$iscc" /Qp "/DVersion=$version" "/DInstaller=$(cygpath -w "$PWD/mini_installer.exe")" \
+    "/DBranding=$(cygpath -w "$root/branding")" "/O$(cygpath -w "$dist")" \
+    "$(cygpath -w "$root/tools/chromium/installer/orbit.iss")"
+  setup="$dist/${product}Setup-$version-x64.exe"
+  test -f "$setup"
   # Install it the way a person would, for this user, and check what landed.
-  ./mini_installer.exe --do-not-launch-chrome
+  MSYS_NO_PATHCONV=1 MSYS2_ARG_CONV_EXCL="*" "$setup" /VERYSILENT /SUPPRESSMSGBOXES /NORESTART "/LOG=$(cygpath -w "$RUNNER_TEMP/orbit-setup.log")"
+  grep -i "exit code\|error" "$RUNNER_TEMP/orbit-setup.log" || true
   installed="$(cygpath -u "$LOCALAPPDATA")/NovaTech/$product/Application"
   ls -l "$installed" "$installed/$version"
   test -f "$installed/orbit.exe"
