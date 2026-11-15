@@ -95,9 +95,6 @@
   "playVideo": {
     "message": "Play background video"
   },
-  "videoCredit": {
-    "message": "Video: NASA's Goddard Space Flight Center/Jeremy Schnittman"
-  },
   "browserTheme": {
     "message": "Theme"
   },
@@ -745,5 +742,89 @@
   },
   "iconYourImage": {
     "message": "Your image"
+  },
+  "backgroundGallery": {
+    "message": "Orbit Gallery"
+  },
+  "galleryCategory": {
+    "message": "Gallery category"
+  },
+  "galleryAll": {
+    "message": "All"
+  },
+  "gallerySummer": {
+    "message": "Summer"
+  },
+  "galleryAnimals": {
+    "message": "Animals"
+  },
+  "gallerySpace": {
+    "message": "Space"
+  },
+  "galleryTravel": {
+    "message": "Travel"
+  },
+  "galleryLove": {
+    "message": "Love"
+  },
+  "gallerySport": {
+    "message": "Sport"
+  },
+  "galleryPeople": {
+    "message": "People"
+  },
+  "galleryCity": {
+    "message": "City"
+  },
+  "galleryThings": {
+    "message": "Things"
+  },
+  "galleryNature": {
+    "message": "Nature"
+  },
+  "galleryChristmas": {
+    "message": "Christmas"
+  },
+  "galleryAbstractions": {
+    "message": "Abstractions"
+  },
+  "galleryDaily": {
+    "message": "A new video every day"
+  },
+  "galleryDailyNote": {
+    "message": "Or pick one below to keep it"
+  },
+  "galleryCredit": {
+    "message": "Photo: $1, $2, Wikimedia Commons"
+  },
+  "galleryFailed": {
+    "message": "The video could not load. Check your connection."
+  },
+  "galleryLoading": {
+    "message": "Loading the gallery..."
+  },
+  "gallerySource": {
+    "message": "Videos from Wikimedia Commons, NASA's among them, downloaded from Wikimedia when shown. Orbit's own space videos ship with the browser."
+  },
+  "videoBy": {
+    "message": "Video: $1"
+  },
+  "galleryVideoCredit": {
+    "message": "Video: $1, $2, Wikimedia Commons"
+  },
+  "galleryMotion": {
+    "message": "Show as"
+  },
+  "galleryLive": {
+    "message": "Live video"
+  },
+  "galleryStill": {
+    "message": "Static picture"
+  },
+  "galleryStillNote": {
+    "message": "Its still frame, less data and battery"
+  },
+  "galleryLiveNote": {
+    "message": "Plays the video"
   }
 }

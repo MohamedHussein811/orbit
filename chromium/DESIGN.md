@@ -7,8 +7,8 @@ new tab page and Shields. Colors come from one set of tokens in `tools/design/to
 
 A quiet instrument around one striking view. The browser frame and pages are calm graphite or
 white with a single blue accent, so content and the person's own work lead. Space appears in
-one place, on purpose: the new tab page opens on NASA's black hole visualization, with the clock
-set inside the black hole's shadow. Everything over that picture is dark glass, so text stays
+one place, on purpose: the new tab page opens on a black hole video that slowly zooms in and out, with the clock
+at its center. Orbit Gallery offers more videos by category, live or as a still picture. Everything over that picture is dark glass, so text stays
 readable on any frame of the video or any image the person chooses.
 
 The mark is a white open ring with a satellite on a black rounded square. The same ring and
@@ -127,7 +127,7 @@ case. Native browser UI keeps the system font.
                   [ search or enter an address        ]
 
    [ Protection            ]  [ Weather    ]  [ Notes                ]
- [pause] Video: NASA's Goddard Space Flight Center/Jeremy Schnittman
+ [pause] Video: Pixabay
 ```
 
 - The clock and search sit at the exact center of the window, where the black hole's shadow is,

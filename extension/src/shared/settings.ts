@@ -3,9 +3,10 @@
 
 import { PERIODS, type Period } from "./stats.ts";
 import type { TemperatureUnit } from "./weather.ts";
+import { GALLERY_CATEGORIES, GALLERY_MOTIONS, type GalleryCategory, type GalleryMotion } from "./gallery.ts";
 
-/** Orbit's own background video, an image or video the person chose, Orbit's plain surface, or a color. */
-export const BACKGROUNDS = ["default", "custom", "plain", "color"] as const;
+/** Orbit's own background video, an image or video the person chose, Orbit's plain surface, a color, or Orbit Gallery. */
+export const BACKGROUNDS = ["default", "custom", "plain", "color", "gallery"] as const;
 export type Background = (typeof BACKGROUNDS)[number];
 
 /** Solid colors and gradients. All are dark enough for the light clock and text over them. */
@@ -52,6 +53,10 @@ export interface Settings {
   version: 1;
   background: Background;
   color: ColorId;
+  galleryCategory: GalleryCategory | "all";
+  /** "daily" for a new video each day, or the page of the chosen one. */
+  galleryChoice: string;
+  galleryMotion: GalleryMotion;
   videoPaused: boolean;
   showClock: boolean;
   clockFormat: ClockFormat;
@@ -70,6 +75,9 @@ export function defaultSettings(): Settings {
     version: 1,
     background: "default",
     color: "midnight",
+    galleryCategory: "all",
+    galleryChoice: "daily",
+    galleryMotion: "video",
     videoPaused: false,
     showClock: true,
     clockFormat: "auto",
@@ -93,6 +101,9 @@ export function sanitizeSettings(raw: unknown): Settings {
     version: 1,
     background: pick(BACKGROUNDS, source.background, defaults.background),
     color: pick(COLOR_IDS, source.color, defaults.color),
+    galleryCategory: pick<GalleryCategory | "all">(["all", ...GALLERY_CATEGORIES], source.galleryCategory, defaults.galleryCategory),
+    galleryChoice: typeof source.galleryChoice === "string" && source.galleryChoice.length < 2048 ? source.galleryChoice : defaults.galleryChoice,
+    galleryMotion: pick(GALLERY_MOTIONS, source.galleryMotion, defaults.galleryMotion),
     videoPaused: typeof source.videoPaused === "boolean" ? source.videoPaused : defaults.videoPaused,
     showClock: typeof source.showClock === "boolean" ? source.showClock : defaults.showClock,
     clockFormat: pick(CLOCK_FORMATS, source.clockFormat, defaults.clockFormat),

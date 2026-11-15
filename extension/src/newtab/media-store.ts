@@ -44,3 +44,23 @@ export async function loadCustomMedia(): Promise<Blob | null> {
 export function removeCustomMedia(): Promise<undefined> {
   return run("readwrite", (store) => store.delete(KEY));
 }
+
+// The current Orbit Gallery video and still picture, so each downloads once and not on every new tab.
+export type GallerySlot = "gallery-video" | "gallery-still";
+
+export async function loadGalleryMedia(slot: GallerySlot, src: string): Promise<Blob | null> {
+  try {
+    const value = (await run<unknown>("readonly", (store) => store.get(slot))) as { src?: string; blob?: unknown } | undefined;
+    return value?.src === src && value.blob instanceof Blob ? value.blob : null;
+  } catch {
+    return null;
+  }
+}
+
+export async function saveGalleryMedia(slot: GallerySlot, src: string, blob: Blob): Promise<void> {
+  try {
+    await run("readwrite", (store) => store.put({ src, blob }, slot));
+  } catch {
+    // Without the cache the file downloads again next time.
+  }
+}

@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { defaultLayout, moveWidget, sanitizeLayout, updateWidget } from "../src/shared/layout.ts";
+import { currentItem, DEFAULT_ITEM, itemsIn, NASA_BLACK_HOLE, playsVideo, sanitizeGallery, thumbnailOf } from "../src/shared/gallery.ts";
 import { createNote, dropEmptyNotes, noteSummary, patchNote, sanitizeNotes, sortNotes, upsertNote } from "../src/shared/notes.ts";
 import { excludeMatches, historyCutoff, removalOptions, sanitizePrivacy } from "../src/shared/privacy.ts";
 import { resolveTheme, sanitizeSettings, searchUrl } from "../src/shared/settings.ts";
@@ -263,4 +264,34 @@ test("searches go to the chosen engine, or to the browser's own", () => {
   assert.equal(searchUrl("default", "cats"), null);
   assert.equal(searchUrl("google", "cats & dogs"), "https://www.google.com/search?q=cats%20%26%20dogs");
   assert.equal(searchUrl("startpage", "a"), "https://www.startpage.com/do/search?query=a");
+});
+
+test("the gallery keeps only Wikimedia videos, adds Orbit's space videos, and picks one per day", () => {
+  const poster = (name: string) => `https://thumb.wikimedia.org/wikipedia/commons/thumb/a/ab/${name}.webm/1920px--${name}.webm.jpg`;
+  const video = (name: string) => `https://upload.wikimedia.org/wikipedia/commons/transcoded/a/ab/${name}.webm/${name}.webm.1080p.vp9.webm`;
+  const raw = {
+    categories: {
+      nature: [
+        { page: "https://commons.wikimedia.org/wiki/File:A.webm", title: "A", poster: poster("A"), video: video("A"), author: "X", license: "CC0" },
+        { page: "https://commons.wikimedia.org/wiki/File:B.jpg", title: "B", poster: "https://upload.wikimedia.org/b/2560px-B.jpg", author: "Y", license: "CC BY 4.0" },
+        { page: "bad", title: "C", poster: "https://elsewhere.example/c.jpg", author: "Z" },
+        { page: "bad", title: "D", poster: poster("D"), video: "https://elsewhere.example/d.webm", author: "Z" },
+      ],
+    },
+  };
+  const gallery = sanitizeGallery(raw);
+  assert.equal(gallery.categories.nature?.length, 2);
+  assert.deepEqual(gallery.categories.space?.slice(0, 2), [DEFAULT_ITEM, NASA_BLACK_HOLE]);
+  const day = new Date(2026, 10, 15, 9).getTime();
+  const later = new Date(2026, 10, 15, 22).getTime();
+  assert.equal(currentItem(gallery, "nature", "daily", day), currentItem(gallery, "nature", "daily", later));
+  assert.equal(currentItem(gallery, "nature", "https://commons.wikimedia.org/wiki/File:B.jpg", day)?.title, "B");
+  assert.equal(currentItem(gallery, "christmas", "daily", day), null);
+  const first = gallery.categories.nature![0]!;
+  assert.equal(thumbnailOf(first), poster("A").replace("1920px-", "500px-"));
+  assert.equal(thumbnailOf(DEFAULT_ITEM), "media/space.jpg");
+  assert.equal(playsVideo(first, "video"), true);
+  assert.equal(playsVideo(first, "still"), false);
+  assert.equal(playsVideo(gallery.categories.nature![1]!, "video"), false);
+  assert.equal(itemsIn(gallery, "all").length, 4);
 });
