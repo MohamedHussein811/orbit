@@ -78,5 +78,5 @@ jobs:
           sed -e "s|https://github.com/MohamedHussein811/orbit/releases/latest/download/|file://$repo/|" \
             tools/chromium/linux/orbit.sources > /tmp/orbit-apt/orbit.sources
           sudo apt-get update -o Dir::Etc::sourcelist=/tmp/orbit-apt/orbit.sources -o Dir::Etc::sourceparts=- -o APT::Get::List-Cleanup=0
-          apt-cache policy orbit-browser | tee "$RUNNER_TEMP/policy.txt"
+          apt-cache -o Dir::Etc::sourcelist=/tmp/orbit-apt/orbit.sources -o Dir::Etc::sourceparts=- policy orbit-browser | tee "$RUNNER_TEMP/policy.txt"
           grep -q "Candidate: 157.1.8103.38" "$RUNNER_TEMP/policy.txt"
