@@ -50,3 +50,32 @@ jobs:
           MSYS_NO_PATHCONV=1 MSYS2_ARG_CONV_EXCL="*" "$iscc" /Qp /DVersion=1.0.0.0 "/DInstaller=C:\Windows\System32\whoami.exe" \
             "/DBranding=$(cygpath -w "$PWD/branding")" "/O$(cygpath -w "$PWD/out")" "$(cygpath -w "$PWD/tools/chromium/installer/orbit.iss")"
           ls -l out
+
+  apt:
+    name: Linux package list signs and resolves
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Sign a package list for a stand-in package with a throwaway key, then resolve it with apt
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y --no-install-recommends dpkg-dev apt-utils > /dev/null
+          export GNUPGHOME=$(mktemp -d)
+          gpg --batch --passphrase '' --quick-generate-key "Orbit test <test@example.invalid>" ed25519 sign 1d
+          gpg --batch --armor --export > "$RUNNER_TEMP/test.asc"
+          key=$(gpg --batch --armor --pinentry-mode loopback --passphrase '' --export-secret-keys)
+          repo="$RUNNER_TEMP/repo"
+          mkdir -p "$repo" "$RUNNER_TEMP/pkg/DEBIAN"
+          printf 'Package: orbit-browser\nVersion: 157.1.8103.38\nArchitecture: amd64\nMaintainer: NovaTech\nDescription: stand-in\n' > "$RUNNER_TEMP/pkg/DEBIAN/control"
+          dpkg-deb --root-owner-group --build "$RUNNER_TEMP/pkg" "$repo/orbit_157.1.8103.38_amd64.deb"
+          ORBIT_APT_KEY="$key" ORBIT_APT_PUBLIC="$RUNNER_TEMP/test.asc" bash tools/apt-repo.sh "$repo"
+          chmod -R a+rX "$repo" "$RUNNER_TEMP/test.asc"
+          sed -e "s|https://github.com/MohamedHussein811/orbit/releases/latest/download/|file://$repo/|" \
+            -e "s|/usr/share/keyrings/orbit-archive-keyring.asc|$RUNNER_TEMP/test.asc|" \
+            tools/chromium/linux/orbit.sources > "$RUNNER_TEMP/orbit.sources"
+          sudo apt-get update -o Dir::Etc::sourcelist="$RUNNER_TEMP/orbit.sources" -o Dir::Etc::sourceparts=- -o APT::Get::List-Cleanup=0
+          apt-cache policy orbit-browser | tee "$RUNNER_TEMP/policy.txt"
+          grep -q "Candidate: 157.1.8103.38" "$RUNNER_TEMP/policy.txt"

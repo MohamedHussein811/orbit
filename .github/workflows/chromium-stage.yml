@@ -32,7 +32,7 @@ permissions:
   actions: read
 
 env:
-  CHROMIUM_VERSION: "157.0.8103.38"
+  CHROMIUM_VERSION: "157.0.8103.78"
   TARGETS: ${{ inputs.targets }}
   # Windows: use the installed Visual Studio, not Google's internal toolchain package.
   DEPOT_TOOLS_WIN_TOOLCHAIN: "0"

@@ -51,6 +51,21 @@ def copy_overlay(src):
     return changed
 
 
+def orbit_version(src):
+    """Puts Orbit's release number in the version's second part (157.<release>.8103.38), so each
+    Orbit release is newer than the one before, also on the same Chromium, and installers and the
+    updater treat it as an update."""
+    release = (FORK / "ORBIT_RELEASE").read_text().strip()
+    if not release.isdigit():
+        raise SystemExit("chromium/ORBIT_RELEASE must be a whole number")
+    path = src / "chrome" / "VERSION"
+    text = path.read_text()
+    updated = re.sub(r"^MINOR=\d+$", f"MINOR={int(release)}", text, flags=re.M)
+    if updated != text:
+        path.write_text(updated)
+    return [path]
+
+
 def apply_patches(src):
     changed = []
     for name in (FORK / "patches" / "series").read_text().split():
@@ -249,7 +264,7 @@ def mac_icons(src):
 
 def main():
     src = pathlib.Path(sys.argv[1]).resolve()
-    changed = copy_overlay(src) + apply_patches(src) + brand_strings(src) + rename_chrome(src)
+    changed = copy_overlay(src) + orbit_version(src) + apply_patches(src) + brand_strings(src) + rename_chrome(src)
     if sys.platform == "darwin":
         changed += mac_icons(src)
     hashes = {

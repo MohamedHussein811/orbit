@@ -1,0 +1,442 @@
+diff --git a/chrome/browser/BUILD.gn b/chrome/browser/BUILD.gn
+--- a/chrome/browser/BUILD.gn
++++ b/chrome/browser/BUILD.gn
+@@ -1610,6 +1610,8 @@
+     sources += [
+       "chrome_browser_main_win.cc",
+       "chrome_browser_main_win.h",
++      "orbit_updater_win.cc",
++      "orbit_updater_win.h",
+       "font_prewarmer_tab_helper.cc",
+       "fullscreen_win.cc",
+       "icon_loader_win.cc",
+diff --git a/chrome/browser/chrome_browser_main_win.cc b/chrome/browser/chrome_browser_main_win.cc
+--- a/chrome/browser/chrome_browser_main_win.cc
++++ b/chrome/browser/chrome_browser_main_win.cc
+@@ -5,6 +5,8 @@
+ 
+ #include "chrome/browser/chrome_browser_main_win.h"
+ 
++#include "chrome/browser/orbit_updater_win.h"
++
+ // windows.h must be included before shellapi.h
+ #include <windows.h>
+ 
+@@ -730,6 +732,7 @@
+ 
+ void ChromeBrowserMainPartsWin::PostMainMessageLoopRun() {
+   base::ImportantFileWriterCleaner::GetInstance().Stop();
++  orbit::StopUpdater();
+ 
+   ChromeBrowserMainParts::PostMainMessageLoopRun();
+ }
+@@ -783,6 +786,8 @@
+ void ChromeBrowserMainPartsWin::PostBrowserStart() {
+   ChromeBrowserMainParts::PostBrowserStart();
+ 
++  orbit::StartUpdater();
++
+   // Verify that the delay load helper hooks are in place. This cannot be tested
+   // from unit tests, so rely on this failing here.
+   DCHECK(__pfnDliFailureHook2);
+diff --git a/chrome/browser/orbit_updater_win.cc b/chrome/browser/orbit_updater_win.cc
+--- a/chrome/browser/orbit_updater_win.cc
++++ b/chrome/browser/orbit_updater_win.cc
+@@ -0,0 +1,355 @@
++// Copyright 2026 NovaTech. All rights reserved.
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++
++#include "chrome/browser/orbit_updater_win.h"
++
++#include <windows.h>
++
++#include <array>
++#include <memory>
++#include <optional>
++#include <string>
++#include <string_view>
++#include <utility>
++
++#include "base/base64.h"
++#include "base/command_line.h"
++#include "base/files/file.h"
++#include "base/files/file_path.h"
++#include "base/files/file_util.h"
++#include "base/functional/bind.h"
++#include "base/json/json_reader.h"
++#include "base/logging.h"
++#include "base/memory/weak_ptr.h"
++#include "base/process/launch.h"
++#include "base/process/process.h"
++#include "base/strings/string_number_conversions.h"
++#include "base/strings/string_util.h"
++#include "base/task/thread_pool.h"
++#include "base/time/time.h"
++#include "base/timer/timer.h"
++#include "base/version.h"
++#include "base/win/registry.h"
++#include "chrome/browser/browser_process.h"
++#include "chrome/browser/upgrade_detector/get_installed_version.h"
++#include "chrome/common/chrome_switches.h"
++#include "chrome/install_static/install_util.h"
++#include "components/version_info/version_info.h"
++#include "crypto/hash.h"
++#include "crypto/keypair.h"
++#include "crypto/sign.h"
++#include "net/base/load_flags.h"
++#include "net/traffic_annotation/network_traffic_annotation.h"
++#include "services/network/public/cpp/resource_request.h"
++#include "services/network/public/cpp/shared_url_loader_factory.h"
++#include "services/network/public/cpp/simple_url_loader.h"
++#include "services/network/public/mojom/fetch_api.mojom-shared.h"
++#include "url/gurl.h"
++
++namespace orbit {
++
++namespace {
++
++constexpr char kFeedUrl[] =
++    "https://github.com/MohamedHussein811/orbit/releases/latest/download/"
++    "orbit-update.json";
++constexpr char kSignatureUrl[] =
++    "https://github.com/MohamedHussein811/orbit/releases/latest/download/"
++    "orbit-update.json.sig";
++constexpr char kDownloadPrefix[] =
++    "https://github.com/MohamedHussein811/orbit/releases/download/";
++constexpr wchar_t kSettingsKey[] = L"Software\\NovaTech\\Orbit Update";
++
++// Orbit's release signing key (Ed25519, public part).
++constexpr std::array<uint8_t, 32> kUpdateKey = {
++    0x85, 0x81, 0xbd, 0x23, 0xb9, 0x95, 0x8c, 0xc5,
++    0xaf, 0xdf, 0x86, 0x22, 0x4e, 0xc4, 0xa1, 0x8b,
++    0xe3, 0x2c, 0x30, 0xc8, 0x05, 0x9b, 0x7d, 0xba,
++    0xa3, 0x08, 0x09, 0x59, 0xf6, 0xc8, 0xc5, 0xd5,
++};
++
++constexpr base::TimeDelta kFirstCheck = base::Minutes(4);
++constexpr base::TimeDelta kCheckPeriod = base::Hours(5);
++constexpr base::TimeDelta kRetryPeriod = base::Hours(1);
++constexpr size_t kMaxFeedSize = 64 * 1024;
++constexpr size_t kMaxSignatureSize = 1024;
++constexpr int64_t kMaxSetupSize = 1024LL * 1024 * 1024;
++
++constexpr net::NetworkTrafficAnnotationTag kTrafficAnnotation =
++    net::DefineNetworkTrafficAnnotation("orbit_updater", R"(
++      semantics {
++        sender: "Orbit updater"
++        description:
++          "Checks Orbit's release feed on GitHub for a newer version and "
++          "downloads its setup."
++        trigger: "A few minutes after start, then every few hours."
++        data: "None. The request carries no cookies or identifiers."
++        destination: OTHER
++        destination_other: "GitHub Releases of the Orbit project."
++      }
++      policy {
++        cookies_allowed: NO
++        setting:
++          "Turned off when automatic updates are switched off in Orbit's "
++          "setup."
++        policy_exception_justification: "Not implemented."
++      })");
++
++struct Offer {
++  base::Version version;
++  GURL url;
++  std::string sha256;
++  int64_t size = 0;
++};
++
++struct LocalState {
++  bool enabled = false;
++};
++
++LocalState ReadLocalState() {
++  LocalState state;
++  DWORD enabled = 1;
++  base::win::RegKey key;
++  if (key.Open(HKEY_CURRENT_USER, kSettingsKey, KEY_QUERY_VALUE) ==
++      ERROR_SUCCESS) {
++    key.ReadValueDW(L"Enabled", &enabled);
++  }
++  state.enabled = enabled != 0;
++  return state;
++}
++
++std::optional<Offer> ParseOffer(std::string_view feed) {
++  auto dict = base::JSONReader::ReadDict(feed, base::JSON_PARSE_RFC);
++  if (!dict) {
++    return std::nullopt;
++  }
++  const std::string* version = dict->FindString("version");
++  const auto* windows = dict->FindDict("windows");
++  if (!version || !windows) {
++    return std::nullopt;
++  }
++  const std::string* url = windows->FindString("url");
++  const std::string* sha256 = windows->FindString("sha256");
++  std::optional<double> size = windows->FindDouble("size");
++  if (!url || !sha256 || !size) {
++    return std::nullopt;
++  }
++  Offer offer;
++  offer.version = base::Version(*version);
++  offer.url = GURL(*url);
++  offer.sha256 = base::ToLowerASCII(*sha256);
++  offer.size = static_cast<int64_t>(*size);
++  if (!offer.version.IsValid() || !offer.url.is_valid() ||
++      !base::StartsWith(offer.url.spec(), kDownloadPrefix) ||
++      offer.sha256.size() != 64 || offer.size <= 0 ||
++      offer.size > kMaxSetupSize) {
++    return std::nullopt;
++  }
++  return offer;
++}
++
++bool SignatureMatches(std::string_view feed, std::string_view signature_text) {
++  std::optional<std::vector<uint8_t>> signature = base::Base64Decode(
++      base::TrimWhitespaceASCII(signature_text, base::TRIM_ALL));
++  if (!signature || signature->size() != 64) {
++    return false;
++  }
++  crypto::keypair::PublicKey key =
++      crypto::keypair::PublicKey::FromEd25519PublicKey(kUpdateKey);
++  return crypto::sign::Verify(crypto::sign::ED25519, key,
++                              base::as_byte_span(feed), *signature);
++}
++
++// Runs on a thread pool sequence that may block. Checks the download, runs it and removes it.
++bool CheckAndInstall(base::FilePath download, std::string sha256,
++                     int64_t size) {
++  bool installed = false;
++  base::FilePath setup = download.ReplaceExtension(FILE_PATH_LITERAL(".exe"));
++  {
++    base::File file(download, base::File::FLAG_OPEN | base::File::FLAG_READ);
++    std::array<uint8_t, crypto::hash::kSha256Size> digest;
++    if (!file.IsValid() || file.GetLength() != size ||
++        !crypto::hash::HashFile(crypto::hash::kSha256, &file, digest) ||
++        base::HexEncodeLower(digest) != sha256) {
++      LOG(ERROR) << "Orbit update: the download does not match the feed";
++      base::DeleteFile(download);
++      return false;
++    }
++  }
++  if (!base::Move(download, setup)) {
++    base::DeleteFile(download);
++    return false;
++  }
++  base::CommandLine command(setup);
++  command.AppendArg("/VERYSILENT");
++  command.AppendArg("/SUPPRESSMSGBOXES");
++  command.AppendArg("/NORESTART");
++  command.AppendArg("/SP-");
++  base::LaunchOptions options;
++  options.start_hidden = true;
++  base::Process process = base::LaunchProcess(command, options);
++  int exit_code = -1;
++  if (process.IsValid() &&
++      process.WaitForExitWithTimeout(base::Minutes(15), &exit_code)) {
++    installed = exit_code == 0;
++  } else if (process.IsValid()) {
++    process.Terminate(1, false);
++  }
++  if (!installed) {
++    LOG(ERROR) << "Orbit update: setup ended with " << exit_code;
++  }
++  base::DeleteFile(setup);
++  return installed;
++}
++
++class Updater {
++ public:
++  Updater() = default;
++  Updater(const Updater&) = delete;
++  Updater& operator=(const Updater&) = delete;
++  ~Updater() = default;
++
++  void Start() { Schedule(kFirstCheck); }
++
++ private:
++  void Schedule(base::TimeDelta delay) {
++    timer_.Start(FROM_HERE, delay,
++                 base::BindOnce(&Updater::Check, weak_factory_.GetWeakPtr()));
++  }
++
++  void Check() {
++    base::ThreadPool::PostTaskAndReplyWithResult(
++        FROM_HERE, {base::MayBlock(), base::TaskPriority::BEST_EFFORT},
++        base::BindOnce(&ReadLocalState),
++        base::BindOnce(&Updater::OnLocalState, weak_factory_.GetWeakPtr()));
++  }
++
++  void OnLocalState(LocalState state) {
++    if (!state.enabled) {
++      Schedule(kCheckPeriod);
++      return;
++    }
++    GetInstalledVersion(base::BindOnce(&Updater::OnInstalledVersion,
++                                       weak_factory_.GetWeakPtr()));
++  }
++
++  void OnInstalledVersion(InstalledAndCriticalVersion versions) {
++    // Only an installed copy updates itself; a build run from its own folder does not.
++    if (!versions.installed_version.IsValid()) {
++      return;
++    }
++    installed_ = std::move(versions.installed_version);
++    loader_ = Load(GURL(kFeedUrl));
++    loader_->DownloadToString(
++        g_browser_process->shared_url_loader_factory().get(),
++        base::BindOnce(&Updater::OnFeed, weak_factory_.GetWeakPtr()),
++        kMaxFeedSize);
++  }
++
++  void OnFeed(std::optional<std::string> feed) {
++    if (!feed) {
++      Schedule(kRetryPeriod);
++      return;
++    }
++    loader_ = Load(GURL(kSignatureUrl));
++    loader_->DownloadToString(
++        g_browser_process->shared_url_loader_factory().get(),
++        base::BindOnce(&Updater::OnSignature, weak_factory_.GetWeakPtr(),
++                       std::move(*feed)),
++        kMaxSignatureSize);
++  }
++
++  void OnSignature(std::string feed, std::optional<std::string> signature) {
++    loader_.reset();
++    if (!signature) {
++      Schedule(kRetryPeriod);
++      return;
++    }
++    if (!SignatureMatches(feed, *signature)) {
++      LOG(ERROR) << "Orbit update: the feed signature does not match";
++      Schedule(kCheckPeriod);
++      return;
++    }
++    std::optional<Offer> offer = ParseOffer(feed);
++    if (!offer) {
++      Schedule(kCheckPeriod);
++      return;
++    }
++    const base::Version& running = version_info::GetVersion();
++    if (offer->version.CompareTo(running) <= 0 ||
++        offer->version.CompareTo(installed_) <= 0) {
++      Schedule(kCheckPeriod);
++      return;
++    }
++    const int64_t max_size = offer->size + 1;
++    loader_ = Load(offer->url);
++    loader_->DownloadToTempFile(
++        g_browser_process->shared_url_loader_factory().get(),
++        base::BindOnce(&Updater::OnDownloaded, weak_factory_.GetWeakPtr(),
++                       std::move(*offer)),
++        max_size);
++  }
++
++  void OnDownloaded(Offer offer, base::FilePath download) {
++    loader_.reset();
++    if (download.empty()) {
++      Schedule(kRetryPeriod);
++      return;
++    }
++    base::ThreadPool::PostTaskAndReplyWithResult(
++        FROM_HERE,
++        {base::MayBlock(), base::WithBaseSyncPrimitives(),
++         base::TaskPriority::BEST_EFFORT,
++         base::TaskShutdownBehavior::CONTINUE_ON_SHUTDOWN},
++        base::BindOnce(&CheckAndInstall, std::move(download),
++                       std::move(offer.sha256), offer.size),
++        base::BindOnce(&Updater::OnInstalled, weak_factory_.GetWeakPtr()));
++  }
++
++  void OnInstalled(bool installed) {
++    Schedule(installed ? kCheckPeriod : kRetryPeriod);
++  }
++
++  static std::unique_ptr<network::SimpleURLLoader> Load(const GURL& url) {
++    auto request = std::make_unique<network::ResourceRequest>();
++    request->url = url;
++    request->method = "GET";
++    request->credentials_mode = network::mojom::CredentialsMode::kOmit;
++    request->load_flags = net::LOAD_DISABLE_CACHE;
++    auto loader =
++        network::SimpleURLLoader::Create(std::move(request), kTrafficAnnotation);
++    loader->SetRetryOptions(
++        2, network::SimpleURLLoader::RETRY_ON_5XX |
++               network::SimpleURLLoader::RETRY_ON_NETWORK_CHANGE);
++    loader->SetTimeoutDuration(base::Minutes(30));
++    return loader;
++  }
++
++  base::OneShotTimer timer_;
++  base::Version installed_;
++  std::unique_ptr<network::SimpleURLLoader> loader_;
++  base::WeakPtrFactory<Updater> weak_factory_{this};
++};
++
++Updater* g_updater = nullptr;
++
++}  // namespace
++
++void StartUpdater() {
++  if (g_updater ||
++      base::CommandLine::ForCurrentProcess()->HasSwitch(
++          switches::kDisableBackgroundNetworking) ||
++      install_static::IsSystemInstall()) {
++    return;
++  }
++  g_updater = new Updater();
++  g_updater->Start();
++}
++
++void StopUpdater() {
++  delete g_updater;
++  g_updater = nullptr;
++}
++
++}  // namespace orbit
+diff --git a/chrome/browser/orbit_updater_win.h b/chrome/browser/orbit_updater_win.h
+--- a/chrome/browser/orbit_updater_win.h
++++ b/chrome/browser/orbit_updater_win.h
+@@ -0,0 +1,22 @@
++// Copyright 2026 NovaTech. All rights reserved.
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++
++#ifndef CHROME_BROWSER_ORBIT_UPDATER_WIN_H_
++#define CHROME_BROWSER_ORBIT_UPDATER_WIN_H_
++
++namespace orbit {
++
++// Keeps a per-user Orbit install up to date. A few minutes after start and then every few hours,
++// it reads Orbit's release feed, checks the feed's Ed25519 signature against the key built into
++// Orbit, downloads a newer setup, checks its size and SHA-256 against the feed, and runs it
++// silently. The setup installs next to the running copy; the menu then offers to relaunch.
++// Turned off by --disable-background-networking, by system-wide installs (updated by their
++// administrators), and by the "Enabled" value 0 under HKCU\Software\NovaTech\Orbit Update,
++// which Orbit's setup writes when the person turns automatic updates off.
++void StartUpdater();
++void StopUpdater();
++
++}  // namespace orbit
++
++#endif  // CHROME_BROWSER_ORBIT_UPDATER_WIN_H_
+diff --git a/chrome/browser/upgrade_detector/upgrade_detector_impl.cc b/chrome/browser/upgrade_detector/upgrade_detector_impl.cc
+--- a/chrome/browser/upgrade_detector/upgrade_detector_impl.cc
++++ b/chrome/browser/upgrade_detector/upgrade_detector_impl.cc
+@@ -493,6 +493,12 @@
+   auto* const build_state = g_browser_process->GetBuildState();
+   build_state->AddObserver(this);
+   installed_version_poller_.emplace(build_state);
++#else
++  // Orbit: notice a newer installed version (from Orbit's updater, a package manager or a manual
++  // install) and offer to relaunch, without the outdated-build bubble, which points to Google.
++  auto* const build_state = g_browser_process->GetBuildState();
++  build_state->AddObserver(this);
++  installed_version_poller_.emplace(build_state);
+ #endif  // BUILDFLAG(ENABLE_UPDATE_NOTIFICATIONS)
+ }
+ 

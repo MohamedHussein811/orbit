@@ -30,6 +30,10 @@ its renamed message. "The Chromium Authors" and ChromiumOS names stay as they ar
 | `orbit-media.patch` | Windows and macOS: H.264 through the GPU's D3D11 decoder or VideoToolbox, AAC through Media Foundation or AudioToolbox, with Chromium's FFmpeg reading MP4. `tools/chromium/args.sh` turns on proprietary codecs for both |
 | `orbit-error-page.patch` | Error pages show Orbit's ring with its satellite drifted away instead of Chromium's pixel picture. The offline game keeps its art |
 | `orbit-shields-counts.patch` | Lets Orbit's built-in extension (and no other) receive the rule-match events Shields counts blocks with, which Chromium otherwise gives only to unpacked extensions |
+| `orbit-behavior.patch` | Orbit's disabled web features go to page processes only (no unsupported-flag bar), background apps stop with the last window unless turned on, and the menu does not ask to turn Safe Browsing back on |
+| `orbit-updater.patch` | Every system watches the installed version and offers to relaunch once a newer one is installed (Chromium does this only for Google Chrome). Windows per-user installs update themselves from Orbit's signed release feed (`chrome/browser/orbit_updater_win.cc`, key in `update-key.pub`); see [docs/RELEASING.md](../docs/RELEASING.md) |
+
+`ORBIT_RELEASE` holds Orbit's release number, which `apply-fork.py` writes into the version's second part so each release is newer than the last.
 
 Defaults change only the default value. A choice made in Settings still wins.
 

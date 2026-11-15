@@ -459,7 +459,7 @@
     "message": "Orbit updates"
   },
   "updatesDetail": {
-    "message": "Once a day Orbit asks its release page on GitHub for the newest version number, and tells you on the new tab page when a newer Orbit is out. The request carries nothing about you or your browsing."
+    "message": "Once a day Orbit asks its release page on GitHub for the newest version number, and tells you on the new tab page when a newer Orbit is out. The request carries nothing about you or your browsing. On Windows and Linux, Orbit also installs new versions by itself; on Windows, its setup has a choice to turn that off."
   },
   "updatesCheck": {
     "message": "Tell me when a new version is out"

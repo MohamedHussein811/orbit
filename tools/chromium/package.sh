@@ -118,6 +118,11 @@ EOF
   tar -C "$tree/opt/novatech" -cJf "$dist/$product-$version-linux-x64.tar.xz" "$name"
 
   chmod 4755 "$app/chrome-sandbox"
+  # Orbit's signed package list, so system updates keep Orbit current. A conffile: someone who
+  # removes it keeps it removed across updates.
+  install -D -m 644 "$root/tools/chromium/linux/orbit.sources" "$tree/etc/apt/sources.list.d/$name.sources"
+  install -D -m 644 "$root/tools/chromium/linux/orbit-archive-keyring.asc" "$tree/usr/share/keyrings/$name-archive-keyring.asc"
+  echo "/etc/apt/sources.list.d/$name.sources" > "$tree/DEBIAN/conffiles"
   size=$(du -sk "$tree/opt" | cut -f1)
   cat > "$tree/DEBIAN/control" <<EOF
 Package: $name-browser
