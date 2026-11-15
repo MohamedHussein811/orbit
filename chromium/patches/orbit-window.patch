@@ -1,14 +1,13 @@
 diff --git a/chrome/app/vector_icons/BUILD.gn b/chrome/app/vector_icons/BUILD.gn
 --- a/chrome/app/vector_icons/BUILD.gn
 +++ b/chrome/app/vector_icons/BUILD.gn
-@@ -221,6 +221,11 @@
+@@ -221,6 +221,10 @@
      "my_location_old.icon",
      "name_window_old.icon",
      "navigate_home_chrome_refresh_old.icon",
 +    "orbit_rail_bookmarks.icon",
 +    "orbit_rail_history.icon",
 +    "orbit_rail_notes.icon",
-+    "orbit_rail_settings.icon",
 +    "orbit_rail_shields.icon",
      "navigate_home_touch_old.icon",
      "navigate_stop_chrome_refresh_old.icon",
@@ -168,7 +167,7 @@ diff --git a/chrome/browser/ui/views/frame/browser_view.cc b/chrome/browser/ui/v
 +      ->SetID(kOrbitRailNotesViewId);
 +  layout->SetFlexForView(rail->AddChildView(std::make_unique<views::View>()),
 +                         1);
-+  add_button(kOrbitRailSettingsIcon, name(IDS_SETTINGS_SETTINGS),
++  add_button(vector_icons::kSettingsIcon, name(IDS_SETTINGS_SETTINGS),
 +             command(IDC_OPTIONS));
 +  return rail;
 +}
