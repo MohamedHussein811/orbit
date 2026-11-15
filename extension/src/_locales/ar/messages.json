@@ -216,7 +216,7 @@
     "message": "الطقس من $1"
   },
   "weatherIntro": {
-    "message": "أدخل مدينتك لعرض الطقس. يُرسل بحثك إلى $1."
+    "message": "أدخل مدينتك لعرض الطقس."
   },
   "cityName": {
     "message": "اسم المدينة"
@@ -736,5 +736,14 @@
   },
   "historyPage": {
     "message": "السجل"
+  },
+  "iconAfterAddress": {
+    "message": "تظهر أيقونة الموقع بعد إدخال العنوان"
+  },
+  "iconFromSite": {
+    "message": "أيقونة الموقع نفسه"
+  },
+  "iconYourImage": {
+    "message": "صورتك"
   }
 }

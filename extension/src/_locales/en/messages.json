@@ -216,7 +216,7 @@
     "message": "Weather by $1"
   },
   "weatherIntro": {
-    "message": "Enter your city to see the weather. Your search goes to $1."
+    "message": "Enter your city to see the weather."
   },
   "cityName": {
     "message": "City name"
@@ -699,7 +699,7 @@
     "message": "Icon"
   },
   "chooseIcon": {
-    "message": "Choose an image"
+    "message": "Choose image"
   },
   "useSiteIcon": {
     "message": "Use the site's icon"
@@ -736,5 +736,14 @@
   },
   "historyPage": {
     "message": "History"
+  },
+  "iconAfterAddress": {
+    "message": "The site's icon appears once you enter an address"
+  },
+  "iconFromSite": {
+    "message": "The site's own icon"
+  },
+  "iconYourImage": {
+    "message": "Your image"
   }
 }

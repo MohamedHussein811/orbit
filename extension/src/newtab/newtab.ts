@@ -1,6 +1,6 @@
 // Dashboard page: background, layout, widgets and the Customize dialog.
 
-import { ALLOWED_SIZES, defaultLayout, moveWidget, sanitizeLayout, updateWidget, type Layout, type WidgetId, type WidgetSize } from "../shared/layout.ts";
+import { defaultLayout, moveWidget, sanitizeLayout, updateWidget, type Layout, type WidgetId, type WidgetSize } from "../shared/layout.ts";
 import { localizePage, t } from "../shared/i18n.ts";
 import {
   CLOCK_FORMATS,
@@ -34,7 +34,8 @@ const WIDGET_NAMES: Record<WidgetId, string> = {
   weather: "widgetWeather",
   notes: "widgetNotes",
 };
-const SIZE_NAMES: Record<WidgetSize, string> = { small: "sizeSmall", medium: "sizeMedium", large: "sizeLarge" };
+// Widgets always take their standard size.
+const WIDGET_SIZE = Object.fromEntries(defaultLayout().widgets.map((widget) => [widget.id, widget.size])) as Record<WidgetId, WidgetSize>;
 const PICTURE_BACKGROUNDS = ["default", "custom", "plain"] as const satisfies readonly Background[];
 const BACKGROUND_NAMES: Record<(typeof PICTURE_BACKGROUNDS)[number], string> = { default: "backgroundDefault", custom: "backgroundCustom", plain: "backgroundPlain" };
 const COLOR_NAMES: Record<ColorId, string> = {
@@ -232,7 +233,7 @@ function drawBoard(): void {
   searchSlot.replaceChildren();
   dock.replaceChildren();
   for (const widget of layout.widgets) {
-    const frame = h("div", { class: `widget size-${widget.size}`, "data-id": widget.id, role: "region", "aria-label": t(WIDGET_NAMES[widget.id]), hidden: !widget.visible });
+    const frame = h("div", { class: `widget size-${WIDGET_SIZE[widget.id]}`, "data-id": widget.id, role: "region", "aria-label": t(WIDGET_NAMES[widget.id]), hidden: !widget.visible });
     slotFor(widget.id).append(frame);
     if (!widget.visible) continue;
     try {
@@ -280,15 +281,39 @@ function switchInput(key: string, checked: boolean, onChange: (checked: boolean)
 }
 
 /** A set of choices drawn as cards, one of which is picked. */
-function choiceGroup<T extends string>(name: string, label: string, options: ReadonlyArray<{ value: T; title: string; note?: string }>, current: T, onChange: (value: T) => void): HTMLElement {
+function choiceGroup<T extends string>(
+  name: string,
+  label: string,
+  options: ReadonlyArray<{ value: T; title: string; note?: string; preview?: HTMLElement; icon?: Element }>,
+  current: T,
+  onChange: (value: T) => void,
+): HTMLElement {
+  const withPreviews = options.some((option) => option.preview);
   return h(
     "div",
-    { class: "choices", role: "radiogroup", "aria-label": label },
+    { class: withPreviews ? "choices with-previews" : "choices", role: "radiogroup", "aria-label": label },
     ...options.map((option) => {
       const input = h("input", { type: "radio", name, value: option.value, checked: option.value === current, "data-focus-key": `${name}-${option.value}` });
       input.addEventListener("change", () => input.checked && onChange(option.value));
-      return h("label", { class: "choice" }, input, h("span", { class: "choice-text" }, h("span", {}, option.title), option.note ? h("small", {}, option.note) : null));
+      return h(
+        "label",
+        { class: "choice" },
+        option.preview ?? null,
+        h("span", { class: "choice-line" }, input, option.icon ? h("span", { class: "choice-icon" }, option.icon) : null, h("span", { class: "choice-text" }, h("span", {}, option.title), option.note ? h("small", {}, option.note) : null)),
+      );
     }),
+  );
+}
+
+/** A small drawing of the shortcuts row: rows of site circles, with a badge for where they come from. */
+function sitesPreview(rows: 1 | 2, badge?: "star" | "clock"): HTMLElement {
+  const circles = (count: number) => h("span", { class: "preview-row" }, ...Array.from({ length: count }, () => h("span", { class: "preview-site" })));
+  return h(
+    "span",
+    { class: "choice-preview", "aria-hidden": "true" },
+    circles(5),
+    rows === 2 ? circles(5) : null,
+    badge ? h("span", { class: "preview-badge" }, icon(badge === "star" ? "star" : "history")) : null,
   );
 }
 
@@ -421,7 +446,12 @@ function clockSection(): HTMLElement[] {
 }
 
 function searchSection(): HTMLElement[] {
-  const engines = SEARCH_ENGINE_IDS.map((value: SearchEngine) => ({ value, title: value === "default" ? t("browserDefaultEngine") : ENGINE_NAMES[value], note: value === "default" ? t("browserDefaultEngineNote") : undefined }));
+  const engines = SEARCH_ENGINE_IDS.map((value: SearchEngine) => ({
+    value,
+    title: value === "default" ? t("browserDefaultEngine") : ENGINE_NAMES[value],
+    note: value === "default" ? t("browserDefaultEngineNote") : undefined,
+    icon: value === "default" ? icon("search") : h("img", { src: `engines/${value}.png`, alt: "", width: 20, height: 20 }),
+  }));
   return [
     h("div", { class: "group" }, toggleRow(t("showSearch"), switchInput("search-visible", isVisible("search"), (checked) => void setLayout(updateWidget(layout, "search", { visible: checked }))))),
     h("h3", {}, t("searchEngine")),
@@ -436,9 +466,9 @@ function topSitesSection(): HTMLElement[] {
   return [
     h("div", { class: "group" }, toggleRow(t("showTopSites"), switchInput("top-visible", isVisible("bookmarks"), (checked) => void setLayout(updateWidget(layout, "bookmarks", { visible: checked }))))),
     h("h3", {}, t("topSitesShow")),
-    choiceGroup("top-mode", t("topSitesShow"), TOP_SITES_MODES.map((value) => ({ value, title: t(TOP_SITES_NAMES[value][0]), note: t(TOP_SITES_NAMES[value][1]) })), settings.topSitesMode, (topSitesMode) => void setBoardSetting({ topSitesMode })),
+    choiceGroup("top-mode", t("topSitesShow"), TOP_SITES_MODES.map((value) => ({ value, title: t(TOP_SITES_NAMES[value][0]), note: t(TOP_SITES_NAMES[value][1]), preview: sitesPreview(1, value === "favorites" ? "star" : "clock") })), settings.topSitesMode, (topSitesMode) => void setBoardSetting({ topSitesMode })),
     h("h3", {}, t("topSitesRows")),
-    choiceGroup("top-rows", t("topSitesRows"), [{ value: "1", title: t("oneRow") }, { value: "2", title: t("twoRows") }], String(settings.shortcutRows) as "1" | "2", (rows) => void setBoardSetting({ shortcutRows: rows === "2" ? 2 : 1 })),
+    choiceGroup("top-rows", t("topSitesRows"), [{ value: "1", title: t("oneRow"), preview: sitesPreview(1) }, { value: "2", title: t("twoRows"), preview: sitesPreview(2) }], String(settings.shortcutRows) as "1" | "2", (rows) => void setBoardSetting({ shortcutRows: rows === "2" ? 2 : 1 })),
     hidden > 0 && settings.topSitesMode === "frequent"
       ? h("button", { type: "button", class: "button quiet", "data-focus-key": "unhide", onclick: () => void setBoardSetting({ hiddenSites: [] }) }, t("showHiddenSites", hidden))
       : h("span", { hidden: true }),
@@ -454,23 +484,12 @@ function widgetsSection(): HTMLElement[] {
       .map((widget) => {
         const name = t(WIDGET_NAMES[widget.id]);
         const visible = switchInput(`${widget.id}-visible`, widget.visible, (checked) => void setLayout(updateWidget(layout, widget.id, { visible: checked })));
-        const sizes = ALLOWED_SIZES[widget.id];
-        const size =
-          sizes.length > 1
-            ? h(
-                "select",
-                { "aria-label": t("widgetSize", name), "data-focus-key": `${widget.id}-size`, onchange: () => void setLayout(updateWidget(layout, widget.id, { size: size!.value as WidgetSize })) },
-                ...sizes.map((option) => h("option", { value: option }, t(SIZE_NAMES[option]))),
-              )
-            : null;
-        if (size) size.value = widget.size;
         const before = dockNeighbor(widget.id, -1);
         const after = dockNeighbor(widget.id, 1);
         return h(
           "li",
           {},
           h("label", {}, visible, h("span", {}, name)),
-          size,
           iconButton("up", t("moveUp", name), () => void setLayout(moveWidget(layout, widget.id, before)), { disabled: before < 0, "data-focus-key": `${widget.id}-up` }),
           iconButton("down", t("moveDown", name), () => void setLayout(moveWidget(layout, widget.id, after)), { disabled: after < 0, "data-focus-key": `${widget.id}-down` }),
         );
@@ -561,6 +580,30 @@ async function openCustomize(): Promise<void> {
   customize.querySelector<HTMLElement>(`#tab-${section}`)?.focus();
 }
 
+// Search focus: choosing the search box clears the page around it until the person leaves it.
+function installSearchFocus(): void {
+  const enter = () => document.body.classList.add("search-focus");
+  const leave = () => document.body.classList.remove("search-focus");
+  const field = () => searchSlot.querySelector<HTMLInputElement>("input");
+  searchSlot.addEventListener("pointerdown", (event) => {
+    if ((event.target as Element).closest(".search-form")) enter();
+  });
+  searchSlot.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") {
+      leave();
+      field()?.blur();
+    } else if (event.key.length === 1 && !event.ctrlKey && !event.metaKey && !event.altKey) {
+      enter();
+    }
+  });
+  searchSlot.addEventListener("focusout", () => {
+    if (!field()?.value.trim()) leave();
+  });
+  document.addEventListener("pointerdown", (event) => {
+    if (!(event.target as Element).closest(".search-form")) leave();
+  });
+}
+
 // Clock
 const timeElement = document.getElementById("time") as HTMLTimeElement;
 
@@ -606,6 +649,7 @@ async function main(): Promise<void> {
   applyBackground();
   drawBoard();
   installContextMenu({ customize: () => void openCustomize() });
+  installSearchFocus();
   prefersDark.addEventListener("change", applyTheme);
   reducedMotion.addEventListener("change", () => {
     syncPlayback();

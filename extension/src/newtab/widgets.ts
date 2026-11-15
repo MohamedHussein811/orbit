@@ -200,20 +200,33 @@ function bookmarkEditor(options: {
   // The shortcut's icon: the site's own, or an image the person picks.
   let chosenIcon: File | null = null;
   let resetChosen = false;
-  const preview = h("img", { class: "icon-preview", alt: "", width: 40, height: 40 });
-  const useSiteIcon = h("button", { type: "button", class: "button quiet", hidden: true }, t("useSiteIcon"));
+  const preview = h("img", { alt: "", width: 32, height: 32, hidden: true });
+  const tile = h("span", { class: "icon-tile" }, preview, icon("image"));
+  const iconTitle = h("strong", {});
+  const useSiteIcon = h("button", { type: "button", class: "link", hidden: true }, t("useSiteIcon"));
   const iconFile = h("input", { type: "file", accept: "image/*", class: "visually-hidden", tabindex: "-1", "aria-hidden": "true" });
+  const showIcon = (src: string, title: string) => {
+    preview.hidden = !src;
+    if (src) preview.src = src;
+    else preview.removeAttribute("src");
+    tile.classList.toggle("has-icon", Boolean(src));
+    iconTitle.textContent = title;
+  };
   const showSiteIcon = () => {
     const url = urlInput && validBookmarkUrl(urlInput.value.trim());
-    preview.src = url ? faviconUrl(url) : "";
-    if (url) void siteIcon(url).then((src) => src && !chosenIcon && (preview.src = src));
+    if (!url) {
+      showIcon("", t("iconAfterAddress"));
+      return;
+    }
+    showIcon(faviconUrl(url), t("iconFromSite"));
+    void siteIcon(url).then((src) => src && !chosenIcon && showIcon(src, t("iconFromSite")));
   };
   iconFile.addEventListener("change", () => {
     const file = iconFile.files?.[0];
     if (!file) return;
     chosenIcon = file;
     resetChosen = false;
-    preview.src = URL.createObjectURL(file);
+    showIcon(URL.createObjectURL(file), t("iconYourImage"));
     useSiteIcon.hidden = false;
   });
   useSiteIcon.addEventListener("click", () => {
@@ -224,15 +237,26 @@ function bookmarkEditor(options: {
   });
   if (urlInput) {
     showSiteIcon();
-    urlInput.addEventListener("change", showSiteIcon);
-    if (options.url) void hasCustomIcon(options.url).then((custom) => (useSiteIcon.hidden = !custom));
+    urlInput.addEventListener("input", debounce(() => !chosenIcon && showSiteIcon(), 500));
+    if (options.url)
+      void hasCustomIcon(options.url).then((custom) => {
+        useSiteIcon.hidden = !custom;
+        if (custom) iconTitle.textContent = t("iconYourImage");
+      });
   }
   const iconRow = urlInput
     ? h(
         "div",
         { class: "field icon-field" },
         h("span", {}, t("fieldIcon")),
-        h("div", { class: "icon-row" }, preview, h("button", { type: "button", class: "button quiet", onclick: () => iconFile.click() }, icon("upload"), t("chooseIcon")), useSiteIcon, iconFile),
+        h(
+          "div",
+          { class: "icon-picker" },
+          tile,
+          h("span", { class: "icon-copy" }, iconTitle, useSiteIcon),
+          h("button", { type: "button", class: "button quiet", onclick: () => iconFile.click() }, icon("upload"), t("chooseIcon")),
+          iconFile,
+        ),
       )
     : null;
 
@@ -589,7 +613,7 @@ export function mountWeather(root: HTMLElement, context: WidgetContext): void {
       input,
       h("button", { type: "submit", class: "button" }, t("find")),
     );
-    body.replaceChildren(h("p", { class: "notice" }, message ?? t("weatherIntro", WEATHER_PROVIDER.name)), form, results);
+    body.replaceChildren(h("p", { class: "notice" }, message ?? t("weatherIntro")), form, results);
     context.relayout();
   }
 
