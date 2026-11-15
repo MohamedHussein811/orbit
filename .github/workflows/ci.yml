@@ -67,15 +67,16 @@ jobs:
           gpg --batch --passphrase '' --quick-generate-key "Orbit test <test@example.invalid>" ed25519 sign 1d
           gpg --batch --armor --export > "$RUNNER_TEMP/test.asc"
           key=$(gpg --batch --armor --pinentry-mode loopback --passphrase '' --export-secret-keys)
-          repo="$RUNNER_TEMP/repo"
+          # apt reads keys and files as its own user, which cannot enter the runner's home folder.
+          repo=/tmp/orbit-apt/repo
           mkdir -p "$repo" "$RUNNER_TEMP/pkg/DEBIAN"
           printf 'Package: orbit-browser\nVersion: 157.1.8103.38\nArchitecture: amd64\nMaintainer: NovaTech\nDescription: stand-in\n' > "$RUNNER_TEMP/pkg/DEBIAN/control"
           dpkg-deb --root-owner-group --build "$RUNNER_TEMP/pkg" "$repo/orbit_157.1.8103.38_amd64.deb"
           ORBIT_APT_KEY="$key" ORBIT_APT_PUBLIC="$RUNNER_TEMP/test.asc" bash tools/apt-repo.sh "$repo"
-          chmod -R a+rX "$repo" "$RUNNER_TEMP/test.asc"
+          chmod -R a+rX /tmp/orbit-apt
+          sudo install -m 644 "$RUNNER_TEMP/test.asc" /usr/share/keyrings/orbit-archive-keyring.asc
           sed -e "s|https://github.com/MohamedHussein811/orbit/releases/latest/download/|file://$repo/|" \
-            -e "s|/usr/share/keyrings/orbit-archive-keyring.asc|$RUNNER_TEMP/test.asc|" \
-            tools/chromium/linux/orbit.sources > "$RUNNER_TEMP/orbit.sources"
-          sudo apt-get update -o Dir::Etc::sourcelist="$RUNNER_TEMP/orbit.sources" -o Dir::Etc::sourceparts=- -o APT::Get::List-Cleanup=0
+            tools/chromium/linux/orbit.sources > /tmp/orbit-apt/orbit.sources
+          sudo apt-get update -o Dir::Etc::sourcelist=/tmp/orbit-apt/orbit.sources -o Dir::Etc::sourceparts=- -o APT::Get::List-Cleanup=0
           apt-cache policy orbit-browser | tee "$RUNNER_TEMP/policy.txt"
           grep -q "Candidate: 157.1.8103.38" "$RUNNER_TEMP/policy.txt"

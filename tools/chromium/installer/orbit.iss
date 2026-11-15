@@ -30,7 +30,6 @@ DefaultDirName={localappdata}\NovaTech\Orbit
 DisableDirPage=yes
 DisableProgramGroupPage=yes
 DisableReadyPage=yes
-PrivacyPolicyURL=https://github.com/MohamedHussein811/orbit/blob/main/PRIVACY.md
 DisableWelcomePage=no
 PrivilegesRequired=lowest
 Uninstallable=no
