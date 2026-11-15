@@ -78,7 +78,7 @@
 "oisd.nl":{"hide":["#adgb"]},
 "olympics.com":{"hide":[".ad-margin-big",".header-ad-slot","[data-cy=\"adv-container\"]"]},
 "oxygen.com":{"hide":[".advertisement",".blog-post-section__zergnet"]},
-"peterboroughtoday.co.uk":{"hide":[".banner","[data-type=\"AdRowBillboard\"]","div[class^=\"AdLoadingText\"]","div[class^=\"SidebarAds_\"]","div[class^=\"helper__AdContainer\"]","div[data-ads-params]"]},
+"peterboroughtoday.co.uk":{"hide":["#topBanner",".banner",".exco-video-player"]},
 "pickmypostcode.com":{"hide":[".aside-right.aside"]},
 "pinterest.com":{"hide":["[data-grid-item=\"true\"]:has([data-test-id=\"pinrep-footer\"] a[rel=\"nofollow\"])","a[href*=\"&epik=\"]","div[data-grid-item]:has([data-test-pin-id] [data-test-id^=\"one-tap-desktop\"] > a[href^=\"http\"][rel=\"nofollow\"]):not(body > div)"]},
 "proboards.com":{"hide":["#ad1"]},

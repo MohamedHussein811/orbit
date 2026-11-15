@@ -12,7 +12,7 @@
 "blog.hubspot.com":{"hide":["#hs_cos_wrapper_blog_post_sticky_cta",".blog-cta-with-form"]},
 "breakingdefense.com":{"hide":["#skin-clickthrough","#top-header",".post-card--is-sponsored",".pre-footer-menu",".sidebar__top-sticky",".sponsored-inline"]},
 "bulinews.com":{"hide":[".bulinews-ad"]},
-"burnleyexpress.net":{"hide":[".banner","[data-type=\"AdRowBillboard\"]","div[class^=\"AdLoadingText\"]","div[class^=\"SidebarAds_\"]","div[class^=\"helper__AdContainer\"]","div[data-ads-params]"]},
+"burnleyexpress.net":{"hide":["#topBanner",".exco-video-player"]},
 "business2community.com":{"hide":[".busin-coinzilla-after-content",".busin-news-placement-2nd-paragraph",".sticky-header","div[id^=\"busin-\"]"]},
 "camfuze.com":{"hide":[".banner_inner"]},
 "carsized.com":{"hide":[".pl_header_ad"]},

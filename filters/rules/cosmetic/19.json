@@ -114,7 +114,7 @@
 "southwalesguardian.co.uk":{"hide":[".promoted-block"]},
 "sportsmole.co.uk":{"hide":[".mpu"]},
 "ssyoutube.com":{"hide":[".b-widget-left"]},
-"stornowaygazette.co.uk":{"hide":[".banner","[data-type=\"AdRowBillboard\"]","div[class^=\"AdLoadingText\"]","div[class^=\"SidebarAds_\"]","div[class^=\"helper__AdContainer\"]","div[data-ads-params]"]},
+"stornowaygazette.co.uk":{"hide":["#topBanner",".exco-video-player"]},
 "stuff.co.nz":{"hide":[".between-ad-slot",".cw-hp-top-banner-container",".header-ads-block",".header-container",".horizontal-ad-slot",".min-h-\\[133px\\]"]},
 "stupiddope.com":{"hide":[".text-6"]},
 "surreycomet.co.uk":{"hide":[".promoted-block"]},

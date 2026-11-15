@@ -82,7 +82,7 @@
 "newmobility.com":{"hide":[".article-sidebar--sponsored"]},
 "news.net":{"hide":[".banner",".banner-wr",".right-banner-wr > .right"]},
 "newsroom.co.nz":{"hide":[".foundingpartners",".sponsor-logos2"]},
-"nottinghamworld.com":{"hide":[".banner","[data-type=\"AdRowBillboard\"]","div[class^=\"AdLoadingText\"]","div[class^=\"SidebarAds_\"]","div[class^=\"helper__AdContainer\"]","div[data-ads-params]"]},
+"nottinghamworld.com":{"hide":["#topBanner",".banner",".exco-video-player"]},
 "ntvkenya.co.ke":{"hide":[".ad_flex"]},
 "objectiface.com":{"hide":[".leaderboard"]},
 "onscreens.me":{"hide":[".h-\\[250px\\]",".w-\\[728px\\]"]},

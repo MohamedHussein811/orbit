@@ -117,7 +117,7 @@
 "vipergirls.to":{"hide":["a[href*=\"/go/\"]","a[href*=\"theporndude.com\"]","a[href^=\"https://www.mrporngeek.com/\"]"]},
 "votebeat.org":{"hide":[".b-ads-block"]},
 "wallowa.com":{"hide":[".one_by_one_group"]},
-"warwickshireworld.com":{"hide":[".banner","[data-type=\"AdRowBillboard\"]","div[class^=\"AdLoadingText\"]","div[class^=\"SidebarAds_\"]","div[class^=\"helper__AdContainer\"]","div[data-ads-params]"]},
+"warwickshireworld.com":{"hide":["#topBanner",".banner",".exco-video-player"]},
 "whenitdrops.com":{"hide":["#sponsors"]},
 "whereto.stream":{"hide":["[href^=\"https://go.nordvpn.net/\"]"]},
 "wjunction.com":{"hide":[".global-banner"]},

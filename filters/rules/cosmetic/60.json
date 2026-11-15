@@ -120,7 +120,7 @@
 "uproxx.com":{"hide":["#upx-mm-player-wrap",".leaderboard",".upx-ad-unit"]},
 "vancouverisawesome.com":{"hide":["#leaderboard-container",".slot"]},
 "viamichelin.ie":{"hide":[".ads"]},
-"wallapop.com":{"hide":["article[class^=\"retrieval-item-card-module_RetrievalItemCard\"]:has(span[class^=\"retrieval-item-card-module_RetrievalItemCard__promoted\"])","div[class^=\"search-page_SearchPage__topSky_\"]","section[class*=\"_adSlot_\"]"]},
+"wallapop.com":{"hide":["[class*=\"__adSlot\"]","[class*=\"__topSky\"]","article[class^=\"retrieval-item-card-module_RetrievalItemCard\"]:has(span[class^=\"retrieval-item-card-module_RetrievalItemCard__promoted\"])","div:has(> article[class*=\"RetrievalItemCard\"] [class*=\"RetrievalItemCard__highlighted\"])","div[class^=\"search-page_SearchPage__topSky_\"]","section[class*=\"_adSlot_\"]"]},
 "wallpaperbetter.com":{"hide":[".dld_ad"]},
 "warcraftpets.com":{"hide":["#footer-top",".sitelogo > div"]},
 "weather.com":{"hide":[".adsSectionOuterWrapper",".combinedTopAdsSectionWrapper",".regionStickyAds","div[id*=\"Taboola-sidebar\"]","div[id^=\"Taboola-main-\"]","section[aria-label=\"Sponsored Content\"]"]},

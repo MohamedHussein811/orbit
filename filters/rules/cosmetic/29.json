@@ -74,7 +74,7 @@
 "pandamovies.pw":{"hide":["a[href*=\"theporndude.com\"]"]},
 "phcorner.net":{"show":["ins.adsbygoogle[data-ad-client]","ins.adsbygoogle[data-ad-slot]"]},
 "phonearena.com":{"hide":[".announcement-section",".announcements",".heading-deal",".pa-sticky-container",".spot",".spot-sticky-container",".widgetOffers"]},
-"pickleballtournaments.com":{"hide":[".pickleballtournaments-com_incontent_728_reusable",".pickleballtournaments-com_incontent_970_reusable",".pickleballtournaments-com_leaderboard_atf"]},
+"pickleballtournaments.com":{"hide":[".justify-center.flex.w-full:has([name])",".pickleballtournaments-com_incontent_728_reusable",".pickleballtournaments-com_incontent_970_reusable",".pickleballtournaments-com_leaderboard_atf"]},
 "politifact.com":{"hide":[".m-billboard"]},
 "porngifs2u.com":{"hide":[".elementor-widget-posts + .elementor-widget-heading","section[class*=\"elementor-hidden-\"]"]},
 "precinctreporter.com":{"hide":[".widget_custom_html"]},

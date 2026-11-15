@@ -320,3 +320,49 @@ export function compileFilters(texts, { firstId = 1, firstAllowId = ALLOW_ID_BAS
   for (const entry of single.values()) add(entry);
   return { rules, stats };
 }
+
+/**
+ * Hosts a page may not open in a new tab: those a list blocks as popups, and its ad servers.
+ * The rule engine cannot see popups, so the extension checks new tabs against this list.
+ * A popup filter limited to some sites keeps those sites. Exceptions remove a host.
+ */
+export function compilePopups(texts) {
+  const everywhere = new Set();
+  const scoped = new Map();
+  const allowed = new Set();
+  for (const text of texts) {
+    for (const raw of text.split(/\r?\n/)) {
+      const line = raw.trim();
+      if (!line.startsWith("||") && !line.startsWith("@@||")) continue;
+      const allow = line.startsWith("@@");
+      const [patternText, optionText] = splitOptions(allow ? line.slice(2) : line);
+      const host = /^\|\|([a-z0-9.-]+\.[a-z0-9-]+)\^$/i.exec(patternText)?.[1]?.toLowerCase();
+      if (!host) continue;
+      const options = optionText ? optionText.split(",") : [];
+      const names = options.map((option) => option.split("=")[0]);
+      const popup = names.includes("popup");
+      if (allow) {
+        if (popup) allowed.add(host);
+        continue;
+      }
+      const plainAdServer = options.every((option) => option === "third-party" || option === "3p");
+      if (!popup && !plainAdServer) continue;
+      const domains = options.find((option) => option.startsWith("domain="));
+      const known = names.every((name) => ["popup", "third-party", "3p", "domain"].includes(name));
+      if (!known) continue;
+      if (!domains) {
+        everywhere.add(host);
+        continue;
+      }
+      const sites = domains.slice("domain=".length).split("|").filter((site) => !site.startsWith("~")).map(normalizeDomain);
+      if (sites.length === 0 || sites.some((site) => !site)) continue;
+      scoped.set(host, [...new Set([...(scoped.get(host) ?? []), ...sites])].sort());
+    }
+  }
+  for (const host of allowed) {
+    everywhere.delete(host);
+    scoped.delete(host);
+  }
+  for (const host of everywhere) scoped.delete(host);
+  return { hosts: [...everywhere].sort(), scoped: Object.fromEntries([...scoped].sort(([a], [b]) => (a < b ? -1 : 1))) };
+}

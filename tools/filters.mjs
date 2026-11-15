@@ -5,7 +5,7 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { compileCosmetic, compileFilters, compileHosts } from "./filter-compiler.mjs";
+import { compileCosmetic, compileFilters, compileHosts, compilePopups } from "./filter-compiler.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const SOURCES = path.join(ROOT, "filters", "sources.json");
@@ -67,6 +67,11 @@ async function update() {
   });
   meta.cosmetic = { generic: cosmetic.generic.length, sites: cosmetic.shards.reduce((total, shard) => total + Object.keys(shard).length, 0), ...cosmetic.stats };
   console.error("compiled cosmetic:", JSON.stringify(meta.cosmetic));
+  const popups = compilePopups(sources.popups.map((id) => texts[id]));
+  fs.writeFileSync(path.join(RULES_DIR, "popups.json"), `${JSON.stringify(popups)}
+`);
+  meta.popups = { hosts: popups.hosts.length, scoped: Object.keys(popups.scoped).length };
+  console.error("compiled popups:", JSON.stringify(meta.popups));
   fs.writeFileSync(path.join(RULES_DIR, "meta.json"), `${JSON.stringify(meta, null, 2)}\n`);
 }
 

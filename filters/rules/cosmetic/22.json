@@ -25,6 +25,7 @@
 "counter.dev":{"hide":[".da"]},
 "dailysport.co.uk":{"hide":[".g"]},
 "defenseone.com":{"hide":[".advert-placeholder",".promo-rail-img-container"]},
+"directstripper.com":{"hide":[".big-spot",".gallery-button",".spots",".wrapper > center > a[href*=\"/go/\"]"]},
 "djchuang.com":{"hide":["#amazon3"]},
 "durhamtimes.co.uk":{"hide":[".mpu"]},
 "editpad.org":{"hide":["#floorad-wrapper",".edsec","div[style=\"min-height: 300px;min-width: 300px\"]","div[style=\"min-width: 300px;min-height: 300px\"]"]},

@@ -88,7 +88,7 @@
 "roadandtrack.com":{"hide":[".ad-container"]},
 "secretchicago.com":{"hide":[".google-ad-manager-ads-header",".smn-new-gpt-ad"]},
 "sheshaft.com":{"hide":[".content-aside",".native-holder"]},
-"shieldsgazette.com":{"hide":[".banner",".billboard","[data-type=\"AdRowBillboard\"]","div[class^=\"AdLoadingText\"]","div[class^=\"SidebarAds_\"]","div[class^=\"helper__AdContainer\"]","div[data-ads-params]"]},
+"shieldsgazette.com":{"hide":["#topBanner",".exco-video-player"]},
 "slideshare.net":{"hide":["#above-recs-desktop-ad-sm","#between-recs-ad-1-container","#between-recs-ad-2-container",".StickyVerticalInterstitialAd_root__f7Qki",".fallback-ad-container"]},
 "smbc-comics.com":{"hide":["#boardleader","#comicright > div[style]"]},
 "smh.com.au":{"hide":["#articlePartnerStories",".BGXXr",".TPT1c","._34z61",".gF8wY","[class] > [class]:has(> [data-testid=\"ad\"])"]},

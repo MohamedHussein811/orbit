@@ -94,7 +94,7 @@
 "thefintechtimes.com":{"hide":[".penci-widget-sidebar"]},
 "theolympian.com":{"hide":[".zone",".zone-el"]},
 "theonion.com":{"hide":[".block-visibility-hide-medium-screen",".theonion-frame-ad-large",".theonion-frame-ad-small"]},
-"thestar.co.uk":{"hide":[".banner",".billboard",".gOoqzH","[data-type=\"AdRowBillboard\"]","div[class^=\"AdLoadingText\"]","div[class^=\"SidebarAds_\"]","div[class^=\"helper__AdContainer\"]","div[data-ads-params]"]},
+"thestar.co.uk":{"hide":["#topBanner",".billboard",".exco-video-player",".gOoqzH"]},
 "tokopedia.com":{"hide":["[href$=\"src=topads\"]"]},
 "torlock.com":{"hide":["[class^=\"wrn\"]","table.hidden-xs"]},
 "toyworldmag.co.uk":{"hide":[".banner"]},

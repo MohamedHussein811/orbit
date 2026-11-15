@@ -22,7 +22,7 @@
 "boatnews.com":{"hide":[".habillage",".sidebar-p","[href*=\"/l/\"] > picture"]},
 "buffalorising.com":{"hide":[".a-wrap"]},
 "burgerking.co.jp":{"show":[".adWrap"]},
-"carexpert.co.nz":{"hide":["._26wjo85"]},
+"carexpert.co.nz":{"hide":["._26wjo84","._26wjo85"]},
 "challonge.com":{"hide":[".cake-unit"]},
 "cheapies.nz":{"hide":[".ads"]},
 "cheese.com":{"hide":["#bottom-banner","#top-banner",".skyscraper"]},

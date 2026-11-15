@@ -89,7 +89,7 @@
 "onthisday.com":{"hide":[".sponsor--center",".sponsor--footer"]},
 "pajiba.com":{"hide":["#banner"]},
 "permies.com":{"hide":[".forum-top-banner"]},
-"pickleball.com":{"hide":[".pickleball-com_ATF_leaderboard",".pickleball-com_incontent_728_reusable",".pickleball-com_siderail_left_atf",".pickleball-com_siderail_right_atf"]},
+"pickleball.com":{"hide":[".justify-center.flex.w-full:has([name])",".pickleball-com_ATF_leaderboard",".pickleball-com_incontent_728_reusable",".pickleball-com_siderail_left_atf",".pickleball-com_siderail_right_atf"]},
 "picnob.com":{"hide":[".desney"]},
 "piquenewsmagazine.com":{"hide":[".item-sponsored",".slot"]},
 "poweroutage.us":{"hide":[".cta-inline"]},

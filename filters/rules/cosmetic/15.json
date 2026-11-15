@@ -63,7 +63,7 @@
 "lewdgames.to":{"hide":["[href^=\"https://golove.ai/\"]"],"show":["#fwdevpDiv0"]},
 "lifenews.com":{"hide":["#adds","#advertisement-top","#sidebar"]},
 "lindaikejisblog.com":{"hide":[".da"]},
-"liverpoolworld.uk":{"hide":[".banner","[data-type=\"AdRowBillboard\"]","div[class^=\"AdLoadingText\"]","div[class^=\"SidebarAds_\"]","div[class^=\"helper__AdContainer\"]","div[data-ads-params]"]},
+"liverpoolworld.uk":{"hide":["#topBanner",".exco-video-player"]},
 "m.nettikaravaani.com":{"show":[".ad_caption"]},
 "manhwabtt.cc":{"hide":["div[style=\"display: flex; justify-content: space-around; flex-flow: wrap; min-height: 250px;\"]"]},
 "megatube.xxx":{"hide":["#sponsor-widget",".header-panel-1",".video-filter-1"]},

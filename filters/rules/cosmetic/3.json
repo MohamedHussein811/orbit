@@ -26,7 +26,7 @@
 "cpu-benchmark.org":{"hide":[".ad-block",".bn-hero","div[style=\"height:100px\"]"]},
 "dailyvoice.com":{"hide":[".b-banner",".e-freestar-video-container",".e-nativo-container"]},
 "daytondailynews.com":{"hide":[".arc_ad"]},
-"derryjournal.com":{"hide":[".banner","[data-type=\"AdRowBillboard\"]","div[class^=\"AdLoadingText\"]","div[class^=\"SidebarAds_\"]","div[class^=\"helper__AdContainer\"]","div[data-ads-params]"]},
+"derryjournal.com":{"hide":["#topBanner",".banner",".exco-video-player"]},
 "dustinabbott.net":{"hide":["center > a > img"]},
 "earth911.com":{"hide":[".mg-sidebar"]},
 "eplindex.com":{"hide":[".vc_widget_sidebar aside:has(#newsnowlogo)",".vc_widget_sidebar aside:has(> .textwidget img[decoding=\"async\"])"]},

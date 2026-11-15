@@ -25,7 +25,7 @@
 "eetimes.com":{"hide":["#techpaperSliderContainer",".carousel-ad-wrapper",".featured-techpaper-box"]},
 "etonline.com":{"hide":[".leader-inc",".omni-skybox-plus-stick-placeholder"]},
 "extremetech.com":{"hide":[".min-h-24","[data-pogo=\"sidebar\"]"]},
-"fifetoday.co.uk":{"hide":[".banner",".iehxDO","[data-type=\"AdRowBillboard\"]","div[class^=\"AdLoadingText\"]","div[class^=\"SidebarAds_\"]","div[class^=\"helper__AdContainer\"]","div[data-ads-params]"]},
+"fifetoday.co.uk":{"hide":["#topBanner",".banner",".exco-video-player",".iehxDO"]},
 "fimfiction.net":{"hide":[".sponsor-reminder"]},
 "flamesnation.ca":{"hide":["#ad_sidebar_2","#box_2_300x600","#box_3_300x600","#in_article_300x250_1","#promo-container",".h-\\[90px\\]","bam-inline-promotion","bam-inline-promotion-block","bam-promotion-list"]},
 "fxempire.com":{"hide":["#header-ads-block",".dKBfBG","[height=\"250\"]","[height=\"398\"]","[height=\"600\"]","span[style=\"user-select:none\"]"]},

@@ -26,7 +26,7 @@ These also apply to unbranded Chromium builds.
 
 - **Blocking**
   - Leftover ad space is hidden by CSS only. Filters that need a script to evaluate them are skipped, and generic filters are limited to simple selectors. Site-specific hiding applies to the top page, not to frames inside it.
-  - 3,137 EasyList filters use options with no exact equivalent in the rule engine, such as popup-only and content security policy filters, and are skipped.
+  - 3,139 EasyList filters use options with no exact equivalent in the rule engine, such as content security policy filters, and are skipped as rules. Pop-up filters are applied differently: a new tab a page opens is closed when it goes to a host EasyList names as a pop-up or ad server. Pop-ups to unlisted hosts, and ads drawn over a video by the page itself, can still appear.
   - Filters in regular expression form are skipped.
   - New rules arrive with each release, through the built-in extension's own update feed.
   - YouTube ads are removed by a page script that strips the ad entries from YouTube's player data. Tested on two videos on 2026-11-14: the ad entries were gone and the videos played. YouTube changes often, and ads stitched into the video stream itself cannot be removed this way.
