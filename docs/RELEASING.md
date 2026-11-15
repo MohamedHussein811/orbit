@@ -4,7 +4,7 @@ This describes the process as it stands. Steps marked "not built" do not exist y
 
 ## Build
 
-Builds run on GitHub's runners through `.github/workflows/browser-windows.yml`, `browser-mac.yml` and `browser-linux.yml`, on pushes to the `fork` and `design` branches that touch the browser. Each workflow chains stages of `chromium-stage.yml`, because one runner job is limited in time. A stage can continue from a stage saved by an earlier run (`resume_run`), so a small change recompiles only what depends on it.
+Builds run on GitHub's runners through `.github/workflows/browser-windows.yml`, `browser-mac.yml` and `browser-linux.yml`, on pushes to the `fork` and `design` branches that touch the browser. Each workflow chains stages of `chromium-stage.yml`, because one runner job is limited in time. A stage can continue from a stage saved by an earlier run (`resume_run`), so a small change recompiles only what depends on it. That only works within one Chromium version: the archive's file dates do not show every file that changed between versions, so old objects would link with new source. A stage refuses a restored build of another version, and a Chromium update builds from scratch.
 
 Each stage downloads and verifies the Chromium source, builds and signs the built-in extension, applies Orbit's changes with `tools/chromium/apply-fork.py`, compiles, and saves its state. The last stage runs `tools/chromium/smoke.sh`, which starts the browser and runs `tools/chromium/check-browser.mjs`.
 

@@ -148,6 +148,15 @@ jobs:
           rm -rf state
           df -h .
 
+      - name: Check the restored build is the same Chromium version
+        if: inputs.stage != 1 || inputs.resume_run != ''
+        run: |
+          saved=$(cat src/out/orbit-chromium-version 2>/dev/null || echo unknown)
+          if [ "$saved" != "$CHROMIUM_VERSION" ]; then
+            echo "::error::The restored build is Chromium $saved and the source is $CHROMIUM_VERSION. Its objects would mix with the new source, so build from scratch (no resume_run)."
+            exit 1
+          fi
+
       - name: Use Orbit's build settings in the restored build
         if: inputs.stage != 1 || inputs.resume_run != ''
         run: tools/chromium/args.sh src/out/Release/args.gn
@@ -156,6 +165,7 @@ jobs:
         run: |
           if [ "$RUNNER_OS" = Windows ]; then python=python; else python=python3; fi
           "$python" -I tools/chromium/date-fork.py src
+          echo "$CHROMIUM_VERSION" > src/out/orbit-chromium-version
 
       - name: Retry two steps that failed on Mac before
         if: runner.os == 'macOS' && inputs.resume_run != ''
