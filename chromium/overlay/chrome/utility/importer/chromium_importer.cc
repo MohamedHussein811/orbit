@@ -25,7 +25,9 @@
 
 namespace {
 
-inline constexpr sql::Database::Tag kDatabaseTag{"OrbitChromiumImporter"};
+// Database tags name metrics histograms and must be listed in Chromium; Orbit
+// sends no metrics, so the import tag Chromium already has is reused.
+inline constexpr sql::Database::Tag kDatabaseTag{"FirefoxImporter"};
 
 constexpr size_t kMaxBookmarksFileBytes = 64 * 1024 * 1024;
 constexpr int kMaxHistoryRows = 100000;
@@ -135,7 +137,8 @@ void ChromiumImporter::ImportBookmarks(const std::u16string& browser_name) {
                                          &text, kMaxBookmarksFileBytes)) {
     return;
   }
-  std::optional<base::DictValue> file = base::JSONReader::ReadDict(text);
+  std::optional<base::DictValue> file =
+      base::JSONReader::ReadDict(text, base::JSON_PARSE_RFC);
   const base::DictValue* roots = file ? file->FindDict("roots") : nullptr;
   if (!roots) {
     return;

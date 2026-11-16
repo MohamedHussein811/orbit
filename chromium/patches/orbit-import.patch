@@ -124,7 +124,7 @@ diff --git a/chrome/browser/importer/importer_list.cc b/chrome/browser/importer/
 +    if (base::ReadFileToStringWithMaxSize(user_data.AppendASCII("Local State"),
 +                                          &local_state,
 +                                          kOrbitMaxLocalStateBytes)) {
-+      state = base::JSONReader::ReadDict(local_state);
++      state = base::JSONReader::ReadDict(local_state, base::JSON_PARSE_RFC);
 +    }
 +    const base::DictValue* info =
 +        state ? state->FindDictByDottedPath("profile.info_cache") : nullptr;
