@@ -56,9 +56,11 @@ See [SECURITY.md](SECURITY.md) to report a vulnerability. What Orbit sends and w
 
 ## Code signing policy
 
-Orbit's Windows setup is built by GitHub Actions from this repository and signed in the release workflow (`.github/workflows/release.yml`). Every signing request is approved by hand.
+Every Orbit package is built by GitHub Actions from this repository. Nothing is built or signed on a personal machine.
 
-Free code signing provided by [SignPath.io](https://about.signpath.io), certificate by [SignPath Foundation](https://signpath.org). The application is in progress: until it is approved, the Windows setup is not signed and the release notes say so.
+- **macOS:** the app and disk image are signed with an Apple Developer ID certificate in the build workflow and notarized by Apple.
+- **Windows:** the setup is not code-signed yet, so Windows SmartScreen may warn on first run, and the release notes say so. The release workflow (`.github/workflows/release.yml`) signs it as soon as a certificate is set up, and every signing request is approved by hand.
+- **Linux:** the apt package list is signed with Orbit's own key, which the .deb installs.
 
 - Committers and reviewers: [MohamedHussein811](https://github.com/MohamedHussein811)
 - Approvers: [MohamedHussein811](https://github.com/MohamedHussein811)

@@ -56,7 +56,7 @@ Set these repository secrets to sign and notarize the disk image. Without them t
 
 The release workflow signs `OrbitSetup-<version>-x64.exe`, the one file people download and the updater runs. The first of these that is set up is used; with neither, the setup stays unsigned and the release notes say so.
 
-**SignPath Foundation** (free for open source; the publisher shown is "SignPath Foundation"). Apply at https://signpath.org/apply. Their rules ask for the code signing policy in the README (present), MFA on GitHub and SignPath for everyone on the team, a privacy policy shown during setup (the welcome page links [PRIVACY.md](../PRIVACY.md) and the setup has an automatic updates choice), and manual approval of every signing request. Once approved, create in SignPath a project with a GitHub Actions trusted build system, an artifact configuration that signs the PE file inside the uploaded zip, and a release signing policy, then set:
+**SignPath Foundation** (free for open source; the publisher shown is "SignPath Foundation"). It declined Orbit in November 2026 because the project had too few outside signals (stars, contributors, articles); it accepts a new application once Orbit is better known. Apply at https://signpath.org/apply. Their rules ask for the code signing policy in the README (present), MFA on GitHub and SignPath for everyone on the team, a privacy policy shown during setup (the welcome page links [PRIVACY.md](../PRIVACY.md) and the setup has an automatic updates choice), and manual approval of every signing request. Once approved, create in SignPath a project with a GitHub Actions trusted build system, an artifact configuration that signs the PE file inside the uploaded zip, and a release signing policy, then set:
 
 | Kind | Name | Value |
 | --- | --- | --- |
@@ -68,7 +68,7 @@ The release workflow signs `OrbitSetup-<version>-x64.exe`, the one file people d
 
 The workflow waits up to five hours for an approver.
 
-**A certificate of your own** (if SignPath declines; OV certificates cost about $200 to $400 a year and keep their private key on a token or in a cloud service): set `WINDOWS_CERTIFICATE_PFX_BASE64` (the .pfx, base64) and `WINDOWS_CERTIFICATE_PASSWORD`. The workflow signs with osslsigncode and a DigiCert timestamp. A certificate that only lives in a cloud service, such as Azure Artifact Signing, needs a signing step for that service instead.
+**A certificate of your own** (if SignPath declines; OV certificates cost about $200 to $400 a year and keep their private key on a token or in a cloud service): set `WINDOWS_CERTIFICATE_PFX_BASE64` (the .pfx, base64) and `WINDOWS_CERTIFICATE_PASSWORD`. The workflow signs with osslsigncode and a DigiCert timestamp. Certificate authorities no longer hand out code signing keys as files, so in practice the certificate lives on a token or in a cloud service (Certum SimplySign, SSL.com eSigner, Azure Artifact Signing), and the workflow needs a signing step for that service instead.
 
 ### Update keys
 

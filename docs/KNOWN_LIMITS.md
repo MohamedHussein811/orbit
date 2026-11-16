@@ -7,8 +7,8 @@ These are true of the current code. Each one says what a person would notice.
 | Limit | What a person notices | Path to fix |
 | --- | --- | --- |
 | No H.264 or AAC on Linux | On Windows and macOS, H.264 and AAC play through the operating system (on Windows, H.264 needs hardware decoding). On Linux, sites that only offer those formats do not play. YouTube works everywhere through VP9 | Licensed decoders (option C in [VIDEO.md](VIDEO.md)) |
-| Windows setup not code-signed yet | Until SignPath approves Orbit (or a certificate is bought), Windows SmartScreen warns about an unknown publisher on first run. The release workflow signs as soon as either is set up. The macOS disk image is signed and notarized only once the Apple signing secrets are set | Windows: SignPath Foundation's free signing, or a certificate. macOS: the secrets listed in [RELEASING.md](RELEASING.md) |
-| macOS does not update by itself | Windows and Linux (.deb) copies update automatically. On macOS, Orbit shows a note on the new tab page when a newer release is out, and people install it themselves. The Linux archive (.tar.xz) does not update either | A signed self-update for macOS, after the Apple signing secrets are set |
+| Windows setup not code-signed yet | Windows SmartScreen warns about an unknown publisher on first run. SignPath Foundation declined Orbit in November 2026 because the project is new. The release workflow signs as soon as a certificate is set up. The macOS disk image is signed and notarized | A code signing certificate (see [RELEASING.md](RELEASING.md)), or SignPath again once Orbit is better known |
+| macOS does not update by itself | Windows and Linux (.deb) copies update automatically. On macOS, Orbit shows a note on the new tab page when a newer release is out, and people install it themselves. The Linux archive (.tar.xz) does not update either | A signed self-update for macOS |
 | Not tested on real hardware outside CI | macOS and Linux have only run on CI machines | Testing on real machines |
 
 ## Engine limits
