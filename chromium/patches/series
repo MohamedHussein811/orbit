@@ -13,3 +13,5 @@ orbit-installer.patch
 orbit-media.patch
 orbit-behavior.patch
 orbit-updater.patch
+orbit-search.patch
+orbit-import.patch

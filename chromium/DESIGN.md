@@ -149,24 +149,25 @@ video, and it has a pause control. All transitions stop under `prefers-reduced-m
 
 ## Window
 
-- One top row instead of Chromium's tab strip above a toolbar: back, forward and reload, a
-  400 px address bar, then the tabs, then extensions and the menu, beside the window controls
-  (`orbit-window.patch`). The toolbar keeps an empty place after the address bar and the browser
-  layout puts the tab strip over it. Empty space in the row moves the window.
-- The row takes the frame color; the active tab keeps the lighter base color, so it reads as a
-  raised pill.
-- The rail: a column on the leading edge below the row, in the same color, so the frame reads as
+- Two rows on one surface: tabs above, then back, forward and reload, the address bar, extensions
+  and the menu (`orbit-window.patch`). The address bar flexes with the window, so nothing overlaps
+  in a narrow window. An earlier single row (tabs beside the address bar) was dropped in 1.0.2
+  because it crowded small windows.
+- Both rows take the frame color, which stays the same when the window is inactive, so the rows
+  never split into two shades; the active tab keeps the lighter base color and reads as a raised
+  pill.
+- The rail: a column on the leading edge below the rows, in the same color, so the frame reads as
   one L shape around the page. Orbit's mark on top, then Home, Privacy (orbit://privacy),
   Bookmarks (side panel), History, Downloads and Notes (Orbit's notes side panel, the same notes as
   the new tab page), and Settings at the bottom. Buttons whose panel is open stay lit. Names come
   from Chromium's translations, except Notes, which uses Orbit's own English and Arabic. Hidden in
-  fullscreen and with vertical tabs; with vertical tabs the address bar fills the row.
+  fullscreen and with vertical tabs. Side panels open below the toolbar row.
 - The page's top corner next to the rail is rounded, so the page sits inside the frame like a card.
 - The active tab carries a short horizon line (amber, rose, blue) at the bottom of its pill.
 - Chromium's 2026 WebUI refresh is on by default, so Settings and other pages use Orbit's palette.
 - Tabs are pills. Every tab, the active one included, is a detached shape that floats in the tab
   strip with 6 px above and below it, instead of Chromium's active tab that flares into the
-  toolbar. The active tab takes the toolbar color; others show a fill only on hover. There are no
+  toolbar. The active tab takes the lighter base color; others show a fill only on hover. There are no
   separator lines between tabs (`orbit-tabs.patch`).
 - Toolbar and tab icons are Orbit's own: thin round-capped lines on Chromium's 20 px grid
   (back and forward chevrons, reload as an open ring with its gap at the top right like the mark,

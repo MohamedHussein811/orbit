@@ -35,6 +35,19 @@ def main():
             changed.append(relative)
         os.utime(src / relative, (stamp, stamp))
         record[relative] = {"sha256": digest, "time": stamp}
+    # Files Orbit no longer changes are back to Chromium's own contents, which carry the archive's
+    # older time, so the restored build would keep the objects built from Orbit's version.
+    for relative, before in saved.items():
+        if relative in current:
+            continue
+        if isinstance(before, dict) and before.get("upstream"):
+            stamp = before["time"]
+        else:
+            stamp = now
+            changed.append(relative)
+        if (src / relative).exists():
+            os.utime(src / relative, (stamp, stamp))
+        record[relative] = {"upstream": True, "time": stamp}
     saved_path.write_text(json.dumps(record, indent=1, sort_keys=True))
     print(f"{len(changed)} of {len(current)} Orbit files differ from the restored build")
     for relative in changed[:50]:

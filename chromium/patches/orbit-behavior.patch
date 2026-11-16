@@ -48,6 +48,35 @@ diff --git a/chrome/browser/chrome_content_browser_client.cc b/chrome/browser/ch
      content::RenderProcessHost* process =
          content::RenderProcessHost::FromID(child_process_id);
      if (process) {
+diff --git a/chrome/browser/profiles/pref_service_builder_utils.cc b/chrome/browser/profiles/pref_service_builder_utils.cc
+--- a/chrome/browser/profiles/pref_service_builder_utils.cc
++++ b/chrome/browser/profiles/pref_service_builder_utils.cc
+@@ -96,6 +96,16 @@
+       "Ecosia", "ecosia.org", "https://www.ecosia.org/search?q={searchTerms}",
+       "https://ac.ecosia.org/autocomplete?q={searchTerms}&type=list",
+       "https://www.ecosia.org/favicon.ico", 101));
++  engines.Append(OrbitSearchEngine(
++      "Brave Search", "search.brave.com",
++      "https://search.brave.com/search?q={searchTerms}",
++      "https://search.brave.com/api/suggest?q={searchTerms}",
++      "https://cdn.search.brave.com/serp/favicon.ico", 109));
++  engines.Append(OrbitSearchEngine(
++      "Startpage", "startpage.com",
++      "https://www.startpage.com/sp/search?q={searchTerms}",
++      "https://www.startpage.com/osuggestions?q={searchTerms}",
++      "https://www.startpage.com/favicon.ico", 113));
+   SetOrbitDefault(registry, "search_provider_overrides", base::Value(std::move(engines)));
+ 
+   SetOrbitDefault(registry, "profile.cookie_controls_mode", base::Value(1));
+@@ -111,6 +121,8 @@
+ 
+   // Follow the device's light or dark setting.
+   SetOrbitDefault(registry, "browser.theme.color_scheme2", base::Value(0));
++  // Continue where the person left off.
++  SetOrbitDefault(registry, "session.restore_on_startup", base::Value(1));
+ #if BUILDFLAG(IS_LINUX)
+   SetOrbitDefault(registry, "extensions.theme.system_theme", base::Value(0));
+ #endif
 diff --git a/chrome/browser/ui/safety_hub/menu_notification_service.cc b/chrome/browser/ui/safety_hub/menu_notification_service.cc
 --- a/chrome/browser/ui/safety_hub/menu_notification_service.cc
 +++ b/chrome/browser/ui/safety_hub/menu_notification_service.cc
