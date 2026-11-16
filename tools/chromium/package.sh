@@ -38,6 +38,33 @@ class InternalCodeSignConfig(ChromiumCodeSignConfig):
     def run_spctl_assess(self):
         return False
 EOF
+    # Notarizing a browser takes Apple a long time, and the runner's network can drop meanwhile.
+    cat > "$product Packaging/signing/internal_invoker.py" <<'EOF'
+import asyncio
+import subprocess
+
+from signing import logger, notarize, standard_invoker
+
+
+class _PatientNotarizer(notarize.Invoker):
+
+    async def get_result(self, uuid, config):
+        for attempt in range(40):
+            try:
+                return await super().get_result(uuid, config)
+            except subprocess.CalledProcessError as error:
+                if attempt == 39:
+                    raise
+                logger.warning('Checking notarization %s failed, retrying: %s', uuid, error)
+                await asyncio.sleep(30)
+
+
+class Invoker(standard_invoker.Invoker):
+
+    def __init__(self, *args):
+        super().__init__(*args)
+        self._notarizer = _PatientNotarizer(*args)
+EOF
     rm -rf signed
     python3 "$product Packaging/sign_chrome.py" \
       --input . --output signed --identity "$MAC_SIGNING_IDENTITY" --notarize staple \
