@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark light">
+<title data-i18n="welcomePageTitle">Welcome to Orbit</title>
+<link rel="icon" href="../icons/orbit-32.png">
+<link rel="stylesheet" href="../shared/tokens.css">
+<link rel="stylesheet" href="../shared/base.css">
+<link rel="stylesheet" href="welcome.css">
+</head>
+<body>
+<div class="backdrop" aria-hidden="true"><img src="../newtab/media/space.jpg" alt=""><div class="scrim"></div></div>
+
+<main class="tour" aria-labelledby="step-title">
+  <header class="tour-head">
+    <img class="mark" src="../icons/orbit-48.png" alt="" width="28" height="28">
+    <p class="step-count" id="step-count" aria-live="polite"></p>
+    <button type="button" class="button quiet skip" id="skip" data-i18n="welcomeSkip">Skip</button>
+  </header>
+
+  <section class="step" data-step="intro">
+    <h1 id="step-title" data-i18n="welcomeTitle">Welcome to Orbit</h1>
+    <p class="lead" data-i18n="welcomeIntro"></p>
+  </section>
+
+  <section class="step" data-step="protect" hidden>
+    <h1 data-i18n="welcomeProtectTitle"></h1>
+    <p class="lead" data-i18n="welcomeProtectText"></p>
+    <ul class="facts">
+      <li><span class="fact-dot" data-kind="ads"></span><span data-i18n="welcomeFactAds"></span></li>
+      <li><span class="fact-dot" data-kind="trackers"></span><span data-i18n="welcomeFactTrackers"></span></li>
+      <li><span class="fact-dot" data-kind="threats"></span><span data-i18n="welcomeFactThreats"></span></li>
+    </ul>
+  </section>
+
+  <section class="step" data-step="bring" hidden>
+    <h1 data-i18n="welcomeBringTitle"></h1>
+    <p class="lead" data-i18n="welcomeBringText"></p>
+    <button type="button" class="button primary" id="import" data-i18n="welcomeImport"></button>
+    <details class="passwords">
+      <summary data-i18n="welcomePasswordsTitle"></summary>
+      <p data-i18n="welcomePasswordsText"></p>
+      <ol>
+        <li data-i18n="welcomePasswordsStep1"></li>
+        <li data-i18n="welcomePasswordsStep2"></li>
+        <li data-i18n="welcomePasswordsStep3"></li>
+      </ol>
+      <button type="button" class="button quiet" id="passwords" data-i18n="welcomeOpenPasswords"></button>
+    </details>
+  </section>
+
+  <section class="step" data-step="done" hidden>
+    <h1 data-i18n="welcomeDoneTitle"></h1>
+    <p class="lead" data-i18n="welcomeDoneText"></p>
+    <button type="button" class="button quiet" id="default-browser" data-i18n="welcomeDefault"></button>
+  </section>
+
+  <footer class="tour-foot">
+    <div class="dots" aria-hidden="true"></div>
+    <span class="spacer"></span>
+    <button type="button" class="button quiet" id="back" data-i18n="welcomeBack">Back</button>
+    <button type="button" class="button primary" id="next" data-i18n="welcomeNext">Next</button>
+  </footer>
+</main>
+
+<script type="module" src="welcome.js"></script>
+</body>
+</html>

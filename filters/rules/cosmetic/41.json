@@ -4,6 +4,8 @@
 "adn.com":{"hide":[".adn-adwrap",".arcad-feature"]},
 "albertsonsmarket.com":{"hide":[".item-citrus"]},
 "alistapart.com":{"hide":[".banner"]},
+"alwakeelnews.com":{"hide":[".C_AD"]},
+"arabseed.lol":{"hide":["img[width=\"728\"][height=\"90\"]"]},
 "atea.com":{"show":[".logo-ad"]},
 "audioz.download":{"hide":["#PromoHead","[src*=\"/promo/\"]"]},
 "automobile-catalog.com":{"hide":["table[height=\"90\"]","table[width=\"300\"]"]},
@@ -55,6 +57,7 @@
 "historictalk.com":{"hide":[".ya-slot"]},
 "hotdogwater.dog":{"hide":[".advertisement",".advertisementFixed"]},
 "hotklix.com":{"hide":["#mvp-main-nav-top > .mvp-main-box"]},
+"hwaml.com":{"hide":["img[width=\"150\"][height=\"60\"]","img[width=\"240\"][height=\"60\"]","img[width=\"468\"][height=\"60\"]"]},
 "icegay.tv":{"hide":[".b-main-nav__link[data-banner-id]",".b-secondary-column__randoms",".b-secondary-column__rnd",".js-uvb-spot",".uvb-random"]},
 "infowars.com":{"hide":[".css-1upmbem",".css-1vj1npn","a.css-1yw960t"]},
 "javplayer.cc":{"hide":["[style=\"position: fixed;top: 0;left: 0;width: 100%;height: 100%;display: block;z-index: 9999999;cursor: auto\"]"]},
@@ -65,6 +68,7 @@
 "linuxhostsupport.com":{"hide":["img[width=\"300\"]"]},
 "livesoccertv.com":{"hide":["#container-hp-ic","#container-hp-rs1","#container-hp-top","#container-md-ic","#container-md-rs1","#container-md-top",".desktop-ad-container","div[style^=\"height:250px\"]"]},
 "m.koreatimes.co.kr":{"hide":["div[style=\"width: 300px; height:250px; overflow: hidden; margin: 0 auto;\"]"]},
+"maas1.com":{"hide":["#topads"]},
 "maketecheasier.com":{"hide":[".header-widget"]},
 "mediaplaynews.com":{"hide":[".g"]},
 "meduza.io":{"hide":[".GeneralMaterial-module-aside",".UnderTheSun-module-banner"]},
@@ -116,5 +120,6 @@
 "xcalibrscans.com":{"hide":["#close-teaser"]},
 "xcum.com":{"hide":[".banner",".bnnrs-player",".btn-ponsor"]},
 "xfantazy.com":{"hide":[".partwidg1","a[href*=\"theporndude.com\"]"]},
+"yallabina.com":{"hide":[".adv"]},
 "yourlust.com":{"hide":["#headC",".banner_right_bottoms",".fluid_html_on_pause",".native-aside",".visit_cs"]}
 }

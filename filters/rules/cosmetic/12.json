@@ -1,6 +1,8 @@
 {
 "adverts.ie":{"hide":["#av_detail_side","#search_results_leaderboard"]},
 "aerospacemanufacturinganddesign.com":{"hide":["#inline-1",".CoverPop-close-go"]},
+"alaan.tv":{"hide":[".show-specificimg1"]},
+"arabia.com":{"hide":["#divDimmed","#divIFrame","#dvleaderboard","#dvwidgetad","#showcase",".leaderBoard",".ykaleader"]},
 "ateadirect.com":{"show":[".logo-ad"]},
 "babesmachine.com":{"hide":[".banner",".topline",".tradepic"]},
 "bakercityherald.com":{"hide":[".one_by_one_group"]},

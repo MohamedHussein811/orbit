@@ -3,10 +3,10 @@
 
 import { PERIODS, type Period } from "./stats.ts";
 import type { TemperatureUnit } from "./weather.ts";
-import { GALLERY_CATEGORIES, GALLERY_MOTIONS, type GalleryCategory, type GalleryMotion } from "./gallery.ts";
+import { DEFAULT_ITEM, GALLERY_CATEGORIES, GALLERY_MOTIONS, type GalleryCategory, type GalleryMotion } from "./gallery.ts";
 
-/** Orbit's own background video, an image or video the person chose, Orbit's plain surface, a color, or Orbit Gallery. */
-export const BACKGROUNDS = ["default", "custom", "plain", "color", "gallery"] as const;
+/** Orbit Gallery (Orbit's own black hole video by default), an image or video the person chose, Orbit's plain surface, or a color. */
+export const BACKGROUNDS = ["gallery", "custom", "plain", "color"] as const;
 export type Background = (typeof BACKGROUNDS)[number];
 
 /** Solid colors and gradients. All are dark enough for the light clock and text over them. */
@@ -30,7 +30,7 @@ export const COLOR_IDS = Object.keys(COLORS) as ColorId[];
 export const CLOCK_FORMATS = ["auto", "12", "24"] as const;
 export type ClockFormat = (typeof CLOCK_FORMATS)[number];
 
-/** Where the new tab's search box sends a search. "default" uses the browser's search engine. */
+/** Search engines offered in Customize. Choosing one also makes it the browser's search engine. "default" is a search engine Orbit does not list, chosen in Settings. */
 export const SEARCH_ENGINES = {
   default: "",
   duckduckgo: "https://duckduckgo.com/?q=",
@@ -42,6 +42,21 @@ export const SEARCH_ENGINES = {
 } as const;
 export type SearchEngine = keyof typeof SEARCH_ENGINES;
 export const SEARCH_ENGINE_IDS = Object.keys(SEARCH_ENGINES) as SearchEngine[];
+
+/** The browser's keyword for each listed engine (see orbit-behavior.patch). */
+export const ENGINE_KEYWORDS: Record<Exclude<SearchEngine, "default">, string> = {
+  duckduckgo: "duckduckgo.com",
+  google: "google.com",
+  bing: "bing.com",
+  ecosia: "ecosia.org",
+  brave: "search.brave.com",
+  startpage: "startpage.com",
+};
+
+export function engineForKeyword(keyword: string | null): SearchEngine {
+  const found = (Object.keys(ENGINE_KEYWORDS) as Array<Exclude<SearchEngine, "default">>).find((id) => ENGINE_KEYWORDS[id] === keyword);
+  return found ?? "default";
+}
 
 /** Shortcuts the person keeps, or the sites they visit most. */
 export const TOP_SITES_MODES = ["favorites", "frequent"] as const;
@@ -73,16 +88,16 @@ export interface Settings {
 export function defaultSettings(): Settings {
   return {
     version: 1,
-    background: "default",
+    background: "gallery",
     color: "midnight",
     galleryCategory: "all",
-    galleryChoice: "daily",
+    galleryChoice: DEFAULT_ITEM.page,
     galleryMotion: "video",
     videoPaused: false,
     showClock: true,
     clockFormat: "auto",
     showDate: true,
-    searchEngine: "default",
+    searchEngine: "duckduckgo",
     topSitesMode: "favorites",
     shortcutRows: 1,
     hiddenSites: [],
@@ -97,12 +112,14 @@ const pick = <T extends string>(options: readonly T[], value: unknown, fallback:
 export function sanitizeSettings(raw: unknown): Settings {
   const source = (raw ?? {}) as Partial<Record<keyof Settings, unknown>>;
   const defaults = defaultSettings();
+  // Before 1.0.2 the black hole was its own "default" background. It is now Orbit Gallery's first video.
+  const oldDefault = source.background === "default";
   return {
     version: 1,
     background: pick(BACKGROUNDS, source.background, defaults.background),
     color: pick(COLOR_IDS, source.color, defaults.color),
     galleryCategory: pick<GalleryCategory | "all">(["all", ...GALLERY_CATEGORIES], source.galleryCategory, defaults.galleryCategory),
-    galleryChoice: typeof source.galleryChoice === "string" && source.galleryChoice.length < 2048 ? source.galleryChoice : defaults.galleryChoice,
+    galleryChoice: oldDefault ? DEFAULT_ITEM.page : typeof source.galleryChoice === "string" && source.galleryChoice.length < 2048 ? source.galleryChoice : defaults.galleryChoice,
     galleryMotion: pick(GALLERY_MOTIONS, source.galleryMotion, defaults.galleryMotion),
     videoPaused: typeof source.videoPaused === "boolean" ? source.videoPaused : defaults.videoPaused,
     showClock: typeof source.showClock === "boolean" ? source.showClock : defaults.showClock,

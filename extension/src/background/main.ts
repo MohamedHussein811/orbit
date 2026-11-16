@@ -26,11 +26,27 @@ function serialized<T>(work: () => Promise<T>): Promise<T> {
   return next;
 }
 
+// The page each tab shows now. A page that is closing or being left still sends requests (such as
+// analytics beacons), and those blocks count in the totals but not for the tab's next page.
+const tabDocuments = new Map<number, string>();
+
+chrome.webNavigation.onCommitted.addListener(({ tabId, frameId, documentId }) => {
+  if (frameId === 0 && documentId) tabDocuments.set(tabId, documentId);
+});
+
+function countsForTab(request: chrome.declarativeNetRequest.RequestDetails): boolean {
+  if (request.tabId < 0) return false;
+  if (request.documentLifecycle && request.documentLifecycle !== "active") return false;
+  if (request.type === "main_frame" || request.frameId !== 0 || !request.documentId) return true;
+  const current = tabDocuments.get(request.tabId);
+  return !current || current === request.documentId;
+}
+
 chrome.declarativeNetRequest.onRuleMatchedDebug.addListener(({ request, rule }) => {
   const category = categoryOfMatch(rule.rulesetId, rule.ruleId);
   if (!category) return;
   pending[category]++;
-  if (request.tabId >= 0) {
+  if (countsForTab(request)) {
     const counts = tabPending.get(request.tabId) ?? emptyCounts();
     counts[category]++;
     tabPending.set(request.tabId, counts);
@@ -101,7 +117,16 @@ function clearTab(tabId: number): Promise<void> {
   });
 }
 
+// Shields works on web pages only, so on the new tab page and other browser pages its button
+// rests, greyed out.
+function syncAction(tabId: number, url: string | undefined): Promise<void> {
+  return (siteOf(url) ? chrome.action.enable(tabId) : chrome.action.disable(tabId)).catch(() => {});
+}
+
+void chrome.action.disable().catch(() => {});
+
 chrome.tabs.onUpdated.addListener((tabId, change) => {
+  if (change.url) void syncAction(tabId, change.url);
   if (change.status === "loading" && change.url) {
     void clearTab(tabId).then(() => showBadge(tabId, emptyCounts()));
     void hideOnSite(tabId, change.url);
@@ -161,21 +186,52 @@ async function checkPopup(tabId: number, url: string): Promise<void> {
   const { hosts, scoped } = await popups();
   const listed = hostSuffixes(host).some((suffix) => hosts.has(suffix) || (scoped[suffix] ?? []).some((site) => hostSuffixes(sourceHost).includes(site)));
   if (!listed) return;
+  await closePopup(tabId, opener.source, url);
+}
+
+async function closePopup(tabId: number, source: number, url: string): Promise<void> {
+  if (!openedBy.has(tabId)) return;
   openedBy.delete(tabId);
   await chrome.tabs.remove(tabId).catch(() => {});
   pending.ads++;
-  const counts = tabPending.get(opener.source) ?? emptyCounts();
+  const counts = tabPending.get(source) ?? emptyCounts();
   counts.ads++;
-  tabPending.set(opener.source, counts);
-  const blocked = tabHostsPending.get(opener.source) ?? emptyBlockedHosts();
+  tabPending.set(source, counts);
+  const blocked = tabHostsPending.get(source) ?? emptyBlockedHosts();
   addBlockedHost(blocked, "ads", url);
-  tabHostsPending.set(opener.source, blocked);
+  tabHostsPending.set(source, blocked);
   flushTimer ??= setTimeout(flush, FLUSH_DELAY_MS);
+}
+
+// Pop-unders: a page opens a tab behind the one the person is looking at. A tab opened in the
+// background without the person asking for it (sites/intent.ts reports middle and Ctrl clicks and
+// the link menu) is closed when it goes to another site.
+const POPUNDER_SETTLE_MS = 400;
+// Long enough to pick "Open link in new tab" from the link menu.
+const INTENT_MS = 10_000;
+const openIntent = new Map<number, number>();
+
+const sameSite = (a: string, b: string) => hostSuffixes(a).some((suffix) => hostSuffixes(b).includes(suffix));
+
+async function checkPopunder(tabId: number, sourceTabId: number): Promise<void> {
+  await new Promise((resolve) => setTimeout(resolve, POPUNDER_SETTLE_MS));
+  if (Date.now() - (openIntent.get(sourceTabId) ?? 0) < INTENT_MS) return;
+  const [tab, source] = await Promise.all([chrome.tabs.get(tabId).catch(() => null), chrome.tabs.get(sourceTabId).catch(() => null)]);
+  if (!tab || !source || tab.active || !source.active || tab.windowId !== source.windowId) return;
+  const sourceHost = siteOf(source.url);
+  if (!sourceHost) return;
+  const url = tab.pendingUrl || tab.url || "";
+  const host = siteOf(url);
+  if (host && sameSite(host, sourceHost)) return;
+  const off = [...(await hostsOff()), ...(await privateHostsOff())];
+  if (hostSuffixes(sourceHost).some((suffix) => off.includes(suffix))) return;
+  await closePopup(tabId, sourceTabId, url);
 }
 
 chrome.webNavigation.onCreatedNavigationTarget.addListener(({ sourceTabId, tabId, url }) => {
   openedBy.set(tabId, { source: sourceTabId, at: Date.now() });
   void checkPopup(tabId, url);
+  void checkPopunder(tabId, sourceTabId);
 });
 
 chrome.tabs.onUpdated.addListener((tabId, change) => {
@@ -184,6 +240,8 @@ chrome.tabs.onUpdated.addListener((tabId, change) => {
 
 chrome.tabs.onRemoved.addListener((tabId) => {
   openedBy.delete(tabId);
+  openIntent.delete(tabId);
+  tabDocuments.delete(tabId);
 });
 
 chrome.tabs.onRemoved.addListener((tabId) => {
@@ -241,6 +299,10 @@ async function continueToSite(host: string): Promise<void> {
 
 chrome.runtime.onMessage.addListener((message: Message, sender, respond) => {
   if (sender.id !== chrome.runtime.id) return false;
+  if (message.type === "open-intent") {
+    if (sender.tab?.id !== undefined) openIntent.set(sender.tab.id, Date.now());
+    return false;
+  }
   handle(message).then(respond, (error: Error) => respond({ error: error.message }));
   return true;
 });
@@ -249,10 +311,12 @@ async function handle(message: Message): Promise<unknown> {
   switch (message.type) {
     case "tab-state": {
       await flush();
-      const [{ tabCounts, tabHosts }, regular, privateHosts] = await Promise.all([readStored(), hostsOff(), privateHostsOff()]);
-      const hosts = tabHosts[message.tabId] ?? emptyBlockedHosts();
+      const [{ tabCounts, tabHosts }, regular, privateHosts, tab] = await Promise.all([readStored(), hostsOff(), privateHostsOff(), chrome.tabs.get(message.tabId).catch(() => null)]);
+      // Browser pages have no blocking, so nothing is listed for them.
+      const web = Boolean(siteOf(tab?.url));
+      const hosts = (web && tabHosts[message.tabId]) || emptyBlockedHosts();
       const state: TabState = {
-        counts: tabCounts[message.tabId] ?? emptyCounts(),
+        counts: (web && tabCounts[message.tabId]) || emptyCounts(),
         blocked: { ads: blockedList(hosts.ads), trackers: blockedList(hosts.trackers), threats: blockedList(hosts.threats) },
         sitesOff: [...regular, ...privateHosts],
       };
@@ -291,15 +355,17 @@ async function applyAll(): Promise<void> {
 }
 
 /** Tabs opened before this extension finished installing show Chromium's own new tab page.
- * A new tab in the same place shows Orbit's page instead. */
-async function takeOverNewTabs(): Promise<void> {
+ * A new tab in the same place shows Orbit's page instead. On a new profile the first of them shows
+ * Orbit's welcome tour, once. */
+async function takeOverNewTabs(welcome: boolean): Promise<void> {
   const tabs = await chrome.tabs.query({});
   const chromiumNewTab = /^chrome:\/\/(newtab|new-tab-page)\//;
   await Promise.all(
     tabs
       .filter((tab) => tab.id !== undefined && (chromiumNewTab.test(tab.url ?? "") || chromiumNewTab.test(tab.pendingUrl ?? "")))
-      .map(async (tab) => {
-        await chrome.tabs.create({ url: "chrome://newtab/", windowId: tab.windowId, index: tab.index, active: tab.active });
+      .map(async (tab, n) => {
+        const tour = welcome && n === 0;
+        await chrome.tabs.create({ url: tour ? chrome.runtime.getURL("welcome/welcome.html") : "chrome://newtab/", windowId: tab.windowId, index: tab.index, active: tab.active });
         await chrome.tabs.remove(tab.id!);
       }),
   );
@@ -308,7 +374,12 @@ async function takeOverNewTabs(): Promise<void> {
 chrome.runtime.onInstalled.addListener((details) => {
   void chrome.action.setBadgeBackgroundColor({ color: "#3b4ad0" });
   void chrome.action.setBadgeTextColor({ color: "#ffffff" });
-  if (details.reason === "install") void takeOverNewTabs();
+  if (details.reason === "install") {
+    void chrome.storage.local.get("welcomeShown").then(({ welcomeShown }) => {
+      void takeOverNewTabs(!welcomeShown);
+      if (!welcomeShown) void chrome.storage.local.set({ welcomeShown: true });
+    });
+  }
 });
 
 // The browser re-registers an extension loaded from a folder at each launch, and may report that as
@@ -317,6 +388,8 @@ async function startOncePerSession(): Promise<void> {
   const { sessionStarted } = await chrome.storage.session.get("sessionStarted");
   if (sessionStarted) return;
   await chrome.storage.session.set({ sessionStarted: true });
+  const tabs = await chrome.tabs.query({});
+  await Promise.all(tabs.map((tab) => (tab.id === undefined ? undefined : syncAction(tab.id, tab.url ?? tab.pendingUrl))));
   await applyAll();
   await runStartupCleanup(await readPrivacy());
 }

@@ -1,0 +1,6 @@
+/* Google's "Choose Chrome" sheet on its search pages. The element and its links to Chrome's terms
+   exist only on Google, so this applies on every Google country domain and nowhere else. */
+g-bottom-sheet:has(a[href*="google.com/chrome/"]),
+g-bottom-sheet[aria-labelledby="promo_label_id"] {
+  display: none !important;
+}

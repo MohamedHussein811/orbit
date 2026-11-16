@@ -2,6 +2,7 @@
 "365scores.com":{"hide":["._main-content_ad__ifF3C","._main-content_prediction__Gwi2c","div[class^=\"all-scores-container_ad_placeholder_\"]","div[class^=\"bookmakers-review-widget_\"]","div[class^=\"external-ad_\"]","div[class^=\"games-predictions-widget_container_\"]"]},
 "abc7chicago.com":{"hide":[".StickyAdWrapper",".leaderboard2"]},
 "advisorperspectives.com":{"hide":["#dfp-ap-2016-interstitial",".adspace-landscape"]},
+"alarab.com":{"hide":["#floatbanner_left","#floatbanner_right","#secncom","#topbanner",".ad",".left_sqr",".mbAdImg",".right_cubes"]},
 "auto.creavite.co":{"hide":["[href*=\"?aff=\"]","[href*=\"?utm_medium=ads\"]"]},
 "avforums.com":{"hide":[".m2n-ads-slot",".m2n-unit"]},
 "azocleantech.com":{"hide":[".promoted-item",".sidebar-sponsored-content"]},
@@ -56,6 +57,7 @@
 "housing.com":{"hide":[".ad_pushup_paragraph",".ad_pushup_subtitle"]},
 "idealhome.co.uk":{"hide":[".sponsored-post--placeholder"]},
 "igi-global.com":{"hide":[".banner-carousel-item",".margin-bottom-15.inline-block-100",".width-100"]},
+"imanschool.com":{"hide":[".bannerBox"]},
 "in.fo":{"show":[".ads-banner"]},
 "investopedia.com":{"hide":["#performance-marketing_1-0",".partnerlinks"]},
 "ivote.co.za":{"hide":[".bannerSm"]},
@@ -66,6 +68,7 @@
 "kawaiihentai.com":{"hide":[".banner"]},
 "kincho.co.jp":{"show":[".ad-block"]},
 "kissanadu.com":{"show":[".sidebar-ad:not(.adsbygoogle)"]},
+"masreat.com":{"hide":["img[width=\"720\"]"]},
 "meteologix.com":{"hide":[".dkpw",".dkpw-billboard-margin"]},
 "metoffice.gov.uk":{"hide":["#lead-ad-spacer",".maps-header-advert",".mpu"]},
 "mgtow.tv":{"hide":[".fads-placment"]},
@@ -94,6 +97,7 @@
 "readichithewitch.com":{"hide":[".border-b-0.border-border-primary.overflow-hidden","[href^=\"https://amzn.to/\"]"]},
 "reviewjournal.com":{"hide":[".sponsored"]},
 "rugbynetwork.net":{"hide":["#billboard"]},
+"sat31-dz.com":{"hide":["td[width=\"150\"][height=\"60\"]"]},
 "seaislenews.com":{"hide":[".ad-container"]},
 "searchenginesuggestions.com":{"hide":[".leaderboard"]},
 "sex3.com":{"hide":[".add-box",".adv-leftside"]},
@@ -133,5 +137,6 @@
 "windsorite.ca":{"hide":["div[style*=\"width:300px\"]"]},
 "winporn.com":{"hide":["#spot_video_livecams","#spot_video_underplayer_livecams",".cams",".drt-spot-box"]},
 "xnxxporn.video":{"hide":["#spotholder",".vertbars"]},
-"yardbarker.com":{"hide":["#leaderboard_container","#right_top_sticky","#yb_recirc","#yb_recirc_container_mobile",".mb_promo_responsive_right",".yb-card-ad",".yb-card-leaderboard",".yb-card-out"]}
+"yardbarker.com":{"hide":["#leaderboard_container","#right_top_sticky","#yb_recirc","#yb_recirc_container_mobile",".mb_promo_responsive_right",".yb-card-ad",".yb-card-leaderboard",".yb-card-out"]},
+"youm7.com":{"hide":["#After_F_Paragraph",".adv300x250",".adv320x100",".background300x250",".fullBanner",".leaderBoard",".leaderBoard1",".leftAdsFix",".midAdv-cont",".sameAdBlock1",".sameAdBlock2",".smallAdBlock1"]}
 }

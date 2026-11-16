@@ -29,18 +29,6 @@
   "widgetFailed": {
     "message": "$1 could not load. The rest of the page still works."
   },
-  "sizeSmall": {
-    "message": "Small"
-  },
-  "sizeMedium": {
-    "message": "Medium"
-  },
-  "sizeLarge": {
-    "message": "Large"
-  },
-  "widgetSize": {
-    "message": "$1 size"
-  },
   "moveUp": {
     "message": "Move $1 up"
   },
@@ -52,9 +40,6 @@
   },
   "backgroundPlain": {
     "message": "Plain"
-  },
-  "backgroundDefault": {
-    "message": "Black hole"
   },
   "backgroundCustom": {
     "message": "Your own"
@@ -95,20 +80,11 @@
   "playVideo": {
     "message": "Play background video"
   },
-  "browserTheme": {
-    "message": "Theme"
-  },
   "browserThemeExplained": {
     "message": "The plain background and this panel follow the browser's light or dark mode. You can change it in Settings."
   },
-  "openThemeSettings": {
-    "message": "Open theme settings"
-  },
   "widgets": {
     "message": "Widgets"
-  },
-  "dragHint": {
-    "message": "While this panel is open, you can also drag widgets on the page."
   },
   "restoreLayout": {
     "message": "Restore default layout"
@@ -554,9 +530,6 @@
   "done": {
     "message": "Done"
   },
-  "backgroundPictures": {
-    "message": "Pictures"
-  },
   "backgroundColors": {
     "message": "Colors and gradients"
   },
@@ -602,9 +575,6 @@
   "sectionSearch": {
     "message": "Search"
   },
-  "sectionTopSites": {
-    "message": "Top sites"
-  },
   "sectionTheme": {
     "message": "Theme"
   },
@@ -628,18 +598,6 @@
   },
   "searchEngine": {
     "message": "Search with"
-  },
-  "browserDefaultEngine": {
-    "message": "The browser's search engine"
-  },
-  "browserDefaultEngineNote": {
-    "message": "The same one the address bar uses"
-  },
-  "searchEngineNote": {
-    "message": "This applies to the search box on this page. The address bar uses the browser's search engine, which you can change in Settings."
-  },
-  "openSearchSettings": {
-    "message": "Change the browser's search engine"
   },
   "searchWithEngine": {
     "message": "Search $1 or enter an address"
@@ -734,15 +692,6 @@
   "historyPage": {
     "message": "History"
   },
-  "iconAfterAddress": {
-    "message": "The site's icon appears once you enter an address"
-  },
-  "iconFromSite": {
-    "message": "The site's own icon"
-  },
-  "iconYourImage": {
-    "message": "Your image"
-  },
   "backgroundGallery": {
     "message": "Orbit Gallery"
   },
@@ -826,5 +775,92 @@
   },
   "galleryLiveNote": {
     "message": "Plays the video"
+  },
+  "engineNotSet": {
+    "message": "Orbit couldn't change the search engine. You can change it in Settings."
+  },
+  "welcomePageTitle": {
+    "message": "Welcome to Orbit"
+  },
+  "welcomeTitle": {
+    "message": "Welcome to Orbit"
+  },
+  "welcomeIntro": {
+    "message": "A fast browser that keeps what you do on your device. No accounts, no ads and no tracking, by design."
+  },
+  "welcomeProtectTitle": {
+    "message": "Protection is already on"
+  },
+  "welcomeProtectText": {
+    "message": "Orbit's Shields work on this device, before pages load what they ask for. The shield beside the address bar shows what was blocked on a page, and turns Shields off for a site that misbehaves."
+  },
+  "welcomeFactAds": {
+    "message": "Ads and pop-ups"
+  },
+  "welcomeFactTrackers": {
+    "message": "Trackers that follow you from site to site"
+  },
+  "welcomeFactThreats": {
+    "message": "Known malware and phishing sites"
+  },
+  "welcomeBringTitle": {
+    "message": "Bring your things to Orbit"
+  },
+  "welcomeBringText": {
+    "message": "Copy your bookmarks and history from Chrome, Edge, Brave, Opera, Vivaldi or Firefox. Close that browser first so its history can be read. Everything stays on this device."
+  },
+  "welcomeImport": {
+    "message": "Choose a browser to import from"
+  },
+  "welcomePasswordsTitle": {
+    "message": "Passwords"
+  },
+  "welcomePasswordsText": {
+    "message": "Other browsers lock saved passwords so only they can read them. To move them:"
+  },
+  "welcomePasswordsStep1": {
+    "message": "In your old browser, open its password settings and choose Export passwords. It saves a CSV file."
+  },
+  "welcomePasswordsStep2": {
+    "message": "In Orbit, open Passwords, choose Import passwords and pick that file."
+  },
+  "welcomePasswordsStep3": {
+    "message": "Delete the CSV file afterwards. It holds your passwords as plain text."
+  },
+  "welcomeOpenPasswords": {
+    "message": "Open Orbit's passwords"
+  },
+  "welcomeDoneTitle": {
+    "message": "You're all set"
+  },
+  "welcomeDoneText": {
+    "message": "You can take this tour again, or import later, from Orbit's privacy settings."
+  },
+  "welcomeDefault": {
+    "message": "Make Orbit your default browser"
+  },
+  "welcomeStart": {
+    "message": "Start browsing"
+  },
+  "welcomeNext": {
+    "message": "Next"
+  },
+  "welcomeBack": {
+    "message": "Back"
+  },
+  "welcomeSkip": {
+    "message": "Skip"
+  },
+  "welcomeStep": {
+    "message": "Step $1 of $2"
+  },
+  "moreImport": {
+    "message": "Import bookmarks and history from another browser"
+  },
+  "moreWelcome": {
+    "message": "Take the welcome tour again"
+  },
+  "widgetsDocked": {
+    "message": "At the bottom of the page"
   }
 }

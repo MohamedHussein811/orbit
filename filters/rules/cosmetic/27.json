@@ -1,9 +1,12 @@
 {
 "abcnews.com":{"hide":[".taboola","[data-testid=\"prism-sticky-ad\"]"]},
 "acmemarkets.com":{"hide":[".master-product-carousel:has([data-carousel-api*=\"search/sponsored-carousel\"])",".master-product-carousel:has([data-carousel-driven=\"sponsored-products\"])"]},
+"akhbarelyom.com":{"hide":["img[style*=\"width: 300px;\"]"]},
 "alevelgeography.com":{"hide":[".et_pb_code_inner"]},
 "allthatsinteresting.com":{"hide":[".footer-banner",".leaderboard",".native-box",".pbh_inline",".r-11rk87y"]},
 "altchar.com":{"hide":["div[style^=\"height:280px;\"]"]},
+"alwatan.sy":{"hide":["img[height=\"90\"][width=\"728\"]"]},
+"arteenz.com":{"hide":["#ads_iframe","#id-custom_banner"]},
 "askapache.com":{"hide":[".GAD"]},
 "audizine.com":{"hide":[".AdvallyTag",".articleIMG"]},
 "augustman.com":{"hide":[".masthead-container"]},

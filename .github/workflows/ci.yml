@@ -47,8 +47,9 @@ jobs:
           iscc="/c/Program Files (x86)/Inno Setup 6/ISCC.exe"
           [ -x "$iscc" ] || choco install innosetup -y --no-progress > /dev/null
           mkdir -p out
+          node tools/chromium/installer/privacy-text.mjs out/privacy.txt
           MSYS_NO_PATHCONV=1 MSYS2_ARG_CONV_EXCL="*" "$iscc" /Qp /DVersion=1.0.0.0 "/DInstaller=C:\Windows\System32\whoami.exe" \
-            "/DBranding=$(cygpath -w "$PWD/branding")" "/O$(cygpath -w "$PWD/out")" "$(cygpath -w "$PWD/tools/chromium/installer/orbit.iss")"
+            "/DBranding=$(cygpath -w "$PWD/branding")" "/DPrivacy=$(cygpath -w "$PWD/out/privacy.txt")" "/O$(cygpath -w "$PWD/out")" "$(cygpath -w "$PWD/tools/chromium/installer/orbit.iss")"
           ls -l out
 
   apt:

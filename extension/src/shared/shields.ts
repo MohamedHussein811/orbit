@@ -82,6 +82,7 @@ export type Message =
   | { type: "set-shields"; host: string; enabled: boolean; incognito: boolean }
   | { type: "continue-to-site"; host: string }
   | { type: "reset-stats" }
+  | { type: "open-intent" }
   | { type: "set-privacy"; settings: PrivacySettings };
 
 /** Blocked requests per host for one tab, kept in memory while the tab is open. */

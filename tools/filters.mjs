@@ -26,9 +26,10 @@ async function download(url) {
   return res.text();
 }
 
-/** Refuses a list that came back truncated or empty, which would silently weaken blocking. */
-function checkSize(name, text) {
-  if (text.length < 100_000) throw new Error(`${name} looks truncated: ${text.length} bytes`);
+/** Refuses a list that came back truncated or empty, which would silently weaken blocking. Small
+ * regional lists set their own minimum in sources.json. */
+function checkSize(name, text, minimum = 100_000) {
+  if (text.length < minimum) throw new Error(`${name} looks truncated: ${text.length} bytes`);
 }
 
 /** One rule per line, so git stores small changes between updates as small differences. */
@@ -40,7 +41,7 @@ async function update() {
   const texts = {};
   for (const [id, list] of Object.entries(sources.lists)) {
     const text = await download(list.url);
-    checkSize(id, text);
+    checkSize(id, text, list.minBytes);
     texts[id] = text;
     meta.lists[id] = { name: list.name, license: list.license, attribution: list.attribution, homepage: list.homepage, url: list.url, sha256: sha256(text), bytes: text.length };
     console.error(`downloaded ${id}: ${text.length} bytes`);

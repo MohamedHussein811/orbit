@@ -52,6 +52,7 @@
 "interest.co.nz":{"hide":["#banner-ad-wrapper","#sidebar-wrapper",".homepage-billboard",".story-tag-wrapper"]},
 "japaneseporn.xxx":{"hide":[".table"]},
 "job.inshokuten.com":{"show":[".ad-area:not(.text-ad)",".ad-box:not(#ad-banner):not(:empty)",".ad-content",".ad-title"]},
+"jordanzad.com":{"hide":["a[href^=\"ad.php?\"]","div[style=\"width:306px;height:63px;\"]","div[style=\"width:600px;height:80px;\"]"]},
 "kitchenknifeforums.com":{"hide":[".gb-sponsored-wrapper",".productslider"]},
 "koat.com":{"hide":[".ad-container","[class]:has(>[data-type])","[data-testid=\"ad-label\"]"]},
 "krakenfiles.com":{"hide":[".myadbox"]},

@@ -31,8 +31,10 @@
 "dailykos.com":{"hide":[".ad__placeholder",".ad_leaderboard__container",".ad_right_rail",".story-banner-ad-placeholder"]},
 "dayspedia.com":{"hide":[".banner--aside",".banner--main"]},
 "dcraddock.uk":{"hide":[".boxzilla-container",".boxzilla-overlay"]},
+"downloadcomputergames.net":{"hide":["#Ads",".addlink"]},
 "drivereasy.com":{"hide":[".sls_pop"]},
 "egotasticsports.com":{"hide":["#a83042c4"]},
+"el-ahly.com":{"hide":[".adAB",".adBC",".adCD","a[href*=\"://bit.ly/\"]"]},
 "eprop.co.za":{"hide":[".bannergroup"]},
 "ewn.co.za":{"hide":[".bg-surface-03.text-content-secondary.space-y-\\[0\\.1875rem\\].p-spacing-s.flex.flex-col.w-max.mx-auto"]},
 "fapnado.xxx":{"hide":[".fluid_html_on_pause_container",".fluid_start_container",".hqb-topbar",".pause-ad-pullup",".plads",".text_link_holder",".zpot-horizontal",".zpot-vertical"]},
@@ -139,5 +141,6 @@
 "weworkremotely.com":{"hide":[".feature--ad"]},
 "wgow.com":{"hide":[".widget_media_image"]},
 "whtimes.co.uk":{"hide":[".advert"]},
+"yallakora.com":{"hide":[".billboardDiv",".leaderboardDiv",".monsterDiv",".showcaseDiv"]},
 "ycp.synk-casualgames.com":{"show":[".adsbygoogle-noablate"]}
 }

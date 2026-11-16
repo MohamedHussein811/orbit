@@ -95,8 +95,10 @@ elif is_windows; then
   # A setup window around Chromium's installer, which has none.
   iscc="/c/Program Files (x86)/Inno Setup 6/ISCC.exe"
   [ -x "$iscc" ] || choco install innosetup -y --no-progress > /dev/null
+  privacy="$RUNNER_TEMP/orbit-privacy.txt"
+  node "$root/tools/chromium/installer/privacy-text.mjs" "$privacy"
   MSYS_NO_PATHCONV=1 MSYS2_ARG_CONV_EXCL="*" "$iscc" /Qp "/DVersion=$version" "/DInstaller=$(cygpath -w "$PWD/mini_installer.exe")" \
-    "/DBranding=$(cygpath -w "$root/branding")" "/O$(cygpath -w "$dist")" \
+    "/DBranding=$(cygpath -w "$root/branding")" "/DPrivacy=$(cygpath -w "$privacy")" "/O$(cygpath -w "$dist")" \
     "$(cygpath -w "$root/tools/chromium/installer/orbit.iss")"
   setup="$dist/${product}Setup-$version-x64.exe"
   test -f "$setup"

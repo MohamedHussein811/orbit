@@ -473,7 +473,7 @@ body {
   border-radius: 50%;
   background: var(--tile);
   box-shadow: var(--card-shadow);
-  transition: background-color 160ms linear, border-color 160ms linear;
+  transition: background-color 160ms linear, border-color 160ms linear, scale 160ms var(--ease);
 }
 
 /* Orbit's mark, an open ring with a satellite, appears around a shortcut on hover and focus. */
@@ -601,6 +601,25 @@ body {
 .tile.drop-target .tile-icon {
   border-color: var(--accent);
   box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent) 35%, transparent);
+  scale: 1.08;
+}
+
+/* The dragged shortcut leaves a faint copy where it will land. */
+.tile.dragging {
+  opacity: 0.3;
+  scale: 0.92;
+  transition: opacity 120ms linear, scale 120ms var(--ease);
+}
+
+.tile.dragging .edit {
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tile.dragging {
+    scale: none;
+    transition: none;
+  }
 }
 
 .shortcuts .empty {
@@ -1043,54 +1062,57 @@ body {
   stroke: var(--accent);
 }
 
+/* One vertical rhythm: every block in a section sits 0.75rem from the next, and each heading
+   starts a new group with twice that space above it. */
 .customize-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
   padding: 1.25rem 1.6rem 1.75rem;
   overflow-y: auto;
   overscroll-behavior: contain;
   scrollbar-width: thin;
+  scrollbar-gutter: stable;
+}
+
+.customize-panel > * {
+  flex: none;
+  margin-block: 0;
+}
+
+.customize-panel > :is(.button, .link) {
+  align-self: flex-start;
 }
 
 .panel-title {
-  margin-bottom: 1rem;
   font-size: 1.0625rem;
   font-weight: 500;
 }
 
+.customize-panel > h3 {
+  margin-top: 0.75rem;
+}
+
 .customize h3 {
-  margin: 1.4rem 0 0.7rem;
   color: var(--muted);
   font-size: 0.8125rem;
   font-weight: 500;
   letter-spacing: 0.02em;
 }
 
-.customize .panel-title + h3 {
+.customize-panel > .panel-title + h3 {
   margin-top: 0;
-}
-
-.customize .notice {
-  margin-top: 0.6rem;
 }
 
 .customize .notice:empty {
   display: none;
 }
 
-.customize .notice.lead {
-  margin: 0 0 1rem;
-}
-
 .customize .alert {
   color: var(--danger);
 }
 
-.customize-panel > .button,
-.customize-panel > .link {
-  margin-top: 0.9rem;
-}
-
 .group {
-  margin-top: 0.4rem;
   border-radius: var(--radius-md);
   padding: 0.15rem 0.9rem;
   background: var(--control);
@@ -1247,9 +1269,8 @@ body {
 
 .bg-options {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0.75rem;
-  margin-bottom: 0.9rem;
 }
 
 .bg-option {
@@ -1302,13 +1323,17 @@ body {
   stroke-linejoin: round;
 }
 
-.bg-thumb[data-kind="plain"] {
+.bg-thumb[data-kind="colors"] {
+  background: var(--swatch, var(--control));
+}
+
+:is(.bg-thumb, .color-option)[data-plain] {
   background:
     radial-gradient(120% 90% at 50% -20%, color-mix(in oklab, var(--orbit-primary) 22%, transparent), transparent 70%),
     var(--orbit-surface);
 }
 
-:root[data-theme="light"] .bg-thumb[data-kind="plain"] {
+:root[data-theme="light"] :is(.bg-thumb, .color-option)[data-plain] {
   background:
     radial-gradient(120% 90% at 50% -20%, color-mix(in oklab, var(--orbit-primary) 16%, transparent), transparent 70%),
     #f4f5f9;
@@ -1422,7 +1447,7 @@ body {
   margin-bottom: 0.9rem;
 }
 
-.field span {
+.field > span {
   display: block;
   margin-bottom: 0.35rem;
   color: var(--muted);
@@ -1665,11 +1690,6 @@ body {
   flex: 1;
   justify-items: start;
   min-width: 0;
-}
-
-.icon-copy strong {
-  font-size: 0.875rem;
-  font-weight: 450;
 }
 
 .icon-copy .link {
@@ -1923,7 +1943,6 @@ body.search-focus .backdrop-media {
   display: flex;
   flex-wrap: wrap;
   gap: 0.4rem;
-  margin-bottom: 0.6rem;
 }
 
 .gallery-chip {
@@ -1949,7 +1968,6 @@ body.search-focus .backdrop-media {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(7.5rem, 1fr));
   gap: 0.5rem;
-  margin-top: 0.75rem;
 }
 
 .gallery-item {

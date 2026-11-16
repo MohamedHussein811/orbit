@@ -1,6 +1,7 @@
 {
 "accesswdun.com":{"hide":[".ad-slider-block","a[href^=\"https://tinyurl.com\"] > img"]},
 "ajc.com":{"hide":[".arc_ad"]},
+"alhayat.com":{"hide":[".TopHeaderBanner",".banner2"]},
 "apkpac.com":{"hide":[".layout-beyond-ads"]},
 "autotrader.co.uk":{"hide":["li:has(section[data-testid=\"trader-seller-listing\"] > span[data-testid=\"FEATURED_LISTING\"])","li:has(section[data-testid=\"trader-seller-listing\"] > span[data-testid=\"PROMOTED_LISTING\"])","li[class]:has(span[data-testid=\"FEATURED_LISTING\"])","li[class]:has(span[data-testid=\"PROMOTED_LISTING\"])"]},
 "badgerandblade.com":{"hide":["[data-ez-ph-id]"]},

@@ -1,6 +1,8 @@
 {
 "2merkato.com":{"hide":[".bannergroup"]},
 "2v2.io":{"hide":[".banner-container"]},
+"5foq.com":{"hide":["div[style=\"width:680px;height:180px;float:left;margin-left:5px;margin-top:25px\"]"]},
+"alarab.net":{"hide":["#floatbanner_left","#floatbanner_right","#secncom","#topbanner",".ad",".left_sqr",".mbAdImg",".right_cubes"]},
 "alotporn.com":{"hide":[".footer-margin",".player + center",".table","[id^=\"list_videos_\"] > [class=\"item\"]"]},
 "am5.com":{"hide":[".ad-box-pc-3",".ad-box-right-pc-1"]},
 "americanfreepress.net":{"hide":[".wppopups-whole","[width=\"600\"]","p > [href] > img","strong > span > a"]},
