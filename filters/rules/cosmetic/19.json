@@ -21,6 +21,7 @@
 "brigantinenow.com":{"hide":[".widget_sp_image"]},
 "canyoublockit.com":{"hide":[".elementor-widget-container > center > p"]},
 "catalogueoffers.co.uk":{"hide":[".anchor-wrapper"]},
+"clashreport.com":{"hide":[".border-masthead-border.bg-off-white"]},
 "coinarbitragebot.com":{"hide":["#adathm","#botfix","#modal1","#screener"]},
 "cointelegraph.com":{"hide":[".advertise-with-us-link_O9rIX",".header-zone__flower","[class*=\"ad-slot\"]","a[href^=\"https://servedbyadbutler.com/\"]"]},
 "coinweek.com":{"hide":[".custom-html-widget",".g",".g-389"]},

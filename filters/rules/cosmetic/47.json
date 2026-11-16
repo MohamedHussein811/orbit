@@ -69,7 +69,7 @@
 "mojeek.com":{"hide":["[aria-label=\"Sponsored products\"]"]},
 "myreadingmanga.info":{"hide":[".widget-area[class^=\"after_\"]","[class^=\"top_p\"]","[href*=\"bit.ly/\"]","a[href^=\"https://www.dlsite.com/\"]","a[href^=\"https://www.gaming-adult.com/\"]"]},
 "nepallivetoday.com":{"hide":[".adsimage","img[height=\"100\"]"]},
-"pcguide.com":{"hide":[".wepc-takeover-sides",".wepc-takeover-top"]},
+"pcguide.com":{"hide":[".rdads",".wepc-takeover-sides",".wepc-takeover-top"]},
 "pch.com":{"hide":["#div-pch-gpt-placement-bottom","#div-pch-gpt-placement-multiple","#div-pch-gpt-placement-top",".advertisement",".placement-content",".wide_banner"]},
 "pornstarwarshentai.com":{"hide":[".global-army",".right"]},
 "proprofs.com":{"hide":[".firstadd"]},

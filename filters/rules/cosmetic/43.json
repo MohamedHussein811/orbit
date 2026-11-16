@@ -107,7 +107,7 @@
 "tryindianporn.com":{"hide":[".mle",".uvk"]},
 "tube.bz":{"hide":[".bb_desktop"]},
 "unfinishedman.com":{"hide":[".ai-viewport-1"]},
-"videocardz.com":{"hide":[".s7k2m9qx",".s7k2m9qx-adhesive","div[aria-label=\"Shop\"]"]},
+"videocardz.com":{"hide":[".s7k2m9qx",".s7k2m9qx-adhesive","[rel*=\"sponsored\"]","div[aria-label=\"Shop\"]"]},
 "vijaykarnataka.com":{"hide":[".ad1",".colombia"]},
 "vijesti.me":{"hide":[".ads"]},
 "vitepress.dev":{"hide":[".VPCarbonAds"]},
