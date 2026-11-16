@@ -35,18 +35,6 @@ function Place($from, $to) {
   Copy-Item $from $target -Force
 }
 
-function Resize($from, $width, $height, $to) {
-  $source = [Drawing.Image]::FromFile($from)
-  $bitmap = New-Object Drawing.Bitmap ([int]$width), ([int]$height)
-  $g = [Drawing.Graphics]::FromImage($bitmap)
-  $g.InterpolationMode = [Drawing.Drawing2D.InterpolationMode]::HighQualityBicubic
-  $g.PixelOffsetMode = [Drawing.Drawing2D.PixelOffsetMode]::HighQuality
-  $g.DrawImage($source, 0, 0, $width, $height)
-  $target = Join-Path $out $to
-  New-Item -ItemType Directory -Force (Split-Path $target) | Out-Null
-  $bitmap.Save($target, [Drawing.Imaging.ImageFormat]::Png)
-  $g.Dispose(); $bitmap.Dispose(); $source.Dispose()
-}
 
 function Xpm($from, $to) {
   $bitmap = [Drawing.Bitmap]::FromFile($from)
@@ -98,11 +86,6 @@ foreach ($scale in "100", "200") {
   foreach ($size in 16, 32) {
     Place "$icons\orbit-$($size * $factor).png" "$theme\default_${scale}_percent\chromium\product_logo_$size.png"
   }
-  $logo = if ($factor -eq 1) { "171x32" } else { "342x64" }
-  $height = 22 * $factor
-  $width = [math]::Round(171 * $height / 32)
-  Resize "$icons\logo-$logo.png" $width $height "$theme\default_${scale}_percent\chromium\product_logo_name_22.png"
-  Resize "$icons\logo-white-$logo.png" $width $height "$theme\default_${scale}_percent\chromium\product_logo_name_22_white.png"
 }
 foreach ($size in 16, 32) {
   Place "$icons\orbit-$size.png" "$theme\default_100_percent\chromium\linux\product_logo_$size.png"

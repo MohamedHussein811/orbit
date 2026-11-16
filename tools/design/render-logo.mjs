@@ -1,5 +1,7 @@
-// Renders branding/orbit-mark.svg into branding/icons: PNG sizes, orbit.ico and orbit.icns. Then
-// run tools/chromium/make-icons.ps1 to place them in the Chromium overlay.
+// Renders branding/orbit-mark.svg into branding/icons: PNG sizes, orbit.ico and orbit.icns, and
+// Orbit's name beside the mark straight into the Chromium overlay (product_logo_name_22, dark text
+// for light surfaces and white text for dark ones). Then run tools/chromium/make-icons.ps1 to
+// place the icons in the Chromium overlay.
 //   node tools/design/render-logo.mjs
 // Needs @resvg/resvg-js in .cache/node_modules (the rest of the build does not).
 import fs from "node:fs";
@@ -59,3 +61,17 @@ for (const size of [16, 32, 48, 64, 128, 256, 512]) fs.writeFileSync(path.join(O
 writeIco(path.join(OUT, "orbit.ico"), [16, 24, 32, 48, 64, 128, 256].map((size) => ({ size, png: bySize.get(size) })));
 writeIcns(path.join(OUT, "orbit.icns"), images);
 console.log(`wrote icons to ${path.relative(ROOT, OUT)}`);
+
+// The mark and "Orbit" in Readex Pro, Orbit's typeface, on Chromium's 171 by 32 name grid.
+const FONT = path.join(ROOT, "extension", "src", "shared", "fonts", "ReadexPro.ttf");
+const markInner = svg.replace(/^[\s\S]*?<svg[^>]*>/, "").replace(/<\/svg>\s*$/, "");
+const wordmark = (color) =>
+  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 171 32"><svg x="0" y="0" width="32" height="32" viewBox="0 0 512 512">${markInner}</svg><text x="42" y="24.5" font-family="Readex Pro" font-size="24" font-weight="500" fill="${color}">Orbit</text></svg>`;
+const THEME = path.join(ROOT, "chromium", "overlay", "chrome", "app", "theme");
+for (const [scale, height] of [["100", 22], ["200", 44]]) {
+  for (const [suffix, color] of [["", "#171b2c"], ["_white", "#ffffff"]]) {
+    const png = new Resvg(wordmark(color), { fitTo: { mode: "height", value: height }, font: { fontFiles: [FONT], loadSystemFonts: false, defaultFontFamily: "Readex Pro" } }).render().asPng();
+    fs.writeFileSync(path.join(THEME, `default_${scale}_percent`, "chromium", `product_logo_name_22${suffix}.png`), png);
+  }
+}
+console.log("wrote product_logo_name_22 to the Chromium overlay");
