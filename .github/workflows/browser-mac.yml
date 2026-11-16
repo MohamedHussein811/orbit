@@ -29,7 +29,7 @@ jobs:
   stage1:
     uses: ./.github/workflows/chromium-stage.yml
     secrets: inherit
-    with: { stage: 1, runner: xcode-27, targets: chrome chrome/installer/mac }
+    with: { stage: 1, runner: xcode-27, targets: chrome chrome/installer/mac, resume_run: "43714218969", resume_state: 6 }
   stage2:
     needs: stage1
     if: needs.stage1.outputs.done != 'true'

@@ -27,6 +27,17 @@ if [ "$(uname)" = "Darwin" ]; then
     security set-key-partition-list -S apple-tool:,apple: -s -k "$keychain_password" "$keychain" > /dev/null
     security list-keychains -d user -s "$keychain" $(security list-keychains -d user | tr -d '"')
     echo "$APPLE_NOTARY_KEY_P8_BASE64" | base64 --decode > "$work/notary.p8"
+    # Gatekeeper rejects a Developer ID app until it is notarized, so assess the final app below instead.
+    cat > "$product Packaging/signing/internal_config.py" <<'EOF'
+from signing.chromium_config import ChromiumCodeSignConfig
+
+
+class InternalCodeSignConfig(ChromiumCodeSignConfig):
+
+    @property
+    def run_spctl_assess(self):
+        return False
+EOF
     rm -rf signed
     python3 "$product Packaging/sign_chrome.py" \
       --input . --output signed --identity "$MAC_SIGNING_IDENTITY" --notarize staple \
@@ -34,6 +45,13 @@ if [ "$(uname)" = "Darwin" ]; then
       --notary-arg=--key-id --notary-arg="$APPLE_NOTARY_KEY_ID" \
       --notary-arg=--issuer --notary-arg="$APPLE_NOTARY_ISSUER_ID"
     dmg=$(ls signed/*.dmg | head -1)
+    xcrun stapler validate "$dmg"
+    mount="$work/mount"
+    mkdir -p "$mount"
+    hdiutil attach -nobrowse -readonly -mountpoint "$mount" "$dmg" > /dev/null
+    xcrun stapler validate "$mount/$product.app"
+    spctl --assess -vv "$mount/$product.app"
+    hdiutil detach "$mount" > /dev/null
     cp "$dmg" "$dist/$product-$version-mac-arm64.dmg"
     security delete-keychain "$keychain"
     rm -rf "$work"
