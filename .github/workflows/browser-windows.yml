@@ -2,8 +2,8 @@ name: Orbit browser (Windows)
 
 # Builds Orbit's Chromium fork for Windows x64. Chromium 157 needs Visual Studio 2026 and Windows
 # SDK 10.0.28000, which each stage installs.
-# Stage 1 continues from a stage saved by an earlier run (kept 5 days). Clear resume_run to build
-# from scratch.
+# Stage 1 can continue from a stage saved by an earlier run of the same Chromium version (kept 5 days)
+# by setting resume_run and resume_state; without them it builds from scratch.
 
 on:
   push:
@@ -29,7 +29,7 @@ jobs:
   stage1:
     uses: ./.github/workflows/chromium-stage.yml
     secrets: inherit
-    with: { stage: 1, runner: windows-2025-vs2026, targets: chrome mini_installer, resume_run: "43641398688", resume_state: 2 }
+    with: { stage: 1, runner: windows-2025-vs2026, targets: chrome mini_installer, resume_run: "43714218966", resume_state: 5 }
   stage2:
     needs: stage1
     if: needs.stage1.outputs.done != 'true'

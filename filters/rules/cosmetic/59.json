@@ -37,7 +37,7 @@
 "giveawayoftheday.com":{"hide":[".center_ab",".top_ab"]},
 "goonhammer.com":{"hide":[".widget_block"]},
 "gsprating.com":{"hide":[".banner",".banner2"]},
-"hemeltoday.co.uk":{"hide":[".banner","[data-type=\"AdRowBillboard\"]","div[class^=\"AdLoadingText\"]","div[class^=\"SidebarAds_\"]","div[class^=\"helper__AdContainer\"]","div[data-ads-params]"]},
+"hemeltoday.co.uk":{"hide":["#topBanner",".banner",".exco-video-player"]},
 "ienohikari.net":{"show":[".ad_btn"]},
 "infospiral.com":{"hide":[".right-content"]},
 "instapundit.com":{"hide":["#adspace_top > .widget-ad__content"]},
@@ -88,7 +88,7 @@
 "soyacincau.com":{"hide":[".scadslot-widget"]},
 "stalbertgazette.com":{"hide":[".slot"]},
 "steveharveyfm.com":{"hide":[".component-pushdown",".component-recommendation",".region-recommendation-right"]},
-"surreyworld.co.uk":{"hide":[".banner","[data-type=\"AdRowBillboard\"]","div[class^=\"AdLoadingText\"]","div[class^=\"SidebarAds_\"]","div[class^=\"helper__AdContainer\"]","div[data-ads-params]"]},
+"surreyworld.co.uk":{"hide":["#topBanner",".exco-video-player"]},
 "sweethentai.com":{"hide":["[href^=\"https://gadlt.nl/\"]"]},
 "tapahtumat.koillissanomat.fi":{"show":[".ad-popup"]},
 "techsideline.com":{"hide":["a[href^=\"https://bit.ly/\"]"]},
@@ -115,5 +115,5 @@
 "wideopencountry.com":{"hide":["#sv-video-container","#video-header"]},
 "xhofficial.com":{"hide":["a[href^=\"https://flirtify.com/\"]"]},
 "yandex.com":{"hide":[".AdvOffers",".DirectFeature",".ImagesViewer-SidebarAdv",".ProductGallery",".google-sticky-adv-banner__desktop-disable-ad-button-wrapper",".search-list-view__advert-offer-banner",".search-snippet-view:has(span.search-advert-badge__advert)",".sticky-banner-container",".yandex-sticky-adv-banner__desktop-disable-ad-button-wrapper","a[href^=\"https://yandex.ru/an/count/\"]","div[aria-label=\"Ad\"]","div[data-name=\"adWrapper\"]","div[id^=\"yandex_ad\"]","li[class*=\"_card\"]:has(a[href^=\"https://yabs.yandex.ru/count/\"])","li[class*=\"_card\"]:has(a[href^=\"https://yandex.com/search/_crpd/\"])"]},
-"yorkshireeveningpost.co.uk":{"hide":[".banner","[data-type=\"AdRowBillboard\"]","div[class^=\"AdLoadingText\"]","div[class^=\"SidebarAds_\"]","div[class^=\"helper__AdContainer\"]","div[data-ads-params]"]}
+"yorkshireeveningpost.co.uk":{"hide":["#topBanner",".exco-video-player"]}
 }

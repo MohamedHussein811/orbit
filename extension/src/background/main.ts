@@ -135,6 +135,57 @@ async function hideOnSite(tabId: number, url: string): Promise<void> {
   await chrome.scripting.insertCSS({ target: { tabId }, css: cosmeticCss(entries), origin: "USER" }).catch(() => {});
 }
 
+// Pop-ups: the rule engine cannot see them, so a tab a page opens is closed when it goes to a host
+// the filter lists name as a pop-up or ad server. Shields off for the opening site lets it through.
+const POPUP_WATCH_MS = 15_000;
+const openedBy = new Map<number, { source: number; at: number }>();
+let popupList: Promise<{ hosts: Set<string>; scoped: Record<string, string[]> }> | null = null;
+
+function popups(): Promise<{ hosts: Set<string>; scoped: Record<string, string[]> }> {
+  popupList ??= fetch(chrome.runtime.getURL("rules/popups.json"))
+    .then((response) => response.json() as Promise<{ hosts: string[]; scoped: Record<string, string[]> }>)
+    .then((list) => ({ hosts: new Set(list.hosts), scoped: list.scoped }))
+    .catch(() => ({ hosts: new Set<string>(), scoped: {} }));
+  return popupList;
+}
+
+async function checkPopup(tabId: number, url: string): Promise<void> {
+  const opener = openedBy.get(tabId);
+  const host = siteOf(url);
+  if (!opener || !host || Date.now() - opener.at > POPUP_WATCH_MS) return;
+  const source = await chrome.tabs.get(opener.source).catch(() => null);
+  const sourceHost = siteOf(source?.url);
+  if (!sourceHost || sourceHost === host) return;
+  const off = [...(await hostsOff()), ...(await privateHostsOff())];
+  if (hostSuffixes(sourceHost).some((suffix) => off.includes(suffix))) return;
+  const { hosts, scoped } = await popups();
+  const listed = hostSuffixes(host).some((suffix) => hosts.has(suffix) || (scoped[suffix] ?? []).some((site) => hostSuffixes(sourceHost).includes(site)));
+  if (!listed) return;
+  openedBy.delete(tabId);
+  await chrome.tabs.remove(tabId).catch(() => {});
+  pending.ads++;
+  const counts = tabPending.get(opener.source) ?? emptyCounts();
+  counts.ads++;
+  tabPending.set(opener.source, counts);
+  const blocked = tabHostsPending.get(opener.source) ?? emptyBlockedHosts();
+  addBlockedHost(blocked, "ads", url);
+  tabHostsPending.set(opener.source, blocked);
+  flushTimer ??= setTimeout(flush, FLUSH_DELAY_MS);
+}
+
+chrome.webNavigation.onCreatedNavigationTarget.addListener(({ sourceTabId, tabId, url }) => {
+  openedBy.set(tabId, { source: sourceTabId, at: Date.now() });
+  void checkPopup(tabId, url);
+});
+
+chrome.tabs.onUpdated.addListener((tabId, change) => {
+  if (change.url && openedBy.has(tabId)) void checkPopup(tabId, change.url);
+});
+
+chrome.tabs.onRemoved.addListener((tabId) => {
+  openedBy.delete(tabId);
+});
+
 chrome.tabs.onRemoved.addListener((tabId) => {
   void clearTab(tabId);
 });

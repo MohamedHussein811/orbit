@@ -3,7 +3,7 @@
 "alexandriagazette.com":{"hide":[".spot"]},
 "allnurses.com":{"hide":[".ipsAreaBackground",".ipsSpacer_both",".medrec"]},
 "anfieldindex.com":{"hide":[".vc_widget_sidebar .textwidget:has(#newsnowlogo)"]},
-"anguscountyworld.co.uk":{"hide":[".banner","[data-type=\"AdRowBillboard\"]","div[class^=\"AdLoadingText\"]","div[class^=\"SidebarAds_\"]","div[class^=\"helper__AdContainer\"]","div[data-ads-params]"]},
+"anguscountyworld.co.uk":{"hide":["#topBanner",".exco-video-player"]},
 "arabtimesonline.com":{"hide":[".e3lan","[href*=\"bit.ly/\"]"]},
 "arstechnica.com":{"hide":[".ars-interlude-container"]},
 "bamsmackpow.com":{"hide":[".player-wrapper",".style_k8mr7b-o_O-style_1ts1q2h"]},
@@ -77,7 +77,7 @@
 "newskarnataka.com":{"hide":[".newsk-target"]},
 "nhentai.com":{"hide":[".pb-0.w-100[style]"]},
 "nintendoworldreport.com":{"hide":["#hAd"]},
-"northernirelandworld.com":{"hide":[".banner","[data-type=\"AdRowBillboard\"]","div[class^=\"AdLoadingText\"]","div[class^=\"SidebarAds_\"]","div[class^=\"helper__AdContainer\"]","div[data-ads-params]"]},
+"northernirelandworld.com":{"hide":["#topBanner",".banner",".exco-video-player"]},
 "numuki.com":{"hide":[".main-header-responsive-wrapper",".small-banner-responsive-wrapper",".top-banner-responsive-wrapper"]},
 "offidocs.com":{"hide":["#adbottomoffidocs","#adxx","[id^=\"ja-container-prev\"]"]},
 "online-calculator.org":{"hide":["[style*=\"height:300px\"]","div[style=\"min-height:280px;\"]","div[style^=\"min-height:90px\"]"]},
@@ -123,7 +123,7 @@
 "worldhistory.org":{"hide":[".adcontainer"]},
 "wowhead.com":{"hide":[".blocks"]},
 "xxxonxxx.com":{"hide":[".gallery-thumbs",".player-bn","a[href*=\".com/track/\"]"]},
-"yorkshirepost.co.uk":{"hide":[".banner","[data-type=\"AdRowBillboard\"]","div[class^=\"AdLoadingText\"]","div[class^=\"SidebarAds_\"]","div[class^=\"helper__AdContainer\"]","div[data-ads-params]"]},
+"yorkshirepost.co.uk":{"hide":["#topBanner",".exco-video-player"]},
 "yuntrack.com":{"hide":[".banner"]},
 "zeroupload.com":{"hide":[".download-page a[rel=\"noopener\"] > img","a[onclick][href^=\"javascript\"]"]}
 }

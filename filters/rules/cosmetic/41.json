@@ -48,7 +48,7 @@
 "graphic.com.gh":{"hide":["a[href^=\"/adverts/\"]"]},
 "greatist.com":{"hide":[".css-pp6cpn",".myFinance-widget","[data-empty]","[data-testid=\"driver\"]","[data-testid=\"header-leaderboard\"]","aside"]},
 "guessthephrase.xyz":{"hide":["#sister-sites-ad",".fallback-footer-ad-shell",".fallback-side-ad"]},
-"harboroughmail.co.uk":{"hide":[".banner","[data-type=\"AdRowBillboard\"]","div[class^=\"AdLoadingText\"]","div[class^=\"SidebarAds_\"]","div[class^=\"helper__AdContainer\"]","div[data-ads-params]"]},
+"harboroughmail.co.uk":{"hide":["#topBanner",".banner",".exco-video-player"]},
 "helis.com":{"hide":[".pub23_all",".vbar23"]},
 "hentaiblue.com":{"hide":[".widget_text"]},
 "hexload.com":{"hide":["a[href*=\"?key=\"]"]},

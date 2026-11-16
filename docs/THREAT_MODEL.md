@@ -44,6 +44,16 @@ Each of these has a reason it cannot happen, or says that it is not checked on t
 These leave a device with Orbit idle. The feasibility report has the measurements.
 
 - `update.googleapis.com` and `edgedl.me.gvt1.com`: the engine's component updates, which carry revocation data. Turning them off also loses revocation, so Orbit keeps them. The check tells Google which component versions are installed.
+- `github.com` and GitHub's download host: on Windows, Orbit's updater fetches the signed release feed every few hours (no cookies); the built-in extension checks for new Shields rules daily; the new tab page reads `latest.json` daily. On Linux, apt fetches Orbit's package list with the system's updates.
+
+## Update integrity
+
+| Threat | Defense |
+| --- | --- |
+| A tampered or swapped Windows update | The feed must carry a valid Ed25519 signature from Orbit's release key, which is built into the browser; the setup must match the feed's size and SHA-256 and come from the project's GitHub releases. A compromised GitHub account alone cannot sign a feed |
+| A tampered Linux package | apt checks the package list's OpenPGP signature against the key the package installed, and each package against the list's SHA-256 |
+| A stolen release key | Not defended beyond keeping it in repository secrets. Replacing it needs a release signed with the old key |
+| An older feed replayed to stop updates | Orbit never installs a version lower than or equal to the running or installed one, but a replayed old feed can delay updates |
 
 Default search goes to DuckDuckGo and secure DNS to Quad9, both of which a person can change.
 

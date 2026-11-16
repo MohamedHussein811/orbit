@@ -71,7 +71,7 @@
 "motorauthority.com":{"hide":[".adv-spacer",".sq-block"]},
 "myslavegirl.org":{"hide":[".signature"]},
 "netflixjunkie.com":{"hide":[".es-ad-space-container"]},
-"newcastleworld.com":{"hide":[".banner",".helper__DesktopAdContainer-sc-12ggaoi-1","[data-type=\"AdRowBillboard\"]","div[class^=\"AdLoadingText\"]","div[class^=\"SidebarAds_\"]","div[class^=\"helper__AdContainer\"]","div[data-ads-params]"]},
+"newcastleworld.com":{"hide":["#topBanner",".exco-video-player",".helper__DesktopAdContainer-sc-12ggaoi-1"]},
 "newsinfo.inquirer.net":{"hide":[".ztoop"]},
 "newson6.com":{"hide":[".Page-footer-Ad-overlay",".Page-header-Ad-Slot"]},
 "northernsentinel.com":{"hide":[".one_by_one_group"]},

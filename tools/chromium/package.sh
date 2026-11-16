@@ -1,6 +1,6 @@
 #!/bin/bash
 # Packages the finished browser for people to install, into dist/:
-#   Windows  OrbitSetup-<version>-x64.exe (Chromium's installer, per-user)
+#   Windows  OrbitSetup-<version>-x64.exe (a setup window around Chromium's per-user installer)
 #   macOS    Orbit-<version>-mac-arm64.dmg, signed and notarized when the signing secrets are set
 #   Linux    orbit_<version>_amd64.deb and Orbit-<version>-linux-x64.tar.xz
 set -euo pipefail
@@ -27,6 +27,44 @@ if [ "$(uname)" = "Darwin" ]; then
     security set-key-partition-list -S apple-tool:,apple: -s -k "$keychain_password" "$keychain" > /dev/null
     security list-keychains -d user -s "$keychain" $(security list-keychains -d user | tr -d '"')
     echo "$APPLE_NOTARY_KEY_P8_BASE64" | base64 --decode > "$work/notary.p8"
+    # Gatekeeper rejects a Developer ID app until it is notarized, so assess the final app below instead.
+    cat > "$product Packaging/signing/internal_config.py" <<'EOF'
+from signing.chromium_config import ChromiumCodeSignConfig
+
+
+class InternalCodeSignConfig(ChromiumCodeSignConfig):
+
+    @property
+    def run_spctl_assess(self):
+        return False
+EOF
+    # Notarizing a browser takes Apple a long time, and the runner's network can drop meanwhile.
+    cat > "$product Packaging/signing/internal_invoker.py" <<'EOF'
+import asyncio
+import subprocess
+
+from signing import logger, notarize, standard_invoker
+
+
+class _PatientNotarizer(notarize.Invoker):
+
+    async def get_result(self, uuid, config):
+        for attempt in range(40):
+            try:
+                return await super().get_result(uuid, config)
+            except subprocess.CalledProcessError as error:
+                if attempt == 39:
+                    raise
+                logger.warning('Checking notarization %s failed, retrying: %s', uuid, error)
+                await asyncio.sleep(30)
+
+
+class Invoker(standard_invoker.Invoker):
+
+    def __init__(self, *args):
+        super().__init__(*args)
+        self._notarizer = _PatientNotarizer(*args)
+EOF
     rm -rf signed
     python3 "$product Packaging/sign_chrome.py" \
       --input . --output signed --identity "$MAC_SIGNING_IDENTITY" --notarize staple \
@@ -34,6 +72,13 @@ if [ "$(uname)" = "Darwin" ]; then
       --notary-arg=--key-id --notary-arg="$APPLE_NOTARY_KEY_ID" \
       --notary-arg=--issuer --notary-arg="$APPLE_NOTARY_ISSUER_ID"
     dmg=$(ls signed/*.dmg | head -1)
+    xcrun stapler validate "$dmg"
+    mount="$work/mount"
+    mkdir -p "$mount"
+    hdiutil attach -nobrowse -readonly -mountpoint "$mount" "$dmg" > /dev/null
+    xcrun stapler validate "$mount/$product.app"
+    spctl --assess -vv "$mount/$product.app"
+    hdiutil detach "$mount" > /dev/null
     cp "$dmg" "$dist/$product-$version-mac-arm64.dmg"
     security delete-keychain "$keychain"
     rm -rf "$work"
@@ -47,9 +92,17 @@ if [ "$(uname)" = "Darwin" ]; then
       "$dist/$product-$version-mac-arm64-unsigned.dmg"
   fi
 elif is_windows; then
-  cp mini_installer.exe "$dist/${product}Setup-$version-x64.exe"
+  # A setup window around Chromium's installer, which has none.
+  iscc="/c/Program Files (x86)/Inno Setup 6/ISCC.exe"
+  [ -x "$iscc" ] || choco install innosetup -y --no-progress > /dev/null
+  MSYS_NO_PATHCONV=1 MSYS2_ARG_CONV_EXCL="*" "$iscc" /Qp "/DVersion=$version" "/DInstaller=$(cygpath -w "$PWD/mini_installer.exe")" \
+    "/DBranding=$(cygpath -w "$root/branding")" "/O$(cygpath -w "$dist")" \
+    "$(cygpath -w "$root/tools/chromium/installer/orbit.iss")"
+  setup="$dist/${product}Setup-$version-x64.exe"
+  test -f "$setup"
   # Install it the way a person would, for this user, and check what landed.
-  ./mini_installer.exe --do-not-launch-chrome
+  MSYS_NO_PATHCONV=1 MSYS2_ARG_CONV_EXCL="*" "$setup" /VERYSILENT /SUPPRESSMSGBOXES /NORESTART "/LOG=$(cygpath -w "$RUNNER_TEMP/orbit-setup.log")"
+  grep -i "exit code\|error" "$RUNNER_TEMP/orbit-setup.log" || true
   installed="$(cygpath -u "$LOCALAPPDATA")/NovaTech/$product/Application"
   ls -l "$installed" "$installed/$version"
   test -f "$installed/orbit.exe"
@@ -110,6 +163,11 @@ EOF
   tar -C "$tree/opt/novatech" -cJf "$dist/$product-$version-linux-x64.tar.xz" "$name"
 
   chmod 4755 "$app/chrome-sandbox"
+  # Orbit's signed package list, so system updates keep Orbit current. A conffile: someone who
+  # removes it keeps it removed across updates.
+  install -D -m 644 "$root/tools/chromium/linux/orbit.sources" "$tree/etc/apt/sources.list.d/$name.sources"
+  install -D -m 644 "$root/tools/chromium/linux/orbit-archive-keyring.asc" "$tree/usr/share/keyrings/$name-archive-keyring.asc"
+  echo "/etc/apt/sources.list.d/$name.sources" > "$tree/DEBIAN/conffiles"
   size=$(du -sk "$tree/opt" | cut -f1)
   cat > "$tree/DEBIAN/control" <<EOF
 Package: $name-browser

@@ -78,7 +78,7 @@
 "musicbusinessworldwide.com":{"hide":[".mb-advert","[href^=\"https://wynstarks.lnk.to/\"]"]},
 "nelomanga.net":{"hide":[".ads-contain"]},
 "new-kissanime.me":{"hide":["#CvBNILUxis"]},
-"newryreporter.com":{"hide":[".banner","[data-type=\"AdRowBillboard\"]","div[class^=\"AdLoadingText\"]","div[class^=\"SidebarAds_\"]","div[class^=\"helper__AdContainer\"]","div[data-ads-params]"]},
+"newryreporter.com":{"hide":["#topBanner",".banner",".exco-video-player"]},
 "news.mydramalist.com":{"hide":["#content > .app-body > div:has(.htlad-header_top)",".spnsr-row"]},
 "newseveryday.com":{"hide":["#vplayer_large"]},
 "nexusmods.com":{"hide":[".agroup",".border-b:has(> div[data-testid^=\"ad-container\"])",".max-h-\\[250px\\]","[data-testid=\"ad-container-player\"]","[data-testid^=\"ad-\"]"]},

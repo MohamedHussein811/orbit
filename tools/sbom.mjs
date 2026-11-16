@@ -34,8 +34,20 @@ export function createSbom() {
       hashes: [{ alg: "SHA-256", content: sha256(font) }],
     },
     ...[
-      ["blackhole.webm", "Re-encoded video, the new tab page's default background."],
-      ["blackhole.jpg", "One frame of the video, shown until it plays and when motion is reduced."],
+      ["space.webm", "Re-encoded video, the new tab page's default background."],
+      ["space.jpg", "One frame of the video, shown until it plays and when motion is reduced."],
+    ].map(([file, description]) => ({
+      type: "data",
+      name: `Black hole video from Pixabay (${file})`,
+      "bom-ref": `background-${file}`,
+      description,
+      licenses: [{ license: { name: "Pixabay Content License", url: "https://pixabay.com/service/license-summary/" } }],
+      externalReferences: [{ type: "website", url: "https://pixabay.com/videos/space-universe-astronomy-cosmos-175323/" }],
+      hashes: [{ alg: "SHA-256", content: sha256(path.join(media, file)) }],
+    })),
+    ...[
+      ["blackhole.webm", "Re-encoded video in Orbit Gallery's Space category."],
+      ["blackhole.jpg", "One frame of the video, shown until it plays and as its still picture."],
     ].map(([file, description]) => ({
       type: "data",
       name: `Black Hole Accretion Disk Visualization (${file})`,

@@ -17,7 +17,7 @@
 "canucksarmy.com":{"hide":["#ad_sidebar_2","#box_2_300x600","#box_3_300x600","#in_article_300x250_1","#promo-container",".h-\\[90px\\]","[data-injection=\"stn-video\"]","bam-inline-promotion","bam-inline-promotion-block","bam-promotion-list"]},
 "castlegarnews.com":{"hide":[".one_by_one_group"]},
 "centos.org":{"hide":[".sponsor"]},
-"chad.co.uk":{"hide":[".banner","[data-type=\"AdRowBillboard\"]","div[class^=\"AdLoadingText\"]","div[class^=\"SidebarAds_\"]","div[class^=\"helper__AdContainer\"]","div[data-ads-params]"]},
+"chad.co.uk":{"hide":["#topBanner",".exco-video-player"]},
 "cheemsporno.com":{"hide":["[class^=\"Banner_\"]","[class^=\"PostCard_post-card__adContainer_\"]"]},
 "christianpost.com":{"hide":[".acw",".article-divider",".bs-article-cell",".home-videoplayer"]},
 "contactform7.com":{"hide":[".cf7com-bsa-zone"]},

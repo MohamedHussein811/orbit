@@ -1,0 +1,4 @@
+Types: deb
+URIs: https://github.com/MohamedHussein811/orbit/releases/latest/download/
+Suites: ./
+Signed-By: /usr/share/keyrings/orbit-archive-keyring.asc

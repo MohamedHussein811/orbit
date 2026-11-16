@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { ALLOW_ID_BASE, compileCosmetic, compileFilters, compileHosts, cosmeticShard, parseFilter } from "../../tools/filter-compiler.mjs";
+import { ALLOW_ID_BASE, compileCosmetic, compileFilters, compileHosts, compilePopups, cosmeticShard, parseFilter } from "../../tools/filter-compiler.mjs";
 
 const one = (line) => {
   const { rules } = compileFilters([line]);
@@ -160,4 +160,21 @@ test("network filters are not read as hiding filters", () => {
 test("a dollar sign inside a URL is not read as options", () => {
   const rule = one("||x.example/a$b/c.js");
   assert.equal(rule.condition.urlFilter, "||x.example/a$b/c.js");
+});
+
+test("popup hosts come from popup filters and plain ad servers, minus exceptions", () => {
+  const list = [
+    "||pop.example^$popup",
+    "||ads.example^",
+    "||tp.example^$third-party",
+    "||site-only.example^$popup,domain=movies.example|~good.example",
+    "||script.example^$script",
+    "||path.example/ad.js$popup",
+    "||allowed.example^$popup",
+    "@@||allowed.example^$popup",
+    "! ||comment.example^",
+  ].join("\n");
+  const { hosts, scoped } = compilePopups([list]);
+  assert.deepEqual(hosts, ["ads.example", "pop.example", "tp.example"]);
+  assert.deepEqual(scoped, { "site-only.example": ["movies.example"] });
 });

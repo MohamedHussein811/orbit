@@ -31,6 +31,9 @@ Chromium 157 source archive (pinned version, verified)
 - **Weather:** after a person enters a city, the new tab page sends the city name to Open-Meteo's geocoder, then coordinates rounded to about 11 km to its forecast service. Nothing is sent before that.
 - **Background:** the new tab page's video ships inside the browser. A person's own image or video stays on the device.
 - **Shortcut icons:** for each shortcut on the new tab page, the page asks that shortcut's own site once for its large icon (its home page, then the icon file), without cookies or a referrer, and stores the icon. Retries wait 14 days. An image the person chooses stays on the device.
+- **Orbit Gallery:** the list of videos ships with the browser. When a person picks the gallery, the page downloads the chosen video and its still frame (and the small previews in Customize) from Wikimedia's servers, without cookies, and keeps the current one on the device. A new daily video downloads once a day; "Static picture" downloads only the still frame.
+- **Pop-ups:** a tab a page opens is checked against a list that ships with the browser. Nothing is sent anywhere.
+- **Updates:** on Windows, the browser fetches Orbit's signed release feed from GitHub every few hours without cookies, and downloads and runs a newer setup after checking it. On Linux, apt does this from Orbit's signed package list. Setup's automatic updates choice turns the Windows check off. [RELEASING.md](RELEASING.md) has the details.
 - **Frequently visited sites:** when a person picks this for the new tab page, the list comes from the browser's own history and stays on the device.
 
 ## Security boundaries

@@ -29,10 +29,32 @@
       "attribution": "Ming Di Leom, from OpenPhish, IPThreat and PhishTank data. Not endorsed by those sources."
     }
   },
-  "cosmetic": ["easylist", "easyprivacy"],
+  "cosmetic": [
+    "easylist",
+    "easyprivacy"
+  ],
+  "popups": [
+    "easylist"
+  ],
   "rulesets": {
-    "ads": { "format": "filters", "lists": ["easylist"] },
-    "trackers": { "format": "filters", "lists": ["easyprivacy"] },
-    "threats": { "format": "hosts", "lists": ["urlhaus", "phishing"] }
+    "ads": {
+      "format": "filters",
+      "lists": [
+        "easylist"
+      ]
+    },
+    "trackers": {
+      "format": "filters",
+      "lists": [
+        "easyprivacy"
+      ]
+    },
+    "threats": {
+      "format": "hosts",
+      "lists": [
+        "urlhaus",
+        "phishing"
+      ]
+    }
   }
 }

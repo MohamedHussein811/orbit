@@ -3,19 +3,18 @@
 
 usage: date-fork.py <chromium src folder>
 
-A file that differs from what the restored build used, or that the restored build did not have,
-gets the current time. Every other file gets an old time. The current list is then kept in out/,
-so it is saved with the build for the next stage.
+Each Orbit file keeps the time it first took its current contents: a file that differs from what
+the restored build recorded gets the current time, and a file that is the same gets the time it had
+when it last changed. A stage that runs out of time before rebuilding everything that depends on a
+changed file therefore leaves that work for the next stage. The list is kept in out/, so it is
+saved with the build for the next stage.
 """
 
 import json
 import os
 import pathlib
-import shutil
 import sys
 import time
-
-OLD = 946684800
 
 
 def main():
@@ -24,14 +23,19 @@ def main():
     saved_path = src / "out" / "orbit-fork-files.json"
     saved = json.loads(saved_path.read_text()) if saved_path.exists() else {}
     now = time.time()
+    record = {}
     changed = []
     for relative, digest in current.items():
-        fresh = saved.get(relative) != digest
-        stamp = now if fresh else OLD
-        os.utime(src / relative, (stamp, stamp))
-        if fresh:
+        before = saved.get(relative)
+        # Lists from older builds hold only digests and no times, so their files count as changed.
+        if isinstance(before, dict) and before.get("sha256") == digest:
+            stamp = before["time"]
+        else:
+            stamp = now
             changed.append(relative)
-    shutil.copyfile(src / "orbit-fork-files.json", saved_path)
+        os.utime(src / relative, (stamp, stamp))
+        record[relative] = {"sha256": digest, "time": stamp}
+    saved_path.write_text(json.dumps(record, indent=1, sort_keys=True))
     print(f"{len(changed)} of {len(current)} Orbit files differ from the restored build")
     for relative in changed[:50]:
         print(f"  {relative}")

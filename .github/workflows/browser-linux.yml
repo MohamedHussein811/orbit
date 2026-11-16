@@ -1,8 +1,8 @@
 name: Orbit browser (Linux)
 
 # Builds Orbit's Chromium fork for Linux x64 on free runners and checks that it runs.
-# Stage 1 continues from a stage saved by an earlier run (kept 5 days). Clear resume_run to build
-# from scratch.
+# Stage 1 can continue from a stage saved by an earlier run of the same Chromium version (kept 5 days)
+# by setting resume_run and resume_state; without them it builds from scratch.
 
 on:
   push:
@@ -28,7 +28,7 @@ jobs:
   stage1:
     uses: ./.github/workflows/chromium-stage.yml
     secrets: inherit
-    with: { stage: 1, resume_run: "43641398646", resume_state: 2 }
+    with: { stage: 1, resume_run: "43714219017", resume_state: 4 }
   stage2:
     needs: stage1
     if: needs.stage1.outputs.done != 'true'

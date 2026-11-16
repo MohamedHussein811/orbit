@@ -1,0 +1,127 @@
+name: Engine watch
+
+# Once a week, looks for a newer stable Chromium than the one Orbit builds on. When Orbit's patches
+# still apply to it, opens a pull request into design that moves the builds to it (merging starts
+# the builds, and the next release ships it, with its security fixes). When some patch no longer
+# applies, opens an issue naming them, since those need rebuilding for the new source.
+# A new major version can also need newer build tools (Visual Studio, Windows SDK, Xcode): check
+# the first build of each major.
+
+on:
+  schedule:
+    - cron: "17 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+concurrency:
+  group: engine-watch
+  cancel-in-progress: false
+
+jobs:
+  watch:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: design
+
+      - name: Find the newest stable Chromium on all three systems
+        id: versions
+        run: |
+          current=$(sed -n 's/^  CHROMIUM_VERSION: "\(.*\)"$/\1/p' .github/workflows/chromium-stage.yml)
+          test -n "$current"
+          stable=""
+          for platform in Windows Mac Linux; do
+            version=$(curl -fsSL --retry 5 "https://chromiumdash.appspot.com/fetch_releases?channel=Stable&platform=$platform&num=1" | jq -r '.[0].version')
+            echo "$platform stable: $version"
+            [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]
+            stable+="$version"$'\n'
+          done
+          latest=$(printf '%s' "$stable" | sort -V | head -1)
+          newest=$(printf '%s\n%s\n' "$current" "$latest" | sort -V | tail -1)
+          echo "current=$current" >> "$GITHUB_OUTPUT"
+          echo "latest=$latest" >> "$GITHUB_OUTPUT"
+          if [ "$latest" != "$current" ] && [ "$newest" = "$latest" ]; then
+            echo "newer=true" >> "$GITHUB_OUTPUT"
+            echo "Chromium $latest is newer than $current"
+          else
+            echo "newer=false" >> "$GITHUB_OUTPUT"
+            echo "Orbit is on the newest stable Chromium ($current)"
+          fi
+
+      - name: Skip versions already handled
+        id: open
+        if: steps.versions.outputs.newer == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          LATEST: ${{ steps.versions.outputs.latest }}
+        run: |
+          if git ls-remote --exit-code origin "refs/heads/engine/$LATEST" > /dev/null; then
+            echo "handled=true" >> "$GITHUB_OUTPUT"; echo "Branch engine/$LATEST exists already"
+          elif [ -n "$(gh issue list --state open --search "Chromium $LATEST in:title" --json number --jq '.[0].number')" ]; then
+            echo "handled=true" >> "$GITHUB_OUTPUT"; echo "An issue for $LATEST is open already"
+          else
+            echo "handled=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Apply Orbit's patches to the new source
+        id: patches
+        if: steps.versions.outputs.newer == 'true' && steps.open.outputs.handled == 'false'
+        env:
+          LATEST: ${{ steps.versions.outputs.latest }}
+        run: |
+          base="https://commondatastorage.googleapis.com/chromium-browser-official"
+          archive="chromium-$LATEST-lite.tar.xz"
+          curl -fsSL --retry 5 -o "$RUNNER_TEMP/$archive" "$base/$archive"
+          expected=$(curl -fsSL --retry 5 "$base/$archive.hashes" | awk '$1 == "sha256" { print $2 }')
+          echo "$expected  $RUNNER_TEMP/$archive" | sha256sum -c -
+          grep -h '^+++ b/' chromium/patches/*.patch | sed 's|^+++ b/||; s/\t.*//' | sort -u \
+            | sed "s|^|chromium-$LATEST/|" > "$RUNNER_TEMP/files.txt"
+          mkdir -p "$RUNNER_TEMP/src"
+          tar -xf "$RUNNER_TEMP/$archive" -C "$RUNNER_TEMP/src" --strip-components=1 -T "$RUNNER_TEMP/files.txt" 2> "$RUNNER_TEMP/tar.log" || true
+          rm "$RUNNER_TEMP/$archive"
+          failed=""
+          for patch in $(cat chromium/patches/series); do
+            if ! (cd "$RUNNER_TEMP/src" && patch -p1 --forward --batch --no-backup-if-mismatch -s -i "$GITHUB_WORKSPACE/chromium/patches/$patch" > "$RUNNER_TEMP/$patch.log" 2>&1); then
+              failed+="$patch "
+              echo "::warning::$patch does not apply to Chromium $LATEST"
+              sed 's/^/    /' "$RUNNER_TEMP/$patch.log" | head -20
+            fi
+          done
+          echo "failed=$failed" >> "$GITHUB_OUTPUT"
+
+      - name: Open a pull request that moves Orbit to the new Chromium
+        if: steps.patches.outcome == 'success' && steps.patches.outputs.failed == ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CURRENT: ${{ steps.versions.outputs.current }}
+          LATEST: ${{ steps.versions.outputs.latest }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -c "engine/$LATEST"
+          sed -i "s/^  CHROMIUM_VERSION: \"$CURRENT\"$/  CHROMIUM_VERSION: \"$LATEST\"/" .github/workflows/chromium-stage.yml
+          git commit -am "Move Orbit to Chromium $LATEST"
+          git push origin "engine/$LATEST"
+          gh pr create --base design --head "engine/$LATEST" --title "Move Orbit to Chromium $LATEST" --body "Chromium $LATEST is the newest stable release on Windows, macOS and Linux. Orbit builds on $CURRENT. All of Orbit's patches apply to the new source.
+
+          Merging into design starts the three builds. Check that they pass, then release as usual. Release notes for Chromium: https://chromereleases.googleblog.com/"
+
+      - name: Open an issue about the patches that need work
+        if: steps.patches.outcome == 'success' && steps.patches.outputs.failed != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CURRENT: ${{ steps.versions.outputs.current }}
+          LATEST: ${{ steps.versions.outputs.latest }}
+          FAILED: ${{ steps.patches.outputs.failed }}
+        run: |
+          gh issue create --title "Chromium $LATEST: patches need work" --body "Chromium $LATEST is the newest stable release on Windows, macOS and Linux. Orbit builds on $CURRENT.
+
+          These patches no longer apply to the new source: $FAILED
+
+          Rebuild them against $LATEST, then move CHROMIUM_VERSION in .github/workflows/chromium-stage.yml. The workflow log has the failing parts."

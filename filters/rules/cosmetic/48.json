@@ -9,7 +9,7 @@
 "artasiapacific.com":{"hide":[".partner_container"]},
 "barandbench.com":{"hide":[".ad-slot-row-m__ad-Wrapper__cusCS",".ad-wrapper-module__adContainer__iD4aI"]},
 "becleverwithyourcash.com":{"hide":[".in-post-ad-wrapper",".sidebar-ad-section"]},
-"blackpoolgazette.co.uk":{"hide":[".banner",".billboard","[data-type=\"AdRowBillboard\"]","div[class^=\"AdLoadingText\"]","div[class^=\"SidebarAds_\"]","div[class^=\"helper__AdContainer\"]","div[data-ads-params]"]},
+"blackpoolgazette.co.uk":{"hide":["#topBanner",".billboard",".exco-video-player"]},
 "bleedinggreennation.com":{"hide":["[data-concert=\"desktop_leaderboard_variable\"]","[data-concert=\"leaderboard_top_tablet_desktop\"]"]},
 "bluejaysnation.com":{"hide":["#ad_sidebar_2","#box_2_300x600","#box_3_300x600","#in_article_300x250_1","#promo-container",".h-\\[90px\\]","bam-inline-promotion","bam-inline-promotion-block","bam-promotion-list"]},
 "bmmagazine.co.uk":{"hide":[".widget_custom_html"]},

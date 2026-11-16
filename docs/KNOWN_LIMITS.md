@@ -7,8 +7,8 @@ These are true of the current code. Each one says what a person would notice.
 | Limit | What a person notices | Path to fix |
 | --- | --- | --- |
 | No H.264 or AAC on Linux | On Windows and macOS, H.264 and AAC play through the operating system (on Windows, H.264 needs hardware decoding). On Linux, sites that only offer those formats do not play. YouTube works everywhere through VP9 | Licensed decoders (option C in [VIDEO.md](VIDEO.md)) |
-| Windows installer not code-signed | Windows SmartScreen warns about an unknown publisher on first run. The macOS disk image is signed and notarized only once the signing secrets are set | Windows: SignPath's free open source signing. macOS: the secrets listed in [RELEASING.md](RELEASING.md) |
-| Browser does not update in place | Orbit shows a note on the new tab page when a newer release is out, but people install it themselves. Shields rules do update automatically | Chromium's own updater, or signed update feeds for each system |
+| Windows setup not code-signed yet | Windows SmartScreen warns about an unknown publisher on first run. SignPath Foundation declined Orbit in November 2026 because the project is new. The release workflow signs as soon as a certificate is set up. The macOS disk image is signed and notarized | A code signing certificate (see [RELEASING.md](RELEASING.md)), or SignPath again once Orbit is better known |
+| macOS does not update by itself | Windows and Linux (.deb) copies update automatically. On macOS, Orbit shows a note on the new tab page when a newer release is out, and people install it themselves. The Linux archive (.tar.xz) does not update either | A signed self-update for macOS |
 | Not tested on real hardware outside CI | macOS and Linux have only run on CI machines | Testing on real machines |
 
 ## Engine limits
@@ -26,7 +26,7 @@ These also apply to unbranded Chromium builds.
 
 - **Blocking**
   - Leftover ad space is hidden by CSS only. Filters that need a script to evaluate them are skipped, and generic filters are limited to simple selectors. Site-specific hiding applies to the top page, not to frames inside it.
-  - 3,137 EasyList filters use options with no exact equivalent in the rule engine, such as popup-only and content security policy filters, and are skipped.
+  - 3,139 EasyList filters use options with no exact equivalent in the rule engine, such as content security policy filters, and are skipped as rules. Pop-up filters are applied differently: a new tab a page opens is closed when it goes to a host EasyList names as a pop-up or ad server. Pop-ups to unlisted hosts, and ads drawn over a video by the page itself, can still appear.
   - Filters in regular expression form are skipped.
   - New rules arrive with each release, through the built-in extension's own update feed.
   - YouTube ads are removed by a page script that strips the ad entries from YouTube's player data. Tested on two videos on 2026-11-14: the ad entries were gone and the videos played. YouTube changes often, and ads stitched into the video stream itself cannot be removed this way.

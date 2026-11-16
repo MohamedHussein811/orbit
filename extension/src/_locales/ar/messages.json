@@ -95,9 +95,6 @@
   "playVideo": {
     "message": "تشغيل فيديو الخلفية"
   },
-  "videoCredit": {
-    "message": "الفيديو: مركز غودارد لرحلات الفضاء التابع لناسا/جيريمي شنيتمان"
-  },
   "browserTheme": {
     "message": "المظهر"
   },
@@ -216,7 +213,7 @@
     "message": "الطقس من $1"
   },
   "weatherIntro": {
-    "message": "أدخل مدينتك لعرض الطقس. يُرسل بحثك إلى $1."
+    "message": "أدخل مدينتك لعرض الطقس."
   },
   "cityName": {
     "message": "اسم المدينة"
@@ -462,7 +459,7 @@
     "message": "تحديثات Orbit"
   },
   "updatesDetail": {
-    "message": "يسأل Orbit مرة يوميًا صفحة إصداراته على GitHub عن رقم أحدث إصدار، ويخبرك في صفحة علامة التبويب الجديدة عند صدور إصدار أحدث. لا يحمل الطلب أي شيء عنك أو عن تصفحك."
+    "message": "يسأل Orbit مرة يوميًا صفحة إصداراته على GitHub عن رقم أحدث إصدار، ويخبرك في صفحة علامة التبويب الجديدة عند صدور إصدار أحدث. لا يحمل الطلب أي شيء عنك أو عن تصفحك. على Windows وLinux يثبّت Orbit الإصدارات الجديدة بنفسه أيضًا، وعلى Windows يتيح معالج الإعداد خيارًا لإيقاف ذلك."
   },
   "updatesCheck": {
     "message": "أخبرني عند صدور إصدار جديد"
@@ -736,5 +733,98 @@
   },
   "historyPage": {
     "message": "السجل"
+  },
+  "iconAfterAddress": {
+    "message": "تظهر أيقونة الموقع بعد إدخال العنوان"
+  },
+  "iconFromSite": {
+    "message": "أيقونة الموقع نفسه"
+  },
+  "iconYourImage": {
+    "message": "صورتك"
+  },
+  "backgroundGallery": {
+    "message": "معرض Orbit"
+  },
+  "galleryCategory": {
+    "message": "فئة المعرض"
+  },
+  "galleryAll": {
+    "message": "الكل"
+  },
+  "gallerySummer": {
+    "message": "الصيف"
+  },
+  "galleryAnimals": {
+    "message": "الحيوانات"
+  },
+  "gallerySpace": {
+    "message": "الفضاء"
+  },
+  "galleryTravel": {
+    "message": "السفر"
+  },
+  "galleryLove": {
+    "message": "الحب"
+  },
+  "gallerySport": {
+    "message": "الرياضة"
+  },
+  "galleryPeople": {
+    "message": "الناس"
+  },
+  "galleryCity": {
+    "message": "المدن"
+  },
+  "galleryThings": {
+    "message": "الأشياء"
+  },
+  "galleryNature": {
+    "message": "الطبيعة"
+  },
+  "galleryChristmas": {
+    "message": "عيد الميلاد"
+  },
+  "galleryAbstractions": {
+    "message": "التجريد"
+  },
+  "galleryDaily": {
+    "message": "فيديو جديد كل يوم"
+  },
+  "galleryDailyNote": {
+    "message": "أو اختر واحدًا أدناه ليبقى"
+  },
+  "galleryCredit": {
+    "message": "الصورة: $1، $2، ويكيميديا كومنز"
+  },
+  "galleryFailed": {
+    "message": "تعذّر تحميل الفيديو. تحقّق من اتصالك."
+  },
+  "galleryLoading": {
+    "message": "جارٍ تحميل المعرض..."
+  },
+  "gallerySource": {
+    "message": "فيديوهات من ويكيميديا كومنز، منها فيديوهات ناسا، تُنزَّل من ويكيميديا عند عرضها. فيديوهات Orbit الفضائية مضمّنة في المتصفح."
+  },
+  "videoBy": {
+    "message": "الفيديو: $1"
+  },
+  "galleryVideoCredit": {
+    "message": "فيديو: $1، $2، ويكيميديا كومنز"
+  },
+  "galleryMotion": {
+    "message": "طريقة العرض"
+  },
+  "galleryLive": {
+    "message": "فيديو متحرك"
+  },
+  "galleryStill": {
+    "message": "صورة ثابتة"
+  },
+  "galleryStillNote": {
+    "message": "لقطة ثابتة منه، بيانات وطاقة أقل"
+  },
+  "galleryLiveNote": {
+    "message": "يشغّل الفيديو"
   }
 }

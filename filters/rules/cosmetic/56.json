@@ -75,7 +75,7 @@
 "newkerala.com":{"hide":[".pb-2 .text-mute"]},
 "news24.jp":{"show":[".adText"]},
 "news9live.com":{"hide":["#left_before_story"]},
-"northumberlandgazette.co.uk":{"hide":[".banner","[data-type=\"AdRowBillboard\"]","div[class^=\"AdLoadingText\"]","div[class^=\"SidebarAds_\"]","div[class^=\"helper__AdContainer\"]","div[data-ads-params]"]},
+"northumberlandgazette.co.uk":{"hide":["#topBanner",".exco-video-player"]},
 "onlineconvertfree.com":{"hide":[".banner"]},
 "outlookindia.com":{"hide":["#_snup-rtdx-ldgr1",".ad_unit_728x90",".in-house-banner1"]},
 "petmd.com":{"hide":["aside[aria-label=\"advertisement\"]"]},

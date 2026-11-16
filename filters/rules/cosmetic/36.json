@@ -66,6 +66,7 @@
 "revizoronline.com":{"hide":["#headerbanner","#topbanner"]},
 "rextester.com":{"hide":["td[style=\"width:160px;padding-top:65px;\"]"]},
 "rottentomatoes.com":{"hide":[".leaderboard_wrapper","ad-unit"],"show":[".page_ad"]},
+"runguides.com":{"hide":[".ad-container"]},
 "sankakucomplex.com":{"hide":[".scad",".side300xmlc"]},
 "search.b1.org":{"hide":[".adslabel"]},
 "securityweek.com":{"hide":[".sw-block-webinar",".sw-bulletin",".sw-home-ads",".zox-post-ad-wrap"]},

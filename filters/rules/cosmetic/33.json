@@ -16,7 +16,7 @@
 "citybeat.com":{"hide":[".PromoTopBar",".fdn-gpt-inline-content",".fdn-teaser-row-gpt-ad",".fdn-teaser-row-teaser","[gpt-slot-config-id]","[gpt-slot-div-id]"]},
 "coderwall.com":{"hide":["._300x250"]},
 "completeporndatabase.com":{"hide":[".container-blog",".widget_xyz_insert_html_widget","div:has(> .text-ads)"]},
-"convertcase.net":{"hide":[".feature"]},
+"convertcase.net":{"hide":[".feature"],"show":[".ads-desktop"]},
 "costco.com":{"hide":[".col-xs-12:has([data-bi-placement^=\"Criteo_Product_Display\"])",".feature-carousel-container[data-rm-format-beacon]",".rm-grid-product",".view-criteo-carousel","[data-bi-placement=\"Criteo_Home_Espot\"]","[data-testid=\"AdSet-all-pdp_criteo_-_sponsored_products\"]","[data-testid=\"AdSet-all-sponsored_products_-_search_commerce\"]","[data-testid^=\"CriteoAdSet_undefined\"]","article[id][class]:has(img[alt*=\"Sponsored\"])","div[data-source=\"sponsored\"]","div[data-testid=\"AdSet-all-sponsored_products_-_search_bottom\"]","div[data-testid=\"AdSet-all-sponsored_products_-_search_top\"]"]},
 "cyclenews.com":{"hide":["#pamnew"]},
 "dailydriven.ro":{"hide":[".dd-dda"]},

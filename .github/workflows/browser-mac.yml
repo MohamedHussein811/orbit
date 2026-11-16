@@ -2,8 +2,8 @@ name: Orbit browser (Mac)
 
 # Builds Orbit's Chromium fork for macOS on Apple silicon. Chromium 157 needs the macOS 27 SDK,
 # which only GitHub's Xcode 27 preview image has so far.
-# Stage 1 continues from a stage saved by an earlier run (kept 5 days). Clear resume_run to build
-# from scratch.
+# Stage 1 can continue from a stage saved by an earlier run of the same Chromium version (kept 5 days)
+# by setting resume_run and resume_state; without them it builds from scratch.
 
 on:
   push:
@@ -29,7 +29,7 @@ jobs:
   stage1:
     uses: ./.github/workflows/chromium-stage.yml
     secrets: inherit
-    with: { stage: 1, runner: xcode-27, targets: chrome chrome/installer/mac, resume_run: "43641398700", resume_state: 2 }
+    with: { stage: 1, runner: xcode-27, targets: chrome chrome/installer/mac, resume_run: "43714218969", resume_state: 6 }
   stage2:
     needs: stage1
     if: needs.stage1.outputs.done != 'true'

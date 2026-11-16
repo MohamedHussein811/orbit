@@ -193,7 +193,6 @@ export const ICONS = [
     name: "rail-settings",
     canvas: 20,
     targets: [
-      "chrome/app/vector_icons/orbit_rail_settings.icon",
       ["components/omnibox/browser/vector_icons/secure_page_info_chrome_refresh_old.icon", 16],
       ["components/omnibox/browser/vector_icons/page_info_custom.icon", 24],
     ],
@@ -214,6 +213,9 @@ export const ICONS = [
       "components/vector_icons/chromium/product_refresh.icon",
       "components/omnibox/browser/vector_icons/chrome_product.icon",
       ["components/omnibox/browser/vector_icons/product_chrome_refresh_old.icon", 15],
+      ["components/omnibox/browser/vector_icons/product_old.icon", 32],
+      ["chrome/app/vector_icons/chrome_product.icon", 16],
+      ["chrome/app/vector_icons/browser_logo_old.icon", 16],
     ],
     shapes: [fill(MARK), dot(19.11, 4.89, 2.25)],
   },

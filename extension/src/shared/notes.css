@@ -205,3 +205,11 @@
     transition: none;
   }
 }
+
+/* On the new tab page the list never makes the card taller than its neighbors; it scrolls. */
+.dock .notes-widget .notes-list {
+  flex: 1 1 0;
+  height: 0;
+  min-height: 6.5rem;
+  max-height: none;
+}
