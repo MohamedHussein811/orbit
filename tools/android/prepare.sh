@@ -3,7 +3,10 @@
 set -euo pipefail
 
 cd src
+# update.py adds the Android compiler-rt runtimes when .gclient targets Android.
+echo 'target_os = ["android"]' > .gclient
 python3 tools/clang/scripts/update.py
+ls third_party/llvm-build/Release+Asserts/lib/clang/*/lib/linux/libclang_rt.builtins-aarch64-android.a
 python3 tools/rust/update_rust.py
 python3 build/linux/sysroot_scripts/install-sysroot.py --arch=amd64
 python3 build/linux/sysroot_scripts/install-sysroot.py --arch=i386
