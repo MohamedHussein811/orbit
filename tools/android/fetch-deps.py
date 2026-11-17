@@ -11,6 +11,7 @@ that apply to that host and not to plain Linux are fetched, plus Chromium's JDK.
 import importlib.util
 import os
 import re
+import shutil
 import sys
 
 here = os.path.dirname(os.path.abspath(__file__))
@@ -24,6 +25,13 @@ linux_name = fd.platform_name
 fd.platform_name = lambda text, host: linux_name(text.replace("${{os}}", "linux"), host)
 
 SKIP = re.compile(fd.SKIP.pattern + r"|cts_archive|orderfiles")
+
+
+def fetch_cipd(entry, folder):
+    # Packages that share a folder each carry a read-only .cipdpkg/manifest.json.
+    for package in entry["packages"]:
+        shutil.rmtree(os.path.join(folder, ".cipdpkg"), ignore_errors=True)
+        fd.fetch_cipd({**entry, "packages": [package]}, folder, keep=True, host="android")
 
 
 def android_only(root):
@@ -44,7 +52,7 @@ def android_only(root):
             folder = os.path.join(root, base if relative else "", name.removeprefix("src/"))
             print(f"{os.path.relpath(folder, root)} [{fd.kind(entry)}]")
             if fd.kind(entry) == "cipd":
-                fd.fetch_cipd(entry, folder, keep=True, host="android")
+                fetch_cipd(entry, folder)
             elif fd.kind(entry) == "gcs":
                 objects = [o for o in entry["objects"] if fd.applies(o.get("condition", ""), "android", variables)]
                 fd.fetch_gcs(entry, objects, folder, keep=True)
