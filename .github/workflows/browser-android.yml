@@ -3,7 +3,8 @@ name: Orbit browser (Android)
 # Builds Chromium for Android on free runners and checks the APK on an emulator. Runs on pushes
 # that change the Android build files (desktop work never starts it) or by hand. Stage 1 can
 # continue from a stage saved by an earlier run of the same Chromium version (kept 5 days) with
-# resume_run/resume_state; without inputs it continues from the arm64 run set in stage1.
+# resume_run/resume_state. Pushes build x64, which the x86_64 emulator runs natively; Chromium
+# loads its library straight from the APK, so an arm64 build cannot run there through translation.
 
 on:
   push:
@@ -34,7 +35,7 @@ permissions:
   actions: read
 
 concurrency:
-  group: browser-android-${{ github.ref }}-${{ inputs.cpu || 'arm64' }}
+  group: browser-android-${{ github.ref }}-${{ inputs.cpu || 'x64' }}
   cancel-in-progress: true
 
 jobs:
@@ -42,76 +43,76 @@ jobs:
     uses: ./.github/workflows/android-stage.yml
     with:
       stage: 1
-      cpu: ${{ inputs.cpu || 'arm64' }}
-      resume_run: ${{ inputs.resume_run || '44091873856' }}
-      resume_state: ${{ inputs.resume_state || 4 }}
+      cpu: ${{ inputs.cpu || 'x64' }}
+      resume_run: ${{ inputs.resume_run }}
+      resume_state: ${{ inputs.resume_state || 0 }}
   stage2:
     needs: stage1
     if: needs.stage1.outputs.done != 'true'
     uses: ./.github/workflows/android-stage.yml
     with:
       stage: 2
-      cpu: ${{ inputs.cpu || 'arm64' }}
+      cpu: ${{ inputs.cpu || 'x64' }}
   stage3:
     needs: stage2
     if: needs.stage2.outputs.done != 'true'
     uses: ./.github/workflows/android-stage.yml
     with:
       stage: 3
-      cpu: ${{ inputs.cpu || 'arm64' }}
+      cpu: ${{ inputs.cpu || 'x64' }}
   stage4:
     needs: stage3
     if: needs.stage3.outputs.done != 'true'
     uses: ./.github/workflows/android-stage.yml
     with:
       stage: 4
-      cpu: ${{ inputs.cpu || 'arm64' }}
+      cpu: ${{ inputs.cpu || 'x64' }}
   stage5:
     needs: stage4
     if: needs.stage4.outputs.done != 'true'
     uses: ./.github/workflows/android-stage.yml
     with:
       stage: 5
-      cpu: ${{ inputs.cpu || 'arm64' }}
+      cpu: ${{ inputs.cpu || 'x64' }}
   stage6:
     needs: stage5
     if: needs.stage5.outputs.done != 'true'
     uses: ./.github/workflows/android-stage.yml
     with:
       stage: 6
-      cpu: ${{ inputs.cpu || 'arm64' }}
+      cpu: ${{ inputs.cpu || 'x64' }}
   stage7:
     needs: stage6
     if: needs.stage6.outputs.done != 'true'
     uses: ./.github/workflows/android-stage.yml
     with:
       stage: 7
-      cpu: ${{ inputs.cpu || 'arm64' }}
+      cpu: ${{ inputs.cpu || 'x64' }}
   stage8:
     needs: stage7
     if: needs.stage7.outputs.done != 'true'
     uses: ./.github/workflows/android-stage.yml
     with:
       stage: 8
-      cpu: ${{ inputs.cpu || 'arm64' }}
+      cpu: ${{ inputs.cpu || 'x64' }}
   stage9:
     needs: stage8
     if: needs.stage8.outputs.done != 'true'
     uses: ./.github/workflows/android-stage.yml
     with:
       stage: 9
-      cpu: ${{ inputs.cpu || 'arm64' }}
+      cpu: ${{ inputs.cpu || 'x64' }}
   stage10:
     needs: stage9
     if: needs.stage9.outputs.done != 'true'
     uses: ./.github/workflows/android-stage.yml
     with:
       stage: 10
-      cpu: ${{ inputs.cpu || 'arm64' }}
+      cpu: ${{ inputs.cpu || 'x64' }}
   emulator:
     needs: [stage1, stage2, stage3, stage4, stage5, stage6, stage7, stage8, stage9, stage10]
     if: always() && contains(needs.*.outputs.done, 'true')
     uses: ./.github/workflows/android-emulator.yml
     with:
       apk_run: ${{ github.run_id }}
-      cpu: ${{ inputs.cpu || 'arm64' }}
+      cpu: ${{ inputs.cpu || 'x64' }}
