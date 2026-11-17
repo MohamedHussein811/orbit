@@ -144,10 +144,22 @@ try {
   expect("new tab page", newTab, `${prefix}newtab/newtab.html`);
   const rulesets = await tab.eval("chrome.declarativeNetRequest.getEnabledRulesets().then((ids) => ids.sort())");
   expect("Shields rule lists", rulesets, ["ads", "threats", "trackers"]);
+  let scriptlets = 0;
+  for (let i = 0; i < 10 && scriptlets < 30; i++) {
+    if (i) await sleep(2000);
+    scriptlets = await tab.eval("chrome.scripting.getRegisteredContentScripts().then((list) => list.filter((s) => s.id.startsWith('orbit-scriptlets-')).length)");
+  }
+  expect("Shields scriptlets registered", scriptlets >= 30, true);
   const searchDefault = await tab.eval("new Promise((resolve) => chrome.search.getDefault(resolve))");
   expect("new tab reads the default search engine", searchDefault, "duckduckgo.com");
   await tab.eval("new Promise((resolve) => chrome.search.setDefault('startpage.com', resolve))");
   expect("new tab sets the default search engine", await tab.eval("new Promise((resolve) => chrome.search.getDefault(resolve))"), "startpage.com");
+  const startup = await tab.eval("new Promise((resolve) => chrome.search.getStartup(resolve))");
+  expect("new tab reads what opens at start", startup?.mode, "restore");
+  await tab.eval("new Promise((resolve) => chrome.search.setStartup({ mode: 'pages', urls: ['https://example.com/'] }, resolve))");
+  const pages = await tab.eval("new Promise((resolve) => chrome.search.getStartup(resolve))");
+  expect("new tab sets the pages to open at start", [pages?.mode, ...(pages?.urls ?? [])], ["pages", "https://example.com/"]);
+  await tab.eval("new Promise((resolve) => chrome.search.setStartup({ mode: 'restore', urls: [] }, resolve))");
 
   // A local page that asks for a script from an ad server on the ads list. Shields blocks it before
   // it reaches the network, and the block must show up in the dashboard's counts.
