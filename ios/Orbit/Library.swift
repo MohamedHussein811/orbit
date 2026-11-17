@@ -32,14 +32,15 @@ final class Library {
 
     @ObservationIgnored private let folder: URL
 
-    init(folder: URL = Library.defaultFolder) {
+    init(folder: URL? = nil) {
+        let folder = folder ?? Library.defaultFolder
         self.folder = folder
         bookmarks = Library.read([Bookmark].self, "bookmarks.json", in: folder) ?? []
         history = Library.read([Visit].self, "history.json", in: folder) ?? []
         settings = Library.read(Settings.self, "settings.json", in: folder) ?? Settings()
     }
 
-    static var defaultFolder: URL {
+    nonisolated static var defaultFolder: URL {
         let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
         return base.appendingPathComponent("Orbit", isDirectory: true)
     }

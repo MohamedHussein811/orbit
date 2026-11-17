@@ -14,10 +14,11 @@ final class Browser {
     @ObservationIgnored private var ruleLists: [WKContentRuleList] = []
     @ObservationIgnored private var privateStore: WKWebsiteDataStore?
 
-    init(library: Library = Library(), shields: Shields? = Shields()) {
-        self.library = library
+    init(library: Library? = nil, loadsShields: Bool = true) {
+        self.library = library ?? Library()
         newTab(isPrivate: false)
-        if let shields {
+        if loadsShields {
+            let shields = Shields()
             Task { await loadShields(shields) }
         }
     }

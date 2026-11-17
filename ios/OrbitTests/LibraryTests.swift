@@ -45,7 +45,7 @@ final class LibraryTests: XCTestCase {
     }
 
     func testPrivateTabsShareOneSessionThatEndsWithTheLastOne() {
-        let browser = Browser(library: Library(folder: folder), shields: nil)
+        let browser = Browser(library: Library(folder: folder), loadsShields: false)
         let first = browser.newTab(isPrivate: true)
         let second = browser.newTab(isPrivate: true)
         let firstStore = first.webView.configuration.websiteDataStore
@@ -60,7 +60,7 @@ final class LibraryTests: XCTestCase {
     }
 
     func testClosingTheLastTabOpensANewOne() {
-        let browser = Browser(library: Library(folder: folder), shields: nil)
+        let browser = Browser(library: Library(folder: folder), loadsShields: false)
         XCTAssertEqual(browser.tabs.count, 1)
         browser.close(browser.tabs[0])
         XCTAssertEqual(browser.tabs.count, 1)
@@ -68,7 +68,7 @@ final class LibraryTests: XCTestCase {
     }
 
     func testShieldsFollowTheGlobalSwitchAndSiteChoices() {
-        let browser = Browser(library: Library(folder: folder), shields: nil)
+        let browser = Browser(library: Library(folder: folder), loadsShields: false)
         XCTAssertTrue(browser.shieldsEnabled(for: "example.com"))
         browser.setShields(false, for: "example.com")
         XCTAssertFalse(browser.shieldsEnabled(for: "www.example.com"))
