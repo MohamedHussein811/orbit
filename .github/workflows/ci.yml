@@ -81,3 +81,32 @@ jobs:
           sudo apt-get update -o Dir::Etc::sourcelist=/tmp/orbit-apt/orbit.sources -o Dir::Etc::sourceparts=- -o APT::Get::List-Cleanup=0
           apt-cache -o Dir::Etc::sourcelist=/tmp/orbit-apt/orbit.sources -o Dir::Etc::sourceparts=- policy orbit-browser | tee "$RUNNER_TEMP/policy.txt"
           grep -q "Candidate: 157.1.8103.38" "$RUNNER_TEMP/policy.txt"
+
+
+  apt-upgrade:
+    name: apt upgrades the previous release to the latest
+    # Downloads two real releases, so it runs only when started by hand.
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Install the previous release's .deb, then let apt upgrade it from Orbit's package list
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          tags=$(gh release list --repo "$GITHUB_REPOSITORY" --exclude-drafts --exclude-pre-releases --limit 5 --json tagName --jq '.[].tagName')
+          latest=$(echo "$tags" | sed -n 1p)
+          previous=$(echo "$tags" | sed -n 2p)
+          gh release download "$previous" --repo "$GITHUB_REPOSITORY" --pattern '*_amd64.deb' --dir /tmp/previous
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq /tmp/previous/*.deb > /dev/null
+          before=$(dpkg-query -W -f='${Version}' orbit-browser)
+          test -f /etc/apt/sources.list.d/orbit.sources
+          sudo apt-get update
+          sudo apt-get install -y --only-upgrade orbit-browser
+          after=$(dpkg-query -W -f='${Version}' orbit-browser)
+          wanted=$(gh release view "$latest" --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets[].name' | sed -n 's/^orbit_\(.*\)_amd64\.deb$/\1/p')
+          echo "$previous ($before) -> $after, latest release $latest ($wanted)"
+          test "$after" = "$wanted"
+          dpkg --compare-versions "$after" gt "$before"
