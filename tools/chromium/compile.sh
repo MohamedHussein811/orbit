@@ -30,12 +30,18 @@ stop_windows_tools() {
   taskkill //F //IM python.exe
 }
 watchdog=""
+jobs=()
 case "$(uname -s)" in
-  MINGW*|MSYS*) { sleep $((COMPILE_SECONDS + 200)); stop_windows_tools; } > /dev/null 2>&1 & watchdog=$! ;;
+  MINGW*|MSYS*)
+    { sleep $((COMPILE_SECONDS + 200)); stop_windows_tools; } > /dev/null 2>&1 & watchdog=$!
+    # PGO compiles need more memory each, and the Windows runner has no extra swap: one job per
+    # core instead of ninja's default of two more.
+    jobs=(-j "${NUMBER_OF_PROCESSORS:-4}")
+    ;;
 esac
 
 started=$SECONDS
-timeout --signal=INT --kill-after=180 "$COMPILE_SECONDS" ninja -C out/Release -k 0 $TARGETS 2>&1 |
+timeout --signal=INT --kill-after=180 "$COMPILE_SECONDS" ninja -C out/Release -k 0 ${jobs[@]+"${jobs[@]}"} $TARGETS 2>&1 |
   tee ../ninja.log |
   grep -E --line-buffered "^\[[0-9]+000/|^FAILED|^ninja: " |
   awk '{ print substr($0, 1, 200); fflush() }'
