@@ -26,7 +26,7 @@ The new tab page's default background is a black hole video from Pixabay (https:
 
 Orbit Gallery's Space category also ships "Black Hole Accretion Disk Visualization" from NASA's Scientific Visualization Studio (https://svs.gsfc.nasa.gov/13326/), credit NASA's Goddard Space Flight Center/Jeremy Schnittman. Under NASA's media usage guidelines, NASA content like this is generally not subject to copyright in the United States. Orbit ships it re-encoded (`extension/src/newtab/media/blackhole.webm`) with one frame as a still image (`blackhole.jpg`), and shows the credit on the page. NASA does not endorse Orbit.
 
-The other Orbit Gallery videos are not shipped: `extension/src/newtab/gallery.json` lists files on Wikimedia Commons (public domain, CC0, CC BY or CC BY-SA), and the page downloads the one shown, with its author and license in the credit line, linking to the file's Commons page.
+The other Orbit Gallery videos are not shipped: `extension/src/newtab/gallery.json` lists HD videos on Pixabay under the Pixabay Content License, and the page downloads the one shown from Pixabay's servers, crediting its author with a link to the video's Pixabay page.
 
 ## Weather
 

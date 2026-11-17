@@ -747,7 +747,7 @@
     "message": "Or pick one below to keep it"
   },
   "galleryCredit": {
-    "message": "Photo: $1, $2, Wikimedia Commons"
+    "message": "Photo by $1 via Pixabay"
   },
   "galleryFailed": {
     "message": "The video could not load. Check your connection."
@@ -756,13 +756,13 @@
     "message": "Loading the gallery..."
   },
   "gallerySource": {
-    "message": "Videos from Wikimedia Commons, NASA's among them, downloaded from Wikimedia when shown. Orbit's own space videos ship with the browser."
+    "message": "HD videos from Pixabay, downloaded from Pixabay when shown. Orbit’s own space videos ship with the browser."
   },
   "videoBy": {
     "message": "Video: $1"
   },
   "galleryVideoCredit": {
-    "message": "Video: $1, $2, Wikimedia Commons"
+    "message": "Video by $1 via Pixabay"
   },
   "galleryMotion": {
     "message": "Show as"
