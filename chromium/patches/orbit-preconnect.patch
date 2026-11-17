@@ -1,0 +1,81 @@
+diff --git a/chrome/browser/ui/omnibox/chrome_omnibox_client.cc b/chrome/browser/ui/omnibox/chrome_omnibox_client.cc
+--- a/chrome/browser/ui/omnibox/chrome_omnibox_client.cc
++++ b/chrome/browser/ui/omnibox/chrome_omnibox_client.cc
+@@ -115,6 +115,15 @@
+ #include "extensions/buildflags/buildflags.h"
+ #include "extensions/common/constants.h"
+ #include "net/traffic_annotation/network_traffic_annotation.h"
++#include "content/public/browser/storage_partition.h"
++#include "mojo/public/cpp/bindings/pending_remote.h"
++#include "net/base/network_anonymization_key.h"
++#include "net/base/schemeful_site.h"
++#include "services/network/public/cpp/constants.h"
++#include "services/network/public/mojom/connection_change_observer_client.mojom.h"
++#include "services/network/public/mojom/network_context.mojom.h"
++#include "url/origin.h"
++#include "url/url_constants.h"
+ #include "services/metrics/public/cpp/ukm_builders.h"
+ #include "services/metrics/public/cpp/ukm_recorder.h"
+ #include "services/metrics/public/cpp/ukm_source_id.h"
+@@ -150,6 +159,53 @@
+     ChromeOmniboxClient::ExtensionControlledDialogResult;
+ using predictors::AutocompleteActionPredictor;
+ 
++// Orbit: connect early to the search engine of a search being typed.
++constexpr base::TimeDelta kOrbitSearchPreconnectInterval = base::Seconds(8);
++
++constexpr net::NetworkTrafficAnnotationTag kOrbitSearchPreconnectAnnotation =
++    net::DefineNetworkTrafficAnnotation("orbit_search_preconnect", R"(
++      semantics {
++        sender: "Orbit address bar"
++        description:
++          "Opens a connection to the search engine while a search is typed "
++          "in the address bar, so the results load sooner once it is "
++          "submitted."
++        trigger:
++          "Typing a search in the address bar, at most once every eight "
++          "seconds."
++        data: "None. Only a connection is opened; nothing typed is sent."
++        destination: OTHER
++        destination_other: "The search engine the search would go to."
++      }
++      policy {
++        cookies_allowed: NO
++        setting: "None."
++        policy_exception_justification: "Opens a connection only."
++      })");
++
++void OrbitPreconnectToSearch(Profile* profile,
++                             const AutocompleteMatch& match) {
++  if (!AutocompleteMatch::IsSearchType(match.type) ||
++      !match.destination_url.SchemeIs(url::kHttpsScheme)) {
++    return;
++  }
++  static base::TimeTicks last_preconnect;
++  const base::TimeTicks now = base::TimeTicks::Now();
++  if (!last_preconnect.is_null() &&
++      now - last_preconnect < kOrbitSearchPreconnectInterval) {
++    return;
++  }
++  last_preconnect = now;
++  const url::Origin origin = url::Origin::Create(match.destination_url);
++  profile->GetDefaultStoragePartition()->GetNetworkContext()->PreconnectSockets(
++      /*num_streams=*/1, origin.GetURL(),
++      network::mojom::CredentialsMode::kInclude,
++      net::NetworkAnonymizationKey::CreateSameSite(net::SchemefulSite(origin)),
++      network::GetNoOpNetworkRestrictionsId(),
++      net::MutableNetworkTrafficAnnotationTag(kOrbitSearchPreconnectAnnotation),
++      /*keepalive_config=*/std::nullopt, mojo::NullRemote());
++}
++
+ LensSearchController* GetLensSearchController(
+     content::WebContents* web_contents) {
+   return web_contents ? LensSearchController::FromTabWebContents(web_contents)
+@@ -828,6 +884,7 @@
+   AutocompleteActionPredictor::Action recommended_action =
+       AutocompleteActionPredictor::ACTION_NONE;
+   if (user_input_in_progress) {
++    OrbitPreconnectToSearch(profile_, current_match);
+     content::WebContents* web_contents = location_bar_->GetWebContents();
+     AutocompleteActionPredictor* action_predictor =
+         predictors::AutocompleteActionPredictorFactory::GetForProfile(profile_);

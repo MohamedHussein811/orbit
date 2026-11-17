@@ -16,3 +16,4 @@ orbit-updater.patch
 orbit-search.patch
 orbit-import.patch
 orbit-safety.patch
+orbit-preconnect.patch

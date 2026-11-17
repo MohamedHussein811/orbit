@@ -13,6 +13,7 @@ default), all of which can be changed in Settings.
 | Browser updates (Windows) | GitHub Releases of the Orbit project | A plain download request every few hours, with no cookies or identifiers. GitHub sees the device's IP address | Clear "Keep Orbit up to date automatically" in Orbit's setup |
 | Built-in extension updates (Shields rules) | GitHub Releases of the Orbit project | A daily update check for the extension, as Chromium does for any extension with an update address | Not available; it carries the blocking rules |
 | New release note on the new tab page | GitHub Releases of the Orbit project | A daily download of a small file that names the newest version | "Orbit updates" on Orbit's privacy page |
+| Early connection to the search engine | The search engine a search in the address bar would go to | While a search is typed, at most once every eight seconds, a connection is opened (DNS, TCP, TLS) so the results load sooner. Nothing typed is sent before Enter; the search engine sees the IP address a little earlier | Not available in Settings |
 | Engine components | Google (`update.googleapis.com`, `edgedl.me.gvt1.com`) | Chromium's component update check, which names the installed component versions. It carries certificate revocation data and the Widevine decoder for protected video | Not available in Settings |
 
 Linux packages are updated by the system's package manager from Orbit's package list on GitHub
