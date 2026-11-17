@@ -6,7 +6,7 @@
 import { addCount, emptyCounts, emptyStats, pruneStats, sanitizeStats, type Category, type Counts } from "../shared/stats.ts";
 import { sanitizePrivacy } from "../shared/privacy.ts";
 import { addBlockedHost, allowRule, blockedList, categoryOfMatch, emptyBlockedHosts, cosmeticCss, cosmeticShard, hostSuffixes, normalizeHosts, siteOf, type BlockedHosts, type Message, type SiteCosmetic, type TabState } from "../shared/shields.ts";
-import { applyFingerprinting, applyGenericHiding, applySiteFixes, applyWebRtc, readPrivacy, runStartupCleanup } from "./privacy.ts";
+import { applyFingerprinting, applyGenericHiding, applyScriptlets, applySiteFixes, applyThreats, applyWebRtc, readPrivacy, runStartupCleanup } from "./privacy.ts";
 import { checkForUpdate, scheduleUpdateCheck, UPDATE_ALARM } from "./updates.ts";
 
 const FLUSH_DELAY_MS = 500;
@@ -287,6 +287,7 @@ async function setShields(host: string, enabled: boolean, incognito: boolean): P
     await applyFingerprinting(await readPrivacy(), sitesOff);
     await applyGenericHiding(sitesOff);
     await applySiteFixes(sitesOff);
+    await applyScriptlets(sitesOff);
   }
 }
 
@@ -333,6 +334,7 @@ async function handle(message: Message): Promise<unknown> {
       await chrome.storage.local.set({ privacy });
       if (!privacy.checkUpdates) await chrome.storage.local.remove("update");
       await applyWebRtc(privacy);
+      await applyThreats(privacy);
       await applyFingerprinting(privacy, await hostsOff());
       return { ok: true };
     }
@@ -349,9 +351,11 @@ async function applyAll(): Promise<void> {
   const privacy = await readPrivacy();
   const sitesOff = await hostsOff();
   await applyWebRtc(privacy);
+  await applyThreats(privacy);
   await applyFingerprinting(privacy, sitesOff);
   await applyGenericHiding(sitesOff);
   await applySiteFixes(sitesOff);
+  await applyScriptlets(sitesOff);
 }
 
 /** Tabs opened before this extension finished installing show Chromium's own new tab page.

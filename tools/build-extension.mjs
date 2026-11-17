@@ -67,6 +67,18 @@ export function buildExtension(out) {
   fs.mkdirSync(ruleDir, { recursive: true });
   fs.cpSync(RULES_DIR, ruleDir, { recursive: true });
 
+  // Each scriptlet shard becomes one script: the scriptlets, called with that shard's data.
+  const scriptletDir = path.join(ruleDir, "scriptlets");
+  if (fs.existsSync(scriptletDir)) {
+    const runtime = fs.readFileSync(path.join(out, "sites", "scriptlets.js"), "utf8");
+    for (const file of fs.readdirSync(scriptletDir)) {
+      if (!file.endsWith(".json") || file === "index.json") continue;
+      const data = fs.readFileSync(path.join(scriptletDir, file), "utf8").trim();
+      fs.writeFileSync(path.join(scriptletDir, file.replace(/\.json$/, ".js")), `(() => {\n${runtime}\norbitScriptlets(${data});\n})();\n`);
+      fs.rmSync(path.join(scriptletDir, file));
+    }
+  }
+
   // The host compares this to know when its copy in the user's data folder is out of date.
   fs.writeFileSync(path.join(out, "build-id.txt"), contentId(out));
 

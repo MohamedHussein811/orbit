@@ -12,6 +12,7 @@ Shields ships rules compiled from these lists. `filters/rules/meta.json` records
 
 - EasyList and EasyPrivacy, by The EasyList authors (https://easylist.to/), used under CC BY-SA 3.0.
 - Liste AR, by the Liste AR authors (https://code.google.com/p/liste-ar-adblock/), used under CC BY-SA 3.0.
+- uBlock filters, with Badware risks, Privacy, Quick fixes and Unbreak, by the uBlock Origin filter list authors (https://github.com/uBlockOrigin/uAssets), used under the GNU General Public License 3.0. The lists' source is that repository; `filters/rules/meta.json` records the hash of each copy Orbit compiled. The scriptlets these lists name run through Orbit's own implementations (`extension/src/sites/scriptlets.ts`), not uBlock Origin's code.
 - Malicious URL Blocklist, by Ming Di Leom (https://gitlab.com/malware-filter/urlhaus-filter), CC0 1.0, from URLhaus data by abuse.ch. Not endorsed by abuse.ch.
 - Phishing URL Blocklist, by Ming Di Leom (https://gitlab.com/malware-filter/phishing-filter), used under CC BY-SA 4.0, from OpenPhish, IPThreat and PhishTank data. Not endorsed by those sources.
 
