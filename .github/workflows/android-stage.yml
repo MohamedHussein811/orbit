@@ -70,6 +70,13 @@ jobs:
       - name: Fetch the Android SDK, NDK and Java libraries
         run: |
           python3 -I tools/android/fetch-deps.py src
+          # gclient writes this file from target_os; the archive was made without "android".
+          # The archive's date is kept, so stages after the first see an unchanged file.
+          args=src/build/config/gclient_args.gni
+          stamp=$(stat -c %Y "$args")
+          sed -i 's/^checkout_android = false$/checkout_android = true/' "$args"
+          touch -d "@$stamp" "$args"
+          grep -q '^checkout_android = true$' "$args"
           du -sh src/third_party/android_sdk src/third_party/android_toolchain src/third_party/jdk 2> /dev/null || true
           df -h .
 
