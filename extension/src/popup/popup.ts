@@ -50,17 +50,26 @@ function showState(on: boolean): void {
   document.body.classList.toggle("off", !on);
 }
 
-async function main(): Promise<void> {
-  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-  if (!tab?.id) return;
-  const host = siteOf(tab.url);
-  const request: Message = { type: "tab-state", tabId: tab.id };
+async function showCounts(tabId: number): Promise<TabState> {
+  const request: Message = { type: "tab-state", tabId };
   const state = (await chrome.runtime.sendMessage(request)) as TabState;
-
   byId("ads").textContent = state.counts.ads.toLocaleString(locale);
   byId("trackers").textContent = state.counts.trackers.toLocaleString(locale);
   byId("threats").textContent = state.counts.threats.toLocaleString(locale);
   showBlocked(state.blocked);
+  return state;
+}
+
+async function main(): Promise<void> {
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  if (!tab?.id) return;
+  const host = siteOf(tab.url);
+  const tabId = tab.id;
+  const state = await showCounts(tabId);
+  // Keep counting while the popup stays open.
+  chrome.storage.session.onChanged.addListener((changes) => {
+    if (changes.tabCounts || changes.tabHosts) void showCounts(tabId);
+  });
 
   byId("host").textContent = host ?? t("thisPage");
   if (!host) {

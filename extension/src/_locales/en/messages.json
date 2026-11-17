@@ -862,5 +862,71 @@
   },
   "widgetsDocked": {
     "message": "At the bottom of the page"
+  },
+  "sectionStartup": {
+    "message": "Startup"
+  },
+  "startupHeading": {
+    "message": "When Orbit starts"
+  },
+  "startupNewTab": {
+    "message": "Open the new tab page"
+  },
+  "startupRestore": {
+    "message": "Continue where you left off"
+  },
+  "startupPages": {
+    "message": "Open specific pages"
+  },
+  "startupPagesHeading": {
+    "message": "Pages to open"
+  },
+  "startupNoPages": {
+    "message": "No pages yet. Orbit opens the new tab page until you add one."
+  },
+  "startupAdd": {
+    "message": "Add page"
+  },
+  "startupAddPlaceholder": {
+    "message": "example.com"
+  },
+  "startupBadUrl": {
+    "message": "Enter a web address, such as example.com."
+  },
+  "startupUseOpen": {
+    "message": "Use the pages open now"
+  },
+  "startupRemove": {
+    "message": "Remove $1"
+  },
+  "startupManaged": {
+    "message": "Your organization sets what opens at start."
+  },
+  "startupNotSet": {
+    "message": "Orbit couldn't save this. You can change it in Settings."
+  },
+  "startupUnavailable": {
+    "message": "Choose what opens when Orbit starts in Settings."
+  },
+  "startupMore": {
+    "message": "Open startup settings"
+  },
+  "safeBrowsingTitle": {
+    "message": "Safe Browsing"
+  },
+  "safeBrowsingDetail": {
+    "message": "Warns you before you open a site known for malware or phishing. The lists are checked on this device, so the sites you visit are not sent anywhere. Orbit does not use Google Safe Browsing."
+  },
+  "safeBrowsingOn": {
+    "message": "Standard protection (recommended)"
+  },
+  "safeBrowsingOnDetail": {
+    "message": "Blocks known dangerous sites and shows a warning page instead."
+  },
+  "safeBrowsingOff": {
+    "message": "No protection (not recommended)"
+  },
+  "safeBrowsingOffDetail": {
+    "message": "Opens every site without checking it against the lists."
   }
 }
