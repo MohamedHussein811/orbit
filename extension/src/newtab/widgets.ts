@@ -1,7 +1,8 @@
 // The dashboard's widgets. Each one renders into its own frame and keeps working when another fails.
 
 import { t, uiLanguage } from "../shared/i18n.ts";
-import { searchUrl, type SearchEngine, type Settings } from "../shared/settings.ts";
+import { engineForKeyword, searchUrl, type SearchEngine, type Settings } from "../shared/settings.ts";
+import { browserEngine, canSetBrowserEngine } from "../shared/search.ts";
 import { CATEGORIES, PERIODS, sanitizeStats, summarize, type Category, type Period } from "../shared/stats.ts";
 import type { Message } from "../shared/shields.ts";
 import {
@@ -46,10 +47,19 @@ export const ENGINE_NAMES: Record<Exclude<SearchEngine, "default">, string> = {
   startpage: "Startpage",
 };
 
+const searchLabel = (engine: SearchEngine) => (engine === "default" ? t("searchPlaceholder") : t("searchWithEngine", ENGINE_NAMES[engine]));
+
 export function mountSearch(root: HTMLElement, context: WidgetContext): void {
-  const engine = context.settings().searchEngine;
-  const label = engine === "default" ? t("searchPlaceholder") : t("searchWithEngine", ENGINE_NAMES[engine]);
+  const label = searchLabel(context.settings().searchEngine);
   const input = h("input", { type: "search", name: "q", placeholder: label, "aria-label": label, autocomplete: "off", spellcheck: "false", autofocus: true });
+  // The browser's engine may have changed in Settings since the last visit.
+  void browserEngine().then((keyword) => {
+    if (keyword === null) return;
+    const engine = engineForKeyword(keyword);
+    input.placeholder = searchLabel(engine);
+    input.setAttribute("aria-label", searchLabel(engine));
+    if (engine !== context.settings().searchEngine) void context.saveSettings({ searchEngine: engine });
+  });
   const form = h(
     "form",
     {
@@ -62,7 +72,7 @@ export function mountSearch(root: HTMLElement, context: WidgetContext): void {
         if (looksLikeAddress(text)) {
           location.href = /^[a-z][a-z0-9+.-]*:\/\//i.test(text) ? text : `https://${text}`;
         } else {
-          const url = searchUrl(context.settings().searchEngine, text);
+          const url = canSetBrowserEngine() ? null : searchUrl(context.settings().searchEngine, text);
           if (url) location.href = url;
           else void chrome.search.query({ text, disposition: "CURRENT_TAB" });
         }
@@ -202,31 +212,29 @@ function bookmarkEditor(options: {
   let resetChosen = false;
   const preview = h("img", { alt: "", width: 32, height: 32, hidden: true });
   const tile = h("span", { class: "icon-tile" }, preview, icon("image"));
-  const iconTitle = h("strong", {});
   const useSiteIcon = h("button", { type: "button", class: "link", hidden: true }, t("useSiteIcon"));
   const iconFile = h("input", { type: "file", accept: "image/*", class: "visually-hidden", tabindex: "-1", "aria-hidden": "true" });
-  const showIcon = (src: string, title: string) => {
+  const showIcon = (src: string) => {
     preview.hidden = !src;
     if (src) preview.src = src;
     else preview.removeAttribute("src");
     tile.classList.toggle("has-icon", Boolean(src));
-    iconTitle.textContent = title;
   };
   const showSiteIcon = () => {
     const url = urlInput && validBookmarkUrl(urlInput.value.trim());
     if (!url) {
-      showIcon("", t("iconAfterAddress"));
+      showIcon("");
       return;
     }
-    showIcon(faviconUrl(url), t("iconFromSite"));
-    void siteIcon(url).then((src) => src && !chosenIcon && showIcon(src, t("iconFromSite")));
+    showIcon(faviconUrl(url));
+    void siteIcon(url).then((src) => src && !chosenIcon && showIcon(src));
   };
   iconFile.addEventListener("change", () => {
     const file = iconFile.files?.[0];
     if (!file) return;
     chosenIcon = file;
     resetChosen = false;
-    showIcon(URL.createObjectURL(file), t("iconYourImage"));
+    showIcon(URL.createObjectURL(file));
     useSiteIcon.hidden = false;
   });
   useSiteIcon.addEventListener("click", () => {
@@ -241,7 +249,6 @@ function bookmarkEditor(options: {
     if (options.url)
       void hasCustomIcon(options.url).then((custom) => {
         useSiteIcon.hidden = !custom;
-        if (custom) iconTitle.textContent = t("iconYourImage");
       });
   }
   const iconRow = urlInput
@@ -253,7 +260,7 @@ function bookmarkEditor(options: {
           "div",
           { class: "icon-picker" },
           tile,
-          h("span", { class: "icon-copy" }, iconTitle, useSiteIcon),
+          h("span", { class: "icon-copy" }, useSiteIcon),
           h("button", { type: "button", class: "button quiet", onclick: () => iconFile.click() }, icon("upload"), t("chooseIcon")),
           iconFile,
         ),
@@ -372,7 +379,48 @@ export function mountBookmarks(root: HTMLElement, context: WidgetContext): void 
   }
 
   let current = context.settings().bookmarksFolder ?? BOOKMARKS_BAR;
-  let dragId: string | null = null;
+  // Dragging a shortcut moves it live among the others; the bookmark moves on drop.
+  let dragItem: HTMLElement | null = null;
+  let dragFrom = -1;
+  let ownMoves = 0;
+  const shortcutTiles = () => (list ? [...list.querySelectorAll<HTMLElement>(":scope > li.tile[data-id]")] : []);
+
+  /** Runs a change to the tiles' order and slides each tile from its old place to its new one. */
+  function slide(change: () => void): void {
+    const tiles = shortcutTiles();
+    const before = new Map(tiles.map((element) => [element, element.getBoundingClientRect()]));
+    change();
+    if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    for (const element of tiles) {
+      const from = before.get(element)!;
+      const to = element.getBoundingClientRect();
+      const dx = from.left - to.left;
+      const dy = from.top - to.top;
+      if (dx || dy) element.animate([{ transform: `translate(${dx}px, ${dy}px)` }, { transform: "none" }], { duration: 220, easing: "cubic-bezier(0.2, 0, 0, 1)" });
+    }
+  }
+
+  async function finishDrop(intoFolder: string | null): Promise<void> {
+    const moved = dragItem;
+    dragItem = null;
+    for (const element of shortcutTiles()) element.classList.remove("drop-target", "dragging");
+    if (!moved) return;
+    const id = moved.dataset.id!;
+    if (intoFolder) {
+      slide(() => moved.remove());
+      await chrome.bookmarks.move(id, { parentId: intoFolder });
+      return;
+    }
+    const to = shortcutTiles().indexOf(moved);
+    if (to < 0 || to === dragFrom) return;
+    // The page already shows the new order, so the move's own event does not redraw it.
+    ownMoves++;
+    // Chromium counts the target index before removing the moved item.
+    await chrome.bookmarks.move(id, { parentId: current, index: dragFrom < to ? to + 1 : to }).catch(() => {
+      ownMoves = Math.max(0, ownMoves - 1);
+      void render();
+    });
+  }
 
   function editNew(isFolder: boolean): void {
     bookmarkEditor({
@@ -394,7 +442,7 @@ export function mountBookmarks(root: HTMLElement, context: WidgetContext): void 
     void render();
   }
 
-  function tile(node: BookmarkNode, parent: BookmarkNode, index: number): HTMLElement {
+  function tile(node: BookmarkNode): HTMLElement {
     const isFolder = !node.url;
     const name = node.title || node.url || t("untitled");
     const edit = iconButton(
@@ -424,30 +472,41 @@ export function mountBookmarks(root: HTMLElement, context: WidgetContext): void 
     const item = h("li", { class: "tile", draggable: "true", "data-id": node.id }, open, edit);
 
     item.addEventListener("dragstart", (event) => {
-      dragId = node.id;
+      dragItem = item;
+      dragFrom = shortcutTiles().indexOf(item);
       event.dataTransfer!.effectAllowed = "move";
       event.dataTransfer!.setData("text/plain", node.title);
+      requestAnimationFrame(() => item.classList.add("dragging"));
+    });
+    item.addEventListener("dragend", () => {
+      item.classList.remove("dragging");
+      // Dropped outside the shortcuts: put everything back.
+      if (dragItem) {
+        dragItem = null;
+        void render();
+      }
     });
     item.addEventListener("dragover", (event) => {
-      if (!dragId || dragId === node.id) return;
+      const moving = dragItem;
+      if (!moving || moving === item || !list) return;
       event.preventDefault();
-      item.classList.add("drop-target");
+      const box = item.getBoundingClientRect();
+      const ratio = (event.clientX - box.left) / box.width;
+      // The middle of a folder takes the shortcut in; its edges place it beside the folder.
+      const into = isFolder && ratio > 0.25 && ratio < 0.75;
+      item.classList.toggle("drop-target", into);
+      if (into) return;
+      const rtl = getComputedStyle(item).direction === "rtl";
+      const reference = (rtl ? ratio < 0.5 : ratio >= 0.5) ? item.nextElementSibling : item;
+      if (reference === moving || moving.nextElementSibling === reference) return;
+      const target = list;
+      slide(() => target.insertBefore(moving, reference));
     });
     item.addEventListener("dragleave", () => item.classList.remove("drop-target"));
-    item.addEventListener("drop", async (event) => {
+    item.addEventListener("drop", (event) => {
       event.preventDefault();
-      item.classList.remove("drop-target");
-      const moved = dragId;
-      dragId = null;
-      if (!moved || moved === node.id) return;
-      if (isFolder) {
-        await chrome.bookmarks.move(moved, { parentId: node.id });
-        return;
-      }
-      const from = parent.children!.findIndex((child) => child.id === moved);
-      // Chromium counts the target index before removing the moved item.
-      const to = from !== -1 && from < index ? index + 1 : index;
-      await chrome.bookmarks.move(moved, { parentId: parent.id, index: to });
+      event.stopPropagation();
+      void finishDrop(isFolder && item.classList.contains("drop-target") ? node.id : null);
     });
     return item;
   }
@@ -510,7 +569,14 @@ export function mountBookmarks(root: HTMLElement, context: WidgetContext): void 
     bar.hidden = !barItems.length;
 
     const children = folder.children ?? [];
-    list = h("ul", { class: "tiles" }, ...children.map((node, index) => tile(node, folder, index)), addTile());
+    list = h("ul", { class: "tiles" }, ...children.map((node) => tile(node)), addTile());
+    list.addEventListener("dragover", (event) => {
+      if (dragItem) event.preventDefault();
+    });
+    list.addEventListener("drop", (event) => {
+      event.preventDefault();
+      void finishDrop(null);
+    });
     list.addEventListener("scroll", updateRail, { passive: true });
     railSize.disconnect();
     railSize.observe(list);
@@ -528,7 +594,19 @@ export function mountBookmarks(root: HTMLElement, context: WidgetContext): void 
     context.relayout();
   }
 
-  const events = [chrome.bookmarks.onCreated, chrome.bookmarks.onRemoved, chrome.bookmarks.onChanged, chrome.bookmarks.onMoved, chrome.bookmarks.onChildrenReordered] as Array<chrome.events.Event<() => void>>;
+  const events = [chrome.bookmarks.onCreated, chrome.bookmarks.onRemoved, chrome.bookmarks.onChanged, chrome.bookmarks.onChildrenReordered] as Array<chrome.events.Event<() => void>>;
+  const moved = () => {
+    if (!root.isConnected) {
+      chrome.bookmarks.onMoved.removeListener(moved);
+      return;
+    }
+    if (ownMoves > 0) {
+      ownMoves--;
+      return;
+    }
+    void render();
+  };
+  chrome.bookmarks.onMoved.addListener(moved);
   const changed = () => {
     if (!root.isConnected) {
       for (const event of events) event.removeListener(changed);

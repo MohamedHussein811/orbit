@@ -71,6 +71,7 @@
 "modivo.cz":{"hide":[".display-container",".promoted-slider-wrapper"]},
 "motogp.com":{"hide":[".ads"]},
 "moviesfoundonline.com":{"hide":["#banner"]},
+"mstaml.com":{"hide":["a[href^=\"http://www.mstaml.com/out.php?i=\"]"]},
 "newmexicomagazine.org":{"hide":[".contentRender_name_plugins_dtn_gam_ad"]},
 "newsletter.co.uk":{"hide":["#topBanner",".banner",".exco-video-player"]},
 "openloading.com":{"hide":["#fakeplayer",".widget_custom_html"]},

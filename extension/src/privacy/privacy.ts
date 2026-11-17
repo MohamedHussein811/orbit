@@ -164,6 +164,8 @@ async function draw(): Promise<void> {
         browserLink("chrome://settings/cookies", t("moreCookies")),
         browserLink("chrome://settings/content", t("morePermissions")),
         browserLink("chrome://settings/clearBrowserData", t("moreClear")),
+        browserLink("chrome://settings/importData", t("moreImport")),
+        browserLink(chrome.runtime.getURL("welcome/welcome.html"), t("moreWelcome")),
       ),
     ),
   );

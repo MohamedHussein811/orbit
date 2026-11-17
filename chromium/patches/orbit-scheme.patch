@@ -9,7 +9,7 @@ diff --git a/components/omnibox/browser/autocomplete_input.cc b/components/omnib
 +  // orbit:// address means the chrome:// page, or one of the pages of Orbit's
 +  // built-in extension. Only typed input is mapped.
 +  bool orbit_page = false;
-+  for (std::u16string_view page : {u"privacy"}) {
++  for (std::u16string_view page : {u"privacy", u"welcome"}) {
 +    std::u16string typed = base::StrCat({u"orbit://", page});
 +    if (base::EqualsCaseInsensitiveASCII(text_, typed) ||
 +        base::EqualsCaseInsensitiveASCII(text_, base::StrCat({typed, u"/"}))) {

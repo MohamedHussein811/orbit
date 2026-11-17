@@ -22,6 +22,7 @@
 "crmbuyer.com":{"hide":[".content-block-slinks",".content-tab-slinks"]},
 "cycling.today":{"hide":[".td-banner-wrap-full"]},
 "dhgate.com":{"hide":[".gallery-content > ul > li:has(> .gallery-main > .gallery-ad-wrap > i.icon-ad)","div[spm-c=\"sponsored\"]"]},
+"dzayerinfo.com":{"hide":["a > img[width=\"728\"][height=\"90\"]"]},
 "edn.com":{"hide":["#SideBarWrap","#bannerWrap"]},
 "eldersweather.com.au":{"hide":["#desktop_new_forecast_top_wxh"]},
 "euractiv.com":{"hide":[".ea-gat-slot-wrapper"]},

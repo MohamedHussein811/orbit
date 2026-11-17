@@ -1,6 +1,7 @@
 {
 "18adultgames.com":{"hide":["#block-105","#block-121","#block-20","#block-73","#block-75","#menu-mm [rel=\"nofollow external\"]"]},
 "247sports.com":{"hide":[".minutely-wrapper"]},
+"7hob.com":{"hide":["td[style=\"border:2px #EA8336 dotted ; width:336px;height:280px;\"]"]},
 "abovethelaw.com":{"hide":["#div-id-for-middle-300x250","#div-id-for-top-300x250",".post-card--is-sponsored",".sidebar-sponsored",".sidebar__top-sticky",".single-post__sponsored-post--desktop"]},
 "ads.nipr.ac.jp":{"show":["#ads-header",".ads-header"]},
 "agcanada.com":{"hide":[".leaderboard"]},
@@ -29,6 +30,7 @@
 "eagle1065.com":{"hide":[".featureRotator"]},
 "earth.com":{"hide":[".AdZone_adZone__2w4TC",".fit-picture"]},
 "economictimes.indiatimes.com":{"hide":["#vplayer_vdoai",".adContainer",".primeDW",".stickyAd",".taboola",".vdo_ai_can_ani"]},
+"efa.com.eg":{"hide":[".body_sponsors"]},
 "endtimeheadlines.org":{"hide":[".endti-widget"]},
 "erotichdworld.com":{"hide":[".slideContent"]},
 "f1oversteer.com":{"hide":[".wp-block-grvmedia-grv-video"]},

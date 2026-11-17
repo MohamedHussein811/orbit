@@ -3,6 +3,7 @@
 "abc11.com":{"hide":[".StickyAdWrapper",".leaderboard2"]},
 "adeam.com":{"show":[".atf-wrapper"]},
 "afar.com":{"hide":[".Page-header-hat"]},
+"ahram.org.eg":{"hide":["#AdvShowCase1_divShowcase","#ctl00_ContentPlaceHolder1_AdvShowCase1_divShowcase","#floatit",".adv"]},
 "allnewspipeline.com":{"hide":["#content > [href]","#isg_add","[href=\"http://www.sqmetals.com/\"]"]},
 "allpornstream.com":{"hide":[".min-h-\\[237px\\]"]},
 "amazon.com":{"hide":["#widget-rightUpsellSlot"],"show":["[id^=\"div-gpt-ad\"]"]},

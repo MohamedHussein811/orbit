@@ -1,9 +1,10 @@
-﻿; Orbit's Windows setup: a window with progress, an automatic updates choice and a "Launch Orbit"
-; choice around Chromium's own installer, which has no window. Chromium's installer does the install,
+﻿; Orbit's Windows setup: a window with Orbit's privacy policy to accept, progress, an automatic
+; updates choice and a "Launch Orbit" choice around Chromium's own installer, which has no window. Chromium's installer does the install,
 ; per user, and registers the uninstall entry, so this setup installs nothing of its own and has no
 ; uninstaller. Orbit's updater runs this same file with /VERYSILENT, which keeps the person's
 ; automatic updates choice.
-;   ISCC /DVersion=<x.y.z.w> /DInstaller=<mini_installer.exe> /DBranding=<branding folder> /O<out> orbit.iss
+; The privacy policy is PRIVACY.md as plain text, written by privacy-text.mjs.
+;   ISCC /DVersion=<x.y.z.w> /DInstaller=<mini_installer.exe> /DBranding=<branding folder> /DPrivacy=<privacy.txt> /O<out> orbit.iss
 
 #ifndef Version
   #error Version is required
@@ -13,6 +14,9 @@
 #endif
 #ifndef Branding
   #error Branding is required
+#endif
+#ifndef Privacy
+  #error Privacy is required
 #endif
 
 [Setup]
@@ -31,6 +35,7 @@ DisableDirPage=yes
 DisableProgramGroupPage=yes
 DisableReadyPage=yes
 DisableWelcomePage=no
+LicenseFile={#Privacy}
 PrivilegesRequired=lowest
 Uninstallable=no
 CreateUninstallRegKey=no
@@ -54,10 +59,24 @@ Name: "en"; MessagesFile: "compiler:Default.isl"
 Name: "ar"; MessagesFile: "compiler:Languages\Arabic.isl"
 #endif
 
-[CustomMessages]
-en.Welcome=Orbit is a private, fast browser built on Chromium.%n%nSetup installs Orbit for your Windows account. It takes about a minute.%n%nOrbit has no accounts, ads or telemetry. To stay up to date it checks Orbit's releases on GitHub every few hours, which you can turn off on the next page. Privacy policy: github.com/MohamedHussein811/orbit/blob/main/PRIVACY.md
+[Messages]
+en.WizardLicense=Privacy policy
+en.LicenseLabel=Please read Orbit's privacy policy before you continue.
+en.LicenseLabel3=It lists every connection Orbit makes on its own. Accept it to install Orbit.
 #ifdef Arabic
-ar.Welcome=Orbit متصفح خاص وسريع مبني على Chromium.%n%nيثبّت المعالج Orbit لحساب Windows الخاص بك. يستغرق ذلك دقيقة تقريبًا.%n%nلا يحتوي Orbit على حسابات أو إعلانات أو قياس عن بُعد. ليبقى محدّثًا، يتحقق من إصدارات Orbit على GitHub كل بضع ساعات، ويمكنك إيقاف ذلك في الصفحة التالية. سياسة الخصوصية: github.com/MohamedHussein811/orbit/blob/main/PRIVACY.md
+ar.WizardLicense=سياسة الخصوصية
+ar.LicenseLabel=يُرجى قراءة سياسة الخصوصية في Orbit قبل المتابعة.
+ar.LicenseLabel3=تذكر كل اتصال يجريه Orbit من تلقاء نفسه. اقبلها لتثبيت Orbit.
+#endif
+
+[CustomMessages]
+en.Welcome=Orbit is a private, fast browser built on Chromium.%n%nSetup installs Orbit for your Windows account. It takes about a minute.%n%nOrbit has no accounts, ads or telemetry. To stay up to date it checks Orbit's releases on GitHub every few hours, which you can turn off during setup.
+#ifdef Arabic
+ar.Welcome=Orbit متصفح خاص وسريع مبني على Chromium.%n%nيثبّت المعالج Orbit لحساب Windows الخاص بك. يستغرق ذلك دقيقة تقريبًا.%n%nلا يحتوي Orbit على حسابات أو إعلانات أو قياس عن بُعد. ليبقى محدّثًا، يتحقق من إصدارات Orbit على GitHub كل بضع ساعات، ويمكنك إيقاف ذلك أثناء التثبيت.
+#endif
+en.PrivacyAccept=I have read and accept Orbit's privacy policy
+#ifdef Arabic
+ar.PrivacyAccept=قرأت سياسة الخصوصية في Orbit وأقبلها
 #endif
 en.Installing=Installing Orbit...
 #ifdef Arabic
@@ -97,10 +116,29 @@ Filename: "{localappdata}\NovaTech\Orbit\Application\orbit.exe"; Description: "{
 [Code]
 var
   Failure: String;
+  PrivacyAccepted: TNewCheckBox;
+
+// One checkbox in place of the license page's accept and decline buttons.
+procedure PrivacyAcceptedClick(Sender: TObject);
+begin
+  WizardForm.LicenseAcceptedRadio.Checked := PrivacyAccepted.Checked;
+  WizardForm.LicenseNotAcceptedRadio.Checked := not PrivacyAccepted.Checked;
+  WizardForm.NextButton.Enabled := PrivacyAccepted.Checked;
+end;
 
 procedure InitializeWizard;
 begin
   WizardForm.WelcomeLabel2.Caption := CustomMessage('Welcome');
+  WizardForm.LicenseAcceptedRadio.Visible := False;
+  WizardForm.LicenseNotAcceptedRadio.Visible := False;
+  PrivacyAccepted := TNewCheckBox.Create(WizardForm);
+  PrivacyAccepted.Parent := WizardForm.LicenseAcceptedRadio.Parent;
+  PrivacyAccepted.Left := WizardForm.LicenseAcceptedRadio.Left;
+  PrivacyAccepted.Top := WizardForm.LicenseAcceptedRadio.Top;
+  PrivacyAccepted.Width := WizardForm.LicenseMemo.Width;
+  PrivacyAccepted.Height := WizardForm.LicenseAcceptedRadio.Height;
+  PrivacyAccepted.Caption := CustomMessage('PrivacyAccept');
+  PrivacyAccepted.OnClick := @PrivacyAcceptedClick;
 end;
 
 procedure CurStepChanged(CurStep: TSetupStep);
@@ -129,6 +167,8 @@ end;
 
 procedure CurPageChanged(CurPageID: Integer);
 begin
+  if CurPageID = wpLicense then
+    WizardForm.NextButton.Enabled := PrivacyAccepted.Checked;
   if (CurPageID = wpFinished) and (Failure <> '') then
   begin
     WizardForm.FinishedHeadingLabel.Caption := 'Orbit';

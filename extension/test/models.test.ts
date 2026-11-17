@@ -4,7 +4,7 @@ import { defaultLayout, moveWidget, sanitizeLayout, updateWidget } from "../src/
 import { currentItem, DEFAULT_ITEM, itemsIn, NASA_BLACK_HOLE, playsVideo, sanitizeGallery, thumbnailOf } from "../src/shared/gallery.ts";
 import { createNote, dropEmptyNotes, noteSummary, patchNote, sanitizeNotes, sortNotes, upsertNote } from "../src/shared/notes.ts";
 import { excludeMatches, historyCutoff, removalOptions, sanitizePrivacy } from "../src/shared/privacy.ts";
-import { resolveTheme, sanitizeSettings, searchUrl } from "../src/shared/settings.ts";
+import { engineForKeyword, resolveTheme, sanitizeSettings, searchUrl } from "../src/shared/settings.ts";
 import { addBlockedHost, allowRule, ALLOW_ID_BASE, blockedList, categoryOfMatch, cosmeticCss, cosmeticShard, emptyBlockedHosts, hostSuffixes, MAX_BLOCKED_HOSTS, normalizeHosts, siteOf } from "../src/shared/shields.ts";
 import { addCount, dayKey, emptyStats, pruneStats, sanitizeStats, summarize } from "../src/shared/stats.ts";
 import { forecastUrl, geocodeUrl, weatherConditionKey, isFresh, parseForecast, parsePlaces, roundCoordinate, WEATHER_CACHE_MS } from "../src/shared/weather.ts";
@@ -79,7 +79,8 @@ test("note edits ignore invalid values", () => {
 
 test("settings fall back to safe defaults", () => {
   const settings = sanitizeSettings({ background: "neon", statsPeriod: "never", temperatureUnit: "kelvin", bookmarksFolder: 4 });
-  assert.equal(settings.background, "default");
+  assert.equal(settings.background, "gallery");
+  assert.equal(settings.galleryChoice, DEFAULT_ITEM.page);
   assert.equal(settings.videoPaused, false);
   assert.equal(settings.showClock, true);
   assert.equal(settings.statsPeriod, "7d");
@@ -88,6 +89,15 @@ test("settings fall back to safe defaults", () => {
   assert.equal(sanitizeSettings({ background: "plain" }).background, "plain");
   assert.equal(sanitizeSettings({ background: "custom", videoPaused: true }).videoPaused, true);
   assert.equal(sanitizeSettings({ videoPaused: "yes", showClock: 0 }).videoPaused, false);
+});
+
+test("the old black hole background becomes Orbit Gallery's first video", () => {
+  const moved = sanitizeSettings({ background: "default", galleryChoice: "daily", galleryCategory: "nature" });
+  assert.equal(moved.background, "gallery");
+  assert.equal(moved.galleryChoice, DEFAULT_ITEM.page);
+  assert.equal(sanitizeSettings({ background: "gallery", galleryChoice: "daily" }).galleryChoice, "daily");
+  assert.equal(engineForKeyword("search.brave.com"), "brave");
+  assert.equal(engineForKeyword("example.com"), "default");
 });
 
 test("the dashboard follows the browser theme", () => {
@@ -251,10 +261,10 @@ test("new tab settings keep valid choices and drop bad ones", () => {
   assert.equal(good.shortcutRows, 2);
   assert.deepEqual(good.hiddenSites, ["https://a.example/"]);
   const bad = sanitizeSettings({ background: "neon", color: "plaid", clockFormat: 13, searchEngine: "askjeeves", topSitesMode: "random", shortcutRows: 3, hiddenSites: "x" });
-  assert.equal(bad.background, "default");
+  assert.equal(bad.background, "gallery");
   assert.equal(bad.color, "midnight");
   assert.equal(bad.clockFormat, "auto");
-  assert.equal(bad.searchEngine, "default");
+  assert.equal(bad.searchEngine, "duckduckgo");
   assert.equal(bad.topSitesMode, "favorites");
   assert.equal(bad.shortcutRows, 1);
   assert.deepEqual(bad.hiddenSites, []);
@@ -294,4 +304,18 @@ test("the gallery keeps only Wikimedia videos, adds Orbit's space videos, and pi
   assert.equal(playsVideo(first, "still"), false);
   assert.equal(playsVideo(gallery.categories.nature![1]!, "video"), false);
   assert.equal(itemsIn(gallery, "all").length, 4);
+});
+
+test("gallery videos keep a valid play range and drop a bad one", () => {
+  const poster = "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/ab/A.webm/1920px-seek=7-A.webm.jpg";
+  const video = "https://upload.wikimedia.org/wikipedia/commons/transcoded/a/ab/A.webm/A.webm.1080p.vp9.webm";
+  const item = (start: unknown, end: unknown) => ({ page: "https://commons.wikimedia.org/wiki/File:A.webm", title: "A", poster, video, author: "X", license: "CC0", start, end });
+  const kept = sanitizeGallery({ categories: { nature: [item(7, 60)] } }).categories.nature![0]!;
+  assert.equal(kept.start, 7);
+  assert.equal(kept.end, 60);
+  for (const [start, end] of [[60, 7], [-1, 10], ["7", 60], [0, 1]]) {
+    const dropped = sanitizeGallery({ categories: { nature: [item(start, end)] } }).categories.nature![0]!;
+    assert.equal(dropped.start, undefined);
+  }
+  assert.equal(thumbnailOf(kept, 330), "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/ab/A.webm/330px-seek=7-A.webm.jpg");
 });

@@ -1,0 +1,188 @@
+diff --git a/chrome/browser/extensions/api/search/search_api.cc b/chrome/browser/extensions/api/search/search_api.cc
+--- a/chrome/browser/extensions/api/search/search_api.cc
++++ b/chrome/browser/extensions/api/search/search_api.cc
+@@ -15,6 +15,8 @@
+ #include "chrome/browser/ui/browser_window/public/browser_window_interface_iterator.h"
+ #include "chrome/browser/ui/navigator/browser_navigator.h"
+ #include "chrome/common/extensions/api/search.h"
++#include "components/search_engines/template_url.h"
++#include "components/search_engines/template_url_service.h"
+ #include "components/search_engines/util.h"
+ #include "content/public/browser/navigation_controller.h"
+ #include "content/public/browser/web_contents.h"
+@@ -196,4 +198,84 @@
+   Respond(NoArguments());
+ }
+ 
++namespace {
++
++// Orbit's built-in extension, the only caller allowed to read or change the
++// default search engine.
++constexpr char kOrbitExtensionId[] = "kceipbaiojomdibnboffoieecidpfdck";
++
++TemplateURLService* OrbitSearchEngines(content::BrowserContext* context) {
++  return context ? TemplateURLServiceFactory::GetForProfile(
++                       Profile::FromBrowserContext(context))
++                 : nullptr;
++}
++
++}  // namespace
++
++ExtensionFunction::ResponseAction SearchGetDefaultFunction::Run() {
++  if (extension_id() != kOrbitExtensionId) {
++    return RespondNow(Error("Not available."));
++  }
++  TemplateURLService* service = OrbitSearchEngines(browser_context());
++  if (!service) {
++    return RespondNow(Error("No search engines."));
++  }
++  if (service->loaded()) {
++    return RespondNow(Result());
++  }
++  loaded_subscription_ = service->RegisterOnLoadedCallback(
++      base::BindOnce(&SearchGetDefaultFunction::OnLoaded, this));
++  service->Load();
++  return did_respond() ? AlreadyResponded() : RespondLater();
++}
++
++void SearchGetDefaultFunction::OnLoaded() {
++  Respond(Result());
++}
++
++ExtensionFunction::ResponseValue SearchGetDefaultFunction::Result() {
++  TemplateURLService* service = OrbitSearchEngines(browser_context());
++  const TemplateURL* engine =
++      service ? service->GetDefaultSearchProvider() : nullptr;
++  return ArgumentList(api::search::GetDefault::Results::Create(
++      engine ? base::UTF16ToUTF8(engine->keyword()) : std::string()));
++}
++
++ExtensionFunction::ResponseAction SearchSetDefaultFunction::Run() {
++  if (extension_id() != kOrbitExtensionId) {
++    return RespondNow(Error("Not available."));
++  }
++  std::optional<api::search::SetDefault::Params> params =
++      api::search::SetDefault::Params::Create(args());
++  EXTENSION_FUNCTION_VALIDATE(params);
++  keyword_ = params->keyword;
++  TemplateURLService* service = OrbitSearchEngines(browser_context());
++  if (!service) {
++    return RespondNow(Error("No search engines."));
++  }
++  if (service->loaded()) {
++    return RespondNow(Result());
++  }
++  loaded_subscription_ = service->RegisterOnLoadedCallback(
++      base::BindOnce(&SearchSetDefaultFunction::OnLoaded, this));
++  service->Load();
++  return did_respond() ? AlreadyResponded() : RespondLater();
++}
++
++void SearchSetDefaultFunction::OnLoaded() {
++  Respond(Result());
++}
++
++ExtensionFunction::ResponseValue SearchSetDefaultFunction::Result() {
++  TemplateURLService* service = OrbitSearchEngines(browser_context());
++  TemplateURL* engine =
++      service ? service->GetTemplateURLForKeyword(base::UTF8ToUTF16(keyword_))
++              : nullptr;
++  if (!engine || !service->CanMakeDefault(engine)) {
++    return Error("This search engine can't be made the default.");
++  }
++  service->SetUserSelectedDefaultSearchProvider(engine);
++  return NoArguments();
++}
++
+ }  // namespace extensions
+diff --git a/chrome/browser/extensions/api/search/search_api.h b/chrome/browser/extensions/api/search/search_api.h
+--- a/chrome/browser/extensions/api/search/search_api.h
++++ b/chrome/browser/extensions/api/search/search_api.h
+@@ -5,6 +5,9 @@
+ #ifndef CHROME_BROWSER_EXTENSIONS_API_SEARCH_SEARCH_API_H_
+ #define CHROME_BROWSER_EXTENSIONS_API_SEARCH_SEARCH_API_H_
+ 
++#include <string>
++
++#include "base/callback_list.h"
+ #include "extensions/browser/extension_function.h"
+ #include "extensions/buildflags/buildflags.h"
+ 
+@@ -25,6 +28,37 @@
+   void OnNavigate();
+ };
+ 
++// Orbit: reads the browser's default search engine.
++class SearchGetDefaultFunction : public ExtensionFunction {
++ public:
++  DECLARE_EXTENSION_FUNCTION("search.getDefault", SEARCH_GETDEFAULT)
++  SearchGetDefaultFunction() = default;
++
++ private:
++  ~SearchGetDefaultFunction() override = default;
++  ResponseAction Run() override;
++  ResponseValue Result();
++  void OnLoaded();
++
++  base::CallbackListSubscription loaded_subscription_;
++};
++
++// Orbit: sets the browser's default search engine.
++class SearchSetDefaultFunction : public ExtensionFunction {
++ public:
++  DECLARE_EXTENSION_FUNCTION("search.setDefault", SEARCH_SETDEFAULT)
++  SearchSetDefaultFunction() = default;
++
++ private:
++  ~SearchSetDefaultFunction() override = default;
++  ResponseAction Run() override;
++  ResponseValue Result();
++  void OnLoaded();
++
++  std::string keyword_;
++  base::CallbackListSubscription loaded_subscription_;
++};
++
+ }  // namespace extensions
+ 
+ #endif  // CHROME_BROWSER_EXTENSIONS_API_SEARCH_SEARCH_API_H_
+diff --git a/chrome/common/extensions/api/search.idl b/chrome/common/extensions/api/search.idl
+--- a/chrome/common/extensions/api/search.idl
++++ b/chrome/common/extensions/api/search.idl
+@@ -31,6 +31,8 @@
+ 
+   callback QueryCallback = void();
+ 
++  callback GetDefaultCallback = void(DOMString keyword);
++
+   interface Functions {
+     // Used to query the default search provider.
+     // In case of an error,
+@@ -38,5 +40,15 @@
+     static void query(
+         QueryInfo queryInfo,
+         optional QueryCallback callback);
++
++    // Orbit: the keyword of the default search engine, or an empty string
++    // when there is none. Only Orbit's built-in extension can call this.
++    static void getDefault(GetDefaultCallback callback);
++
++    // Orbit: makes the search engine with this keyword the default. Only
++    // Orbit's built-in extension can call this.
++    static void setDefault(
++        DOMString keyword,
++        optional QueryCallback callback);
+   };
+ };
+diff --git a/extensions/browser/extension_function_histogram_value.h b/extensions/browser/extension_function_histogram_value.h
+--- a/extensions/browser/extension_function_histogram_value.h
++++ b/extensions/browser/extension_function_histogram_value.h
+@@ -2055,6 +2055,8 @@
+   AUTOFILLPRIVATE_GETDETAILSFORUPSERTPASS = 1990,
+   AUTOFILLPRIVATE_PRELOADDETAILSFORUPSERTPASS = 1991,
+   EXPERIMENTALAIDATA_GETAPCSNAPSHOT = 1992,
++  SEARCH_GETDEFAULT = 1993,
++  SEARCH_SETDEFAULT = 1994,
+   // Last entry: Add new entries above, then run:
+   // tools/metrics/histograms/update_extension_histograms.py
+   ENUM_BOUNDARY

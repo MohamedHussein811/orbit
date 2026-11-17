@@ -48,6 +48,35 @@ diff --git a/chrome/browser/chrome_content_browser_client.cc b/chrome/browser/ch
      content::RenderProcessHost* process =
          content::RenderProcessHost::FromID(child_process_id);
      if (process) {
+diff --git a/chrome/browser/profiles/pref_service_builder_utils.cc b/chrome/browser/profiles/pref_service_builder_utils.cc
+--- a/chrome/browser/profiles/pref_service_builder_utils.cc
++++ b/chrome/browser/profiles/pref_service_builder_utils.cc
+@@ -96,6 +96,16 @@
+       "Ecosia", "ecosia.org", "https://www.ecosia.org/search?q={searchTerms}",
+       "https://ac.ecosia.org/autocomplete?q={searchTerms}&type=list",
+       "https://www.ecosia.org/favicon.ico", 101));
++  engines.Append(OrbitSearchEngine(
++      "Brave Search", "search.brave.com",
++      "https://search.brave.com/search?q={searchTerms}",
++      "https://search.brave.com/api/suggest?q={searchTerms}",
++      "https://cdn.search.brave.com/serp/favicon.ico", 109));
++  engines.Append(OrbitSearchEngine(
++      "Startpage", "startpage.com",
++      "https://www.startpage.com/sp/search?q={searchTerms}",
++      "https://www.startpage.com/osuggestions?q={searchTerms}",
++      "https://www.startpage.com/favicon.ico", 113));
+   SetOrbitDefault(registry, "search_provider_overrides", base::Value(std::move(engines)));
+ 
+   SetOrbitDefault(registry, "profile.cookie_controls_mode", base::Value(1));
+@@ -111,6 +121,8 @@
+ 
+   // Follow the device's light or dark setting.
+   SetOrbitDefault(registry, "browser.theme.color_scheme2", base::Value(0));
++  // Continue where the person left off.
++  SetOrbitDefault(registry, "session.restore_on_startup", base::Value(1));
+ #if BUILDFLAG(IS_LINUX)
+   SetOrbitDefault(registry, "extensions.theme.system_theme", base::Value(0));
+ #endif
 diff --git a/chrome/browser/ui/safety_hub/menu_notification_service.cc b/chrome/browser/ui/safety_hub/menu_notification_service.cc
 --- a/chrome/browser/ui/safety_hub/menu_notification_service.cc
 +++ b/chrome/browser/ui/safety_hub/menu_notification_service.cc
@@ -66,3 +95,26 @@ diff --git a/chrome/browser/ui/safety_hub/menu_notification_service.cc b/chrome/
      // The result in the ResultMap (item.second) is being moved away from and
      // thus shouldn't be used again in this method.
      notification->UpdateResult(std::move(item.second));
+diff --git a/chrome/browser/ui/startup/startup_browser_creator_impl.cc b/chrome/browser/ui/startup/startup_browser_creator_impl.cc
+--- a/chrome/browser/ui/startup/startup_browser_creator_impl.cc
++++ b/chrome/browser/ui/startup/startup_browser_creator_impl.cc
+@@ -24,6 +24,7 @@
+ #include "chrome/browser/defaults.h"
+ #include "chrome/browser/first_run/first_run.h"
+ #include "chrome/browser/headless/headless_command_processor.h"
++#include "chrome/browser/headless/headless_mode_util.h"
+ #include "chrome/browser/lifetime/application_lifetime_desktop.h"
+ #include "chrome/browser/prefs/session_startup_pref.h"
+ #include "chrome/browser/profiles/keep_alive/profile_keep_alive_types.h"
+@@ -828,7 +829,10 @@
+     return BrowserOpenBehavior::NEW;
+   }
+ 
+-  if (pref.ShouldRestoreLastSession()) {
++  // Orbit restores the last session by default. Headless runs open the page
++  // they were given instead: the restore path opens it itself and skips the
++  // headless commands (such as --dump-dom), which then never finish.
++  if (pref.ShouldRestoreLastSession() && !headless::IsHeadlessMode()) {
+     // Don't perform a session restore on a post-crash launch, as this could
+     // cause a crash loop.
+     if (!(options & IS_POST_CRASH_LAUNCH)) {

@@ -29,18 +29,6 @@
   "widgetFailed": {
     "message": "تعذّر تحميل $1. باقي الصفحة يعمل كالمعتاد."
   },
-  "sizeSmall": {
-    "message": "صغير"
-  },
-  "sizeMedium": {
-    "message": "متوسط"
-  },
-  "sizeLarge": {
-    "message": "كبير"
-  },
-  "widgetSize": {
-    "message": "حجم $1"
-  },
   "moveUp": {
     "message": "نقل $1 لأعلى"
   },
@@ -52,9 +40,6 @@
   },
   "backgroundPlain": {
     "message": "سادة"
-  },
-  "backgroundDefault": {
-    "message": "ثقب أسود"
   },
   "backgroundCustom": {
     "message": "من اختيارك"
@@ -95,20 +80,11 @@
   "playVideo": {
     "message": "تشغيل فيديو الخلفية"
   },
-  "browserTheme": {
-    "message": "المظهر"
-  },
   "browserThemeExplained": {
     "message": "تتبع الخلفية السادة وهذه اللوحة الوضع الفاتح أو الداكن للمتصفح. يمكنك تغييره من الإعدادات."
   },
-  "openThemeSettings": {
-    "message": "فتح إعدادات المظهر"
-  },
   "widgets": {
     "message": "الأدوات"
-  },
-  "dragHint": {
-    "message": "يمكنك أيضًا سحب الأدوات على الصفحة ما دامت هذه اللوحة مفتوحة."
   },
   "restoreLayout": {
     "message": "استعادة الترتيب الافتراضي"
@@ -554,9 +530,6 @@
   "done": {
     "message": "تم"
   },
-  "backgroundPictures": {
-    "message": "الصور"
-  },
   "backgroundColors": {
     "message": "الألوان والتدرجات"
   },
@@ -602,9 +575,6 @@
   "sectionSearch": {
     "message": "البحث"
   },
-  "sectionTopSites": {
-    "message": "المواقع المفضلة"
-  },
   "sectionTheme": {
     "message": "المظهر"
   },
@@ -628,18 +598,6 @@
   },
   "searchEngine": {
     "message": "البحث باستخدام"
-  },
-  "browserDefaultEngine": {
-    "message": "محرك بحث المتصفح"
-  },
-  "browserDefaultEngineNote": {
-    "message": "نفس المحرك الذي يستخدمه شريط العناوين"
-  },
-  "searchEngineNote": {
-    "message": "ينطبق هذا على مربع البحث في هذه الصفحة. يستخدم شريط العناوين محرك بحث المتصفح، ويمكنك تغييره من الإعدادات."
-  },
-  "openSearchSettings": {
-    "message": "تغيير محرك بحث المتصفح"
   },
   "searchWithEngine": {
     "message": "ابحث في $1 أو أدخل عنوانًا"
@@ -734,15 +692,6 @@
   "historyPage": {
     "message": "السجل"
   },
-  "iconAfterAddress": {
-    "message": "تظهر أيقونة الموقع بعد إدخال العنوان"
-  },
-  "iconFromSite": {
-    "message": "أيقونة الموقع نفسه"
-  },
-  "iconYourImage": {
-    "message": "صورتك"
-  },
   "backgroundGallery": {
     "message": "معرض Orbit"
   },
@@ -826,5 +775,92 @@
   },
   "galleryLiveNote": {
     "message": "يشغّل الفيديو"
+  },
+  "engineNotSet": {
+    "message": "تعذّر على Orbit تغيير محرك البحث. يمكنك تغييره من الإعدادات."
+  },
+  "welcomePageTitle": {
+    "message": "مرحبًا بك في Orbit"
+  },
+  "welcomeTitle": {
+    "message": "مرحبًا بك في Orbit"
+  },
+  "welcomeIntro": {
+    "message": "متصفح سريع يُبقي ما تفعله على جهازك. بلا حسابات ولا إعلانات ولا تتبّع، هكذا صُمّم."
+  },
+  "welcomeProtectTitle": {
+    "message": "الحماية مفعّلة بالفعل"
+  },
+  "welcomeProtectText": {
+    "message": "تعمل دروع Orbit على هذا الجهاز قبل أن تحمّل الصفحات ما تطلبه. يعرض زر الدرع بجانب شريط العنوان ما حُجب في الصفحة، ويوقف الدروع لموقع لا يعمل كما يجب."
+  },
+  "welcomeFactAds": {
+    "message": "الإعلانات والنوافذ المنبثقة"
+  },
+  "welcomeFactTrackers": {
+    "message": "المتتبعات التي تلاحقك من موقع إلى آخر"
+  },
+  "welcomeFactThreats": {
+    "message": "مواقع البرمجيات الخبيثة والتصيّد المعروفة"
+  },
+  "welcomeBringTitle": {
+    "message": "انقل أشياءك إلى Orbit"
+  },
+  "welcomeBringText": {
+    "message": "انسخ إشاراتك المرجعية وسجلّك من Chrome أو Edge أو Brave أو Opera أو Vivaldi أو Firefox. أغلق ذلك المتصفح أولًا ليمكن قراءة سجلّه. يبقى كل شيء على هذا الجهاز."
+  },
+  "welcomeImport": {
+    "message": "اختر متصفحًا للاستيراد منه"
+  },
+  "welcomePasswordsTitle": {
+    "message": "كلمات المرور"
+  },
+  "welcomePasswordsText": {
+    "message": "تقفل المتصفحات الأخرى كلمات المرور المحفوظة فلا يقرأها غيرها. لنقلها:"
+  },
+  "welcomePasswordsStep1": {
+    "message": "في متصفحك القديم، افتح إعدادات كلمات المرور واختر تصدير كلمات المرور. سيحفظ ملف CSV."
+  },
+  "welcomePasswordsStep2": {
+    "message": "في Orbit، افتح كلمات المرور واختر استيراد كلمات المرور ثم اختر ذلك الملف."
+  },
+  "welcomePasswordsStep3": {
+    "message": "احذف ملف CSV بعد ذلك، فهو يحفظ كلمات مرورك كنص مقروء."
+  },
+  "welcomeOpenPasswords": {
+    "message": "فتح كلمات مرور Orbit"
+  },
+  "welcomeDoneTitle": {
+    "message": "كل شيء جاهز"
+  },
+  "welcomeDoneText": {
+    "message": "يمكنك إعادة هذه الجولة أو الاستيراد لاحقًا من إعدادات الخصوصية في Orbit."
+  },
+  "welcomeDefault": {
+    "message": "اجعل Orbit متصفحك الافتراضي"
+  },
+  "welcomeStart": {
+    "message": "ابدأ التصفح"
+  },
+  "welcomeNext": {
+    "message": "التالي"
+  },
+  "welcomeBack": {
+    "message": "السابق"
+  },
+  "welcomeSkip": {
+    "message": "تخطٍّ"
+  },
+  "welcomeStep": {
+    "message": "الخطوة $1 من $2"
+  },
+  "moreImport": {
+    "message": "استيراد الإشارات المرجعية والسجل من متصفح آخر"
+  },
+  "moreWelcome": {
+    "message": "إعادة جولة الترحيب"
+  },
+  "widgetsDocked": {
+    "message": "أسفل الصفحة"
   }
 }

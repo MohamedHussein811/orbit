@@ -14,7 +14,7 @@ const OUT = path.join(ROOT, "extension", "src", "newtab", "gallery.json");
 const API = "https://commons.wikimedia.org/w/api.php";
 const USER_AGENT = "OrbitGalleryBuild/2.0 (https://github.com/MohamedHussein811/orbit)";
 const PER_CATEGORY = 12;
-const MIN_VIDEOS = 6;
+const MIN_VIDEOS = 5;
 const POSTER_WIDTH = 1920;
 const PHOTO_WIDTH = 2560;
 
@@ -62,19 +62,13 @@ const PICKS = {
     "File:Fallow deer in Dyrehaven 2.webm",
     "File:Fallow deer in Dyrehaven 3.webm",
     "File:Carduelis sinica bathing and flying x40 slowmotion.webm",
-    "File:Sounds of Earth Yakushima deer walking and eating.webm",
   ],
   space: [
     "File:Crew Earth Observations (4K).webm",
     "File:ISS 4K Crew Earth Observations.webm",
     "File:2016-09 Aurora timelapse Saguenay.webm",
     "File:Nordlys i Kjærfjorden.webm",
-    "File:Timelapse of Milky way changing colors during Aurora - 53921478021.webm",
-    "File:Aurora Borealis and Perseids above Germany 12.08.2024.webm",
     "File:Air traffic in the Swiss night sky as seen from Oeschinensee Video by Giles Laurent.webm",
-    "File:SDO Video Toolkit (SVS14126 - 4038 Solar Ballet CU mk II).webm",
-    "File:SDO Video Toolkit (SVS14126 - Canyon of Fire New-Slow).webm",
-    "File:SDO Video Toolkit (SVS14126 - Holiday Lights Blend Move MkIII).webm",
   ],
   travel: [
     "File:Castle ruins in Germany.webm",
@@ -85,7 +79,6 @@ const PICKS = {
     "File:Drone video of Põltsamaa river and castle in Estonia.webm",
     "File:Drone video of Haapsalu castle (June 2022).webm",
     "File:Video of Krka river near Žužemberk Castle by TheTokl - 01.webm",
-    "File:The Beautiful Blue River - DJI Phantom 4 Drone Footage 4K - Breckenridge Colorado.webm",
     "File:Drone video of Rakvere in February 2022.ogv",
     "File:Drone video of ruins of Lihula stronghold, the manor and town (august 2021).webm",
   ],
@@ -96,8 +89,6 @@ const PICKS = {
     "File:Yellow flowers (AV1 sample).webm",
     "File:The Flower Fields at Carlsbad Ranch 1 2019-06-10.webm",
     "File:The Flower Fields at Carlsbad Ranch 6 2019-06-10.webm",
-    "File:Mount Fuji at sunset (timelapse).webm",
-    "File:Timelapse of sunset in Norway - Earth spinning or Sun moving-.webm",
     "File:Sunset tokyoarea-timelapse-2019-03-17.webm",
     "File:Sunset timelapse in Funchal - 2014.webm",
     "File:Timelapse Joshua Tree Clouds and Sunset Near West Entrance.webm",
@@ -111,11 +102,9 @@ const PICKS = {
     "File:Wind Surfing-1025737, Dingle Peninsula, Co. Kerry, Ireland.webm",
     "File:Kite surfing at Viganj 163559 1.webm",
     "File:Timelapse - kitesurfing in Mauritius.webm",
-    "File:Skiing in Engelberg Titlis.webm",
     "File:Sailing to Orebić 151837.webm",
     "File:Sailing from Orebić 104037.webm",
     "File:Sailing in sunrise, Pelješac channel 072745.webm",
-    "File:Malibu-Surfrider Beach-First Point.ogg",
   ],
   people: [
     "File:Garba dance during Navaratri festival in Mehsana Gujarat India.ogv",
@@ -126,12 +115,10 @@ const PICKS = {
     "File:Vishvadeep performing Kathak at Khajuraho Dance Festival 2026 001.webm",
     "File:Rabha Hamzar dance of Assam, where culture, energy and heritage come alive in every step.webm",
     "File:Nagasaki lantern festival - 2023 1 28.webm",
-    "File:1000 Lanterns Festival (Emukae Sentourou) (975183).webm",
     "File:Timelapse at Cantin, Malmö.webm",
   ],
   city: [
     "File:Shanghai Bund, Lujiazui Skyline Timelapse.webm",
-    "File:Timelapse ferry.ogv",
     "File:今日係2020年嘅最後一日，我特別去咗深水埗嘉頓山(喃嘸山)睇今年最後一次日落.webm",
     "File:Tampines West.Singapore Skyline.Earth Hour 2016. - Time Lapse 19th March 2016 -.webm",
     "File:Ocean Moon Glint and City Night Lights in 4K.webm",
@@ -139,9 +126,7 @@ const PICKS = {
   ],
   things: [
     "File:Candles+camera dolly.ogv",
-    "File:Corona.Candle.webm",
     "File:028 Lighting and blowing of a candle (normal speed) Video by Giles Laurent.webm",
-    "File:Beachfront B-Roll- Record Background (Free to Use Stock Footage).webm",
     "File:Collections in Motion- Valentine Typewriter.webm",
     "File:Triumph-Adler electric 131d.webm",
     "File:Adding a new ribbon to Smith-Corona Galaxie.webm",
@@ -169,7 +154,6 @@ const PICKS = {
     "File:Kungsgatan i Stockholm.webm",
     "File:Ortspyramide in Lößnitz. Erzgebirgskreis, Sachsen 2H1A9635.webm",
     "File:Private Weihnachtspyramide in Hohndorf, Erzgebirgskres 2H1A8550.webm",
-    "File:Christmas time in Ljubljana.webm",
     "File:Christmas market in Ljubljana city centre - part 3.webm",
     "File:Blauer-Baum-2022.mp4.ogg",
     "File:Riesenrad Augustusmarkt 2022.ogg",
@@ -180,7 +164,6 @@ const PICKS = {
   abstractions: [
     "File:Flowing Lava at Kilauea, Hawaii.webm",
     "File:007 Volcano eruption of Litli-Hrútur in Iceland in 2023 Video by Giles Laurent.webm",
-    "File:Mandelbrot-Zoom 'Seepferdchenbuchtzyklenkumulation' 4K UHD 60 FPS.webm",
     "File:Mandelbrot set zoom 2K.webm",
     "File:Mandelbrot set zoom 4K.webm",
     "File:Тонкая пленка мыльного пузыря 1.webm",
@@ -204,7 +187,32 @@ const SKIP = new Set([
   "File:Santa Claus - Sunkist Ad (1928).jpg",
   "File:Rhodium powder pressed melted.jpg",
   "File:VitorJubini PaneleirasdeGoiabeiras Vitoria ES (40735316325).jpg",
+  // Reviewed for 1.0.2 and left out: low bitrate (the SDO clips, Corona.Candle), black side bars,
+  // shaky or blurred footage, and title or advertising cards.
+  "File:SDO Video Toolkit (SVS14126 - 4038 Solar Ballet CU mk II).webm",
+  "File:SDO Video Toolkit (SVS14126 - Canyon of Fire New-Slow).webm",
+  "File:SDO Video Toolkit (SVS14126 - Holiday Lights Blend Move MkIII).webm",
+  "File:Timelapse of Milky way changing colors during Aurora - 53921478021.webm",
+  "File:Aurora Borealis and Perseids above Germany 12.08.2024.webm",
+  "File:Sounds of Earth Yakushima deer walking and eating.webm",
+  "File:The Beautiful Blue River - DJI Phantom 4 Drone Footage 4K - Breckenridge Colorado.webm",
+  "File:Mount Fuji at sunset (timelapse).webm",
+  "File:Timelapse of sunset in Norway - Earth spinning or Sun moving-.webm",
+  "File:Skiing in Engelberg Titlis.webm",
+  "File:Malibu-Surfrider Beach-First Point.ogg",
+  "File:1000 Lanterns Festival (Emukae Sentourou) (975183).webm",
+  "File:Timelapse ferry.ogv",
+  "File:Corona.Candle.webm",
+  "File:Beachfront B-Roll- Record Background (Free to Use Stock Footage).webm",
+  "File:Christmas time in Ljubljana.webm",
+  "File:Mandelbrot-Zoom 'Seepferdchenbuchtzyklenkumulation' 4K UHD 60 FPS.webm",
 ]);
+
+/** Seconds to play, for videos with a title card or a closing logo: [start, end]. */
+const TRIM = {
+  "File:Crew Earth Observations (4K).webm": [7, 60],
+  "File:ISS 4K Crew Earth Observations.webm": [7, 60],
+};
 
 async function api(params) {
   const url = new URL(API);
@@ -352,6 +360,12 @@ const take = (item) => {
   used.add(item.title);
   const entry = { title: cleanTitle(item.title), page: item.page, poster: item.poster, author: item.author, license: item.license, licenseUrl: item.licenseUrl };
   if (item.video) entry.video = item.video;
+  const trim = TRIM[item.title];
+  if (trim) {
+    [entry.start, entry.end] = trim;
+    // The still frame comes from the first second that plays.
+    entry.poster = item.poster.replace(/\/(\d+)px--/, `/$1px-seek=${trim[0]}-`);
+  }
   return entry;
 };
 for (const [id, sources] of Object.entries(CATEGORIES)) {

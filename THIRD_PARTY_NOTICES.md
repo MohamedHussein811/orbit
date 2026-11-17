@@ -11,6 +11,7 @@ Orbit is built from Chromium. The full list of Chromium's components and their l
 Shields ships rules compiled from these lists. `filters/rules/meta.json` records the exact source, hash and license of each.
 
 - EasyList and EasyPrivacy, by The EasyList authors (https://easylist.to/), used under CC BY-SA 3.0.
+- Liste AR, by the Liste AR authors (https://code.google.com/p/liste-ar-adblock/), used under CC BY-SA 3.0.
 - Malicious URL Blocklist, by Ming Di Leom (https://gitlab.com/malware-filter/urlhaus-filter), CC0 1.0, from URLhaus data by abuse.ch. Not endorsed by abuse.ch.
 - Phishing URL Blocklist, by Ming Di Leom (https://gitlab.com/malware-filter/phishing-filter), used under CC BY-SA 4.0, from OpenPhish, IPThreat and PhishTank data. Not endorsed by those sources.
 

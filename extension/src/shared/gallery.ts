@@ -15,6 +15,9 @@ export interface GalleryItem {
   /** The still frame, or the picture for items without a video. */
   poster: string;
   video?: string;
+  /** Seconds of the video that play, for videos with a title card or a closing logo. */
+  start?: number;
+  end?: number;
   author: string;
   license: string;
   licenseUrl: string;
@@ -52,6 +55,14 @@ export const NASA_BLACK_HOLE: GalleryItem = {
 const POSTER = /^https:\/\/(upload|thumb)\.wikimedia\.org\//;
 const VIDEO = /^https:\/\/upload\.wikimedia\.org\/.+\.webm$/;
 
+const MAX_CLIP_SECONDS = 3600;
+
+function clipRange(start: unknown, end: unknown): { start?: number; end?: number } {
+  const valid = (value: unknown): value is number => typeof value === "number" && Number.isFinite(value) && value >= 0 && value <= MAX_CLIP_SECONDS;
+  if (!valid(start) || !valid(end) || end - start < 3) return {};
+  return { start, end };
+}
+
 export function sanitizeGallery(raw: unknown): Gallery {
   const categories: Partial<Record<GalleryCategory, GalleryItem[]>> = {};
   const source = ((raw as { categories?: unknown } | null)?.categories ?? {}) as Record<string, unknown>;
@@ -65,6 +76,7 @@ export function sanitizeGallery(raw: unknown): Gallery {
         title: String(item.title ?? ""),
         poster: item.poster!,
         ...(item.video ? { video: item.video } : {}),
+        ...clipRange(item.start, item.end),
         author: item.author!,
         license: String(item.license ?? ""),
         licenseUrl: String(item.licenseUrl ?? ""),

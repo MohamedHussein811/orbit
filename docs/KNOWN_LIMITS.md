@@ -26,7 +26,7 @@ These also apply to unbranded Chromium builds.
 
 - **Blocking**
   - Leftover ad space is hidden by CSS only. Filters that need a script to evaluate them are skipped, and generic filters are limited to simple selectors. Site-specific hiding applies to the top page, not to frames inside it.
-  - 3,139 EasyList filters use options with no exact equivalent in the rule engine, such as content security policy filters, and are skipped as rules. Pop-up filters are applied differently: a new tab a page opens is closed when it goes to a host EasyList names as a pop-up or ad server. Pop-ups to unlisted hosts, and ads drawn over a video by the page itself, can still appear.
+  - 3,224 filters from EasyList and Liste AR use options with no exact equivalent in the rule engine, such as content security policy filters, and are skipped as rules. Pop-up filters are applied differently: a new tab a page opens is closed when it goes to a host the lists name as a pop-up or ad server. A tab a page opens behind the current one (a pop-under) is also closed when it goes to another site, unless the person opened it with a middle click, Ctrl or Cmd click, or the link menu. Pop-ups that open in front to unlisted hosts, and ads or fake sign-in boxes drawn over a video by the page itself, can still appear.
   - Filters in regular expression form are skipped.
   - New rules arrive with each release, through the built-in extension's own update feed.
   - YouTube ads are removed by a page script that strips the ad entries from YouTube's player data. Tested on two videos on 2026-11-14: the ad entries were gone and the videos played. YouTube changes often, and ads stitched into the video stream itself cannot be removed this way.
@@ -37,7 +37,7 @@ These also apply to unbranded Chromium builds.
 - **Default browser:** the Windows installer registers Orbit so Windows can offer it in Default apps. Settings has a "Make default" button whose effect has not been tested, and it may not detect that Orbit is the default.
 - **Sign-in to the browser** is off. Google sites can still be used normally in a tab, though real Google login has not been tested.
 - **macOS and Linux** have only run on CI machines, not on physical computers.
-- **macOS full screen** shows the tabs in macOS's full screen title bar above the toolbar, as Chrome does, instead of Orbit's single row. Changing it means leaving Chromium's tabbed full screen mode, which needs testing on a real Mac.
+- **macOS full screen** shows the tabs in macOS's full screen title bar above the toolbar, as Chrome does, and hides Orbit's rail.
 
 ## Not measured yet
 

@@ -1,0 +1,242 @@
+diff --git a/chrome/browser/importer/importer_list.cc b/chrome/browser/importer/importer_list.cc
+--- a/chrome/browser/importer/importer_list.cc
++++ b/chrome/browser/importer/importer_list.cc
+@@ -6,7 +6,18 @@
+ 
+ #include <stdint.h>
+ 
++#include <optional>
++#include <string>
++
++#include "base/base_paths.h"
++#include "base/files/file_path.h"
++#include "base/files/file_util.h"
+ #include "base/functional/bind.h"
++#include "base/json/json_reader.h"
++#include "base/path_service.h"
++#include "base/strings/utf_string_conversions.h"
++#include "base/values.h"
++#include "chrome/common/chrome_paths.h"
+ #include "base/task/task_traits.h"
+ #include "base/task/thread_pool.h"
+ #include "base/threading/scoped_blocking_call.h"
+@@ -90,6 +101,137 @@
+ }
+ #endif  // BUILDFLAG(IS_MAC)
+ 
++// Orbit: browsers built on Chromium keep bookmarks and history in plain files
++// in each profile folder, so they are offered for import. Their passwords and
++// cookies are encrypted for that browser only and are not offered.
++struct OrbitChromiumBrowser {
++  const char16_t* name;
++  int base_key;
++  const base::FilePath::CharType* folder;
++};
++
++constexpr OrbitChromiumBrowser kOrbitChromiumBrowsers[] = {
++#if BUILDFLAG(IS_WIN)
++    {u"Google Chrome", base::DIR_LOCAL_APP_DATA,
++     FILE_PATH_LITERAL("Google\\Chrome\\User Data")},
++    {u"Microsoft Edge", base::DIR_LOCAL_APP_DATA,
++     FILE_PATH_LITERAL("Microsoft\\Edge\\User Data")},
++    {u"Brave", base::DIR_LOCAL_APP_DATA,
++     FILE_PATH_LITERAL("BraveSoftware\\Brave-Browser\\User Data")},
++    {u"Opera", base::DIR_ROAMING_APP_DATA,
++     FILE_PATH_LITERAL("Opera Software\\Opera Stable")},
++    {u"Opera GX", base::DIR_ROAMING_APP_DATA,
++     FILE_PATH_LITERAL("Opera Software\\Opera GX Stable")},
++    {u"Vivaldi", base::DIR_LOCAL_APP_DATA,
++     FILE_PATH_LITERAL("Vivaldi\\User Data")},
++    {u"Yandex Browser", base::DIR_LOCAL_APP_DATA,
++     FILE_PATH_LITERAL("Yandex\\YandexBrowser\\User Data")},
++    {u"Chromium", base::DIR_LOCAL_APP_DATA,
++     FILE_PATH_LITERAL("Chromium\\User Data")},
++#elif BUILDFLAG(IS_MAC)
++    {u"Google Chrome", base::DIR_APP_DATA, FILE_PATH_LITERAL("Google/Chrome")},
++    {u"Microsoft Edge", base::DIR_APP_DATA,
++     FILE_PATH_LITERAL("Microsoft Edge")},
++    {u"Brave", base::DIR_APP_DATA,
++     FILE_PATH_LITERAL("BraveSoftware/Brave-Browser")},
++    {u"Opera", base::DIR_APP_DATA,
++     FILE_PATH_LITERAL("com.operasoftware.Opera")},
++    {u"Opera GX", base::DIR_APP_DATA,
++     FILE_PATH_LITERAL("com.operasoftware.OperaGX")},
++    {u"Vivaldi", base::DIR_APP_DATA, FILE_PATH_LITERAL("Vivaldi")},
++    {u"Arc", base::DIR_APP_DATA, FILE_PATH_LITERAL("Arc/User Data")},
++    {u"Chromium", base::DIR_APP_DATA, FILE_PATH_LITERAL("Chromium")},
++#else
++    {u"Google Chrome", base::DIR_HOME,
++     FILE_PATH_LITERAL(".config/google-chrome")},
++    {u"Microsoft Edge", base::DIR_HOME,
++     FILE_PATH_LITERAL(".config/microsoft-edge")},
++    {u"Brave", base::DIR_HOME,
++     FILE_PATH_LITERAL(".config/BraveSoftware/Brave-Browser")},
++    {u"Opera", base::DIR_HOME, FILE_PATH_LITERAL(".config/opera")},
++    {u"Vivaldi", base::DIR_HOME, FILE_PATH_LITERAL(".config/vivaldi")},
++    {u"Chromium", base::DIR_HOME, FILE_PATH_LITERAL(".config/chromium")},
++#endif
++};
++
++constexpr size_t kOrbitMaxLocalStateBytes = 16 * 1024 * 1024;
++
++void AddOrbitChromiumProfile(
++    const std::u16string& browser,
++    const std::u16string& profile,
++    const base::FilePath& folder,
++    std::vector<user_data_importer::SourceProfile>* profiles) {
++  uint16_t services = user_data_importer::NONE;
++  if (base::PathExists(folder.AppendASCII("Bookmarks"))) {
++    services |= user_data_importer::FAVORITES;
++  }
++  if (base::PathExists(folder.AppendASCII("History"))) {
++    services |= user_data_importer::HISTORY;
++  }
++  if (services == user_data_importer::NONE) {
++    return;
++  }
++  user_data_importer::SourceProfile source;
++  source.importer_name = browser;
++  source.profile = profile;
++  source.importer_type = user_data_importer::TYPE_CHROMIUM;
++  source.source_path = folder;
++  source.services_supported = services;
++  profiles->push_back(source);
++}
++
++void DetectChromiumProfiles(
++    std::vector<user_data_importer::SourceProfile>* profiles) {
++  base::ScopedBlockingCall scoped_blocking_call(FROM_HERE,
++                                                base::BlockingType::MAY_BLOCK);
++  base::FilePath own_data;
++  base::PathService::Get(chrome::DIR_USER_DATA, &own_data);
++  for (const OrbitChromiumBrowser& browser : kOrbitChromiumBrowsers) {
++    base::FilePath base_folder;
++    if (!base::PathService::Get(browser.base_key, &base_folder)) {
++      continue;
++    }
++    const base::FilePath user_data = base_folder.Append(browser.folder);
++    if (user_data == own_data || !base::DirectoryExists(user_data)) {
++      continue;
++    }
++    const size_t before = profiles->size();
++    std::string local_state;
++    std::optional<base::DictValue> state;
++    if (base::ReadFileToStringWithMaxSize(user_data.AppendASCII("Local State"),
++                                          &local_state,
++                                          kOrbitMaxLocalStateBytes)) {
++      state = base::JSONReader::ReadDict(local_state, base::JSON_PARSE_RFC);
++    }
++    const base::DictValue* info =
++        state ? state->FindDictByDottedPath("profile.info_cache") : nullptr;
++    if (info) {
++      for (const auto [folder, value] : *info) {
++        // A profile is always a folder directly inside the user data folder.
++        if (folder.empty() || folder == "." || folder == ".." ||
++            folder.find_first_of("/\\") != std::string::npos) {
++          continue;
++        }
++        const base::DictValue* entry = value.GetIfDict();
++        const std::string* name = entry ? entry->FindString("name") : nullptr;
++        AddOrbitChromiumProfile(
++            browser.name, base::UTF8ToUTF16(name ? *name : folder),
++            user_data.Append(base::FilePath::FromUTF8Unsafe(folder)),
++            profiles);
++      }
++    }
++    // Opera keeps its only profile in the user data folder itself.
++    if (profiles->size() == before) {
++      AddOrbitChromiumProfile(browser.name, std::u16string(), user_data,
++                              profiles);
++    }
++    if (profiles->size() == before) {
++      AddOrbitChromiumProfile(browser.name, std::u16string(),
++                              user_data.AppendASCII("Default"), profiles);
++    }
++  }
++}
++
+ // |locale|: The application locale used for lookups in Firefox's
+ // locale-specific search engines feature (see firefox_importer.cc for
+ // details).
+@@ -164,6 +306,7 @@
+                                                 base::BlockingType::MAY_BLOCK);
+ 
+   std::vector<user_data_importer::SourceProfile> profiles;
++  DetectChromiumProfiles(&profiles);
+ 
+   // The first run import will automatically take settings from the first
+   // profile detected, which should be the user's current default.
+diff --git a/chrome/browser/importer/importer_uma.cc b/chrome/browser/importer/importer_uma.cc
+--- a/chrome/browser/importer/importer_uma.cc
++++ b/chrome/browser/importer/importer_uma.cc
+@@ -59,6 +59,9 @@
+     case user_data_importer::TYPE_BOOKMARKS_FILE:
+       metrics_type = IMPORTER_METRICS_BOOKMARKS_FILE;
+       break;
++    case user_data_importer::TYPE_CHROMIUM:
++      metrics_type = IMPORTER_METRICS_UNKNOWN;
++      break;
+   }
+ 
+   // Note: This leaks memory, which is the expected behavior as the factory
+diff --git a/chrome/common/importer/profile_import_process_param_traits_macros.h b/chrome/common/importer/profile_import_process_param_traits_macros.h
+--- a/chrome/common/importer/profile_import_process_param_traits_macros.h
++++ b/chrome/common/importer/profile_import_process_param_traits_macros.h
+@@ -23,11 +23,11 @@
+ #if BUILDFLAG(IS_WIN)
+ IPC_ENUM_TRAITS_MIN_MAX_VALUE(user_data_importer::ImporterType,
+                               user_data_importer::TYPE_UNKNOWN,
+-                              user_data_importer::TYPE_EDGE)
++                              user_data_importer::TYPE_CHROMIUM)
+ #else
+ IPC_ENUM_TRAITS_MIN_MAX_VALUE(user_data_importer::ImporterType,
+                               user_data_importer::TYPE_UNKNOWN,
+-                              user_data_importer::TYPE_BOOKMARKS_FILE)
++                              user_data_importer::TYPE_CHROMIUM)
+ #endif
+ 
+ IPC_ENUM_TRAITS_MIN_MAX_VALUE(user_data_importer::ImportItem,
+diff --git a/chrome/utility/BUILD.gn b/chrome/utility/BUILD.gn
+--- a/chrome/utility/BUILD.gn
++++ b/chrome/utility/BUILD.gn
+@@ -96,6 +96,8 @@
+     sources += [
+       "importer/bookmarks_file_importer.cc",
+       "importer/bookmarks_file_importer.h",
++      "importer/chromium_importer.cc",
++      "importer/chromium_importer.h",
+       "importer/external_process_importer_bridge.cc",
+       "importer/external_process_importer_bridge.h",
+       "importer/importer.cc",
+diff --git a/chrome/utility/importer/importer_creator.cc b/chrome/utility/importer/importer_creator.cc
+--- a/chrome/utility/importer/importer_creator.cc
++++ b/chrome/utility/importer/importer_creator.cc
+@@ -7,6 +7,7 @@
+ #include "base/notreached.h"
+ #include "build/build_config.h"
+ #include "chrome/utility/importer/bookmarks_file_importer.h"
++#include "chrome/utility/importer/chromium_importer.h"
+ #include "chrome/utility/importer/firefox_importer.h"
+ 
+ #if BUILDFLAG(IS_WIN)
+@@ -36,6 +37,8 @@
+ #endif
+     case user_data_importer::TYPE_BOOKMARKS_FILE:
+       return new BookmarksFileImporter();
++    case user_data_importer::TYPE_CHROMIUM:
++      return new ChromiumImporter();
+ #if !BUILDFLAG(IS_CHROMEOS)
+     case user_data_importer::TYPE_FIREFOX:
+       return new FirefoxImporter();
+diff --git a/components/user_data_importer/common/importer_type.h b/components/user_data_importer/common/importer_type.h
+--- a/components/user_data_importer/common/importer_type.h
++++ b/components/user_data_importer/common/importer_type.h
+@@ -28,6 +28,8 @@
+ #if BUILDFLAG(IS_WIN)
+   TYPE_EDGE = 6,
+ #endif
++  // Orbit: browsers built on Chromium.
++  TYPE_CHROMIUM = 7,
+ };
+ 
+ }  // namespace user_data_importer

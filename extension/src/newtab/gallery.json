@@ -1,6 +1,6 @@
 {
  "source": "Wikimedia Commons",
- "built": "2026-11-15",
+ "built": "2026-11-16",
  "categories": {
   "summer": [
    {
@@ -157,35 +157,30 @@
     "license": "CC BY-SA 4.0",
     "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
     "video": "https://upload.wikimedia.org/wikipedia/commons/transcoded/8/84/Carduelis_sinica_bathing_and_flying_x40_slowmotion.webm/Carduelis_sinica_bathing_and_flying_x40_slowmotion.webm.1080p.vp9.webm"
-   },
-   {
-    "title": "Sounds of Earth Yakushima deer walking and eating",
-    "page": "https://commons.wikimedia.org/wiki/File:Sounds_of_Earth_Yakushima_deer_walking_and_eating.webm",
-    "poster": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/92/Sounds_of_Earth_Yakushima_deer_walking_and_eating.webm/1920px--Sounds_of_Earth_Yakushima_deer_walking_and_eating.webm.jpg",
-    "author": "Geraldshields11",
-    "license": "CC BY-SA 3.0",
-    "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
-    "video": "https://upload.wikimedia.org/wikipedia/commons/transcoded/9/92/Sounds_of_Earth_Yakushima_deer_walking_and_eating.webm/Sounds_of_Earth_Yakushima_deer_walking_and_eating.webm.1080p.vp9.webm"
    }
   ],
   "space": [
    {
     "title": "Crew Earth Observations (4K)",
     "page": "https://commons.wikimedia.org/wiki/File:Crew_Earth_Observations_(4K).webm",
-    "poster": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/42/Crew_Earth_Observations_%284K%29.webm/1920px--Crew_Earth_Observations_%284K%29.webm.jpg",
+    "poster": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/42/Crew_Earth_Observations_%284K%29.webm/1920px-seek=7-Crew_Earth_Observations_%284K%29.webm.jpg",
     "author": "NASA Johnson",
     "license": "Public domain",
     "licenseUrl": "",
-    "video": "https://upload.wikimedia.org/wikipedia/commons/transcoded/4/42/Crew_Earth_Observations_%284K%29.webm/Crew_Earth_Observations_%284K%29.webm.1080p.vp9.webm"
+    "video": "https://upload.wikimedia.org/wikipedia/commons/transcoded/4/42/Crew_Earth_Observations_%284K%29.webm/Crew_Earth_Observations_%284K%29.webm.1080p.vp9.webm",
+    "start": 7,
+    "end": 60
    },
    {
     "title": "ISS 4K Crew Earth Observations",
     "page": "https://commons.wikimedia.org/wiki/File:ISS_4K_Crew_Earth_Observations.webm",
-    "poster": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/04/ISS_4K_Crew_Earth_Observations.webm/1920px--ISS_4K_Crew_Earth_Observations.webm.jpg",
+    "poster": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/04/ISS_4K_Crew_Earth_Observations.webm/1920px-seek=7-ISS_4K_Crew_Earth_Observations.webm.jpg",
     "author": "NASA",
     "license": "Public domain",
     "licenseUrl": "",
-    "video": "https://upload.wikimedia.org/wikipedia/commons/transcoded/0/04/ISS_4K_Crew_Earth_Observations.webm/ISS_4K_Crew_Earth_Observations.webm.1080p.vp9.webm"
+    "video": "https://upload.wikimedia.org/wikipedia/commons/transcoded/0/04/ISS_4K_Crew_Earth_Observations.webm/ISS_4K_Crew_Earth_Observations.webm.1080p.vp9.webm",
+    "start": 7,
+    "end": 60
    },
    {
     "title": "2016-09 Aurora timelapse Saguenay",
@@ -206,24 +201,6 @@
     "video": "https://upload.wikimedia.org/wikipedia/commons/transcoded/d/d9/Nordlys_i_Kj%C3%A6rfjorden.webm/Nordlys_i_Kj%C3%A6rfjorden.webm.1080p.vp9.webm"
    },
    {
-    "title": "Timelapse of Milky way changing colors during Aurora - 53921478021",
-    "page": "https://commons.wikimedia.org/wiki/File:Timelapse_of_Milky_way_changing_colors_during_Aurora_-_53921478021.webm",
-    "poster": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/48/Timelapse_of_Milky_way_changing_colors_during_Aurora_-_53921478021.webm/1920px--Timelapse_of_Milky_way_changing_colors_during_Aurora_-_53921478021.webm.jpg",
-    "author": "[1]",
-    "license": "CC BY 2.0",
-    "licenseUrl": "https://creativecommons.org/licenses/by/2.0",
-    "video": "https://upload.wikimedia.org/wikipedia/commons/transcoded/4/48/Timelapse_of_Milky_way_changing_colors_during_Aurora_-_53921478021.webm/Timelapse_of_Milky_way_changing_colors_during_Aurora_-_53921478021.webm.1080p.vp9.webm"
-   },
-   {
-    "title": "Aurora Borealis and Perseids above Germany 12.08.2024",
-    "page": "https://commons.wikimedia.org/wiki/File:Aurora_Borealis_and_Perseids_above_Germany_12.08.2024.webm",
-    "poster": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/03/Aurora_Borealis_and_Perseids_above_Germany_12.08.2024.webm/1920px--Aurora_Borealis_and_Perseids_above_Germany_12.08.2024.webm.jpg",
-    "author": "Mindfl0w",
-    "license": "CC BY 3.0",
-    "licenseUrl": "https://creativecommons.org/licenses/by/3.0",
-    "video": "https://upload.wikimedia.org/wikipedia/commons/transcoded/0/03/Aurora_Borealis_and_Perseids_above_Germany_12.08.2024.webm/Aurora_Borealis_and_Perseids_above_Germany_12.08.2024.webm.1080p.vp9.webm"
-   },
-   {
     "title": "Air traffic in the Swiss night sky as seen from Oeschinensee Video by Giles Laurent",
     "page": "https://commons.wikimedia.org/wiki/File:Air_traffic_in_the_Swiss_night_sky_as_seen_from_Oeschinensee_Video_by_Giles_Laurent.webm",
     "poster": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/cf/Air_traffic_in_the_Swiss_night_sky_as_seen_from_Oeschinensee_Video_by_Giles_Laurent.webm/1920px--Air_traffic_in_the_Swiss_night_sky_as_seen_from_Oeschinensee_Video_by_Giles_Laurent.webm.jpg",
@@ -231,33 +208,6 @@
     "license": "CC BY-SA 4.0",
     "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
     "video": "https://upload.wikimedia.org/wikipedia/commons/transcoded/c/cf/Air_traffic_in_the_Swiss_night_sky_as_seen_from_Oeschinensee_Video_by_Giles_Laurent.webm/Air_traffic_in_the_Swiss_night_sky_as_seen_from_Oeschinensee_Video_by_Giles_Laurent.webm.1080p.vp9.webm"
-   },
-   {
-    "title": "SDO Video Toolkit (SVS14126 - 4038 Solar Ballet CU mk II)",
-    "page": "https://commons.wikimedia.org/wiki/File:SDO_Video_Toolkit_(SVS14126_-_4038_Solar_Ballet_CU_mk_II).webm",
-    "poster": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/61/SDO_Video_Toolkit_%28SVS14126_-_4038_Solar_Ballet_CU_mk_II%29.webm/1920px--SDO_Video_Toolkit_%28SVS14126_-_4038_Solar_Ballet_CU_mk_II%29.webm.jpg",
-    "author": "NASA's Scientific Visualization Studio - KBR Wyle Services, LLC/Scott Wiessinger, Global Science and Technology, Inc./To",
-    "license": "Public domain",
-    "licenseUrl": "",
-    "video": "https://upload.wikimedia.org/wikipedia/commons/transcoded/6/61/SDO_Video_Toolkit_%28SVS14126_-_4038_Solar_Ballet_CU_mk_II%29.webm/SDO_Video_Toolkit_%28SVS14126_-_4038_Solar_Ballet_CU_mk_II%29.webm.1080p.vp9.webm"
-   },
-   {
-    "title": "SDO Video Toolkit (SVS14126 - Canyon of Fire New-Slow)",
-    "page": "https://commons.wikimedia.org/wiki/File:SDO_Video_Toolkit_(SVS14126_-_Canyon_of_Fire_New-Slow).webm",
-    "poster": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f1/SDO_Video_Toolkit_%28SVS14126_-_Canyon_of_Fire_New-Slow%29.webm/1920px--SDO_Video_Toolkit_%28SVS14126_-_Canyon_of_Fire_New-Slow%29.webm.jpg",
-    "author": "NASA's Scientific Visualization Studio - KBR Wyle Services, LLC/Scott Wiessinger, Global Science and Technology, Inc./To",
-    "license": "Public domain",
-    "licenseUrl": "",
-    "video": "https://upload.wikimedia.org/wikipedia/commons/transcoded/f/f1/SDO_Video_Toolkit_%28SVS14126_-_Canyon_of_Fire_New-Slow%29.webm/SDO_Video_Toolkit_%28SVS14126_-_Canyon_of_Fire_New-Slow%29.webm.1080p.vp9.webm"
-   },
-   {
-    "title": "SDO Video Toolkit (SVS14126 - Holiday Lights Blend Move MkIII)",
-    "page": "https://commons.wikimedia.org/wiki/File:SDO_Video_Toolkit_(SVS14126_-_Holiday_Lights_Blend_Move_MkIII).webm",
-    "poster": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/51/SDO_Video_Toolkit_%28SVS14126_-_Holiday_Lights_Blend_Move_MkIII%29.webm/1920px--SDO_Video_Toolkit_%28SVS14126_-_Holiday_Lights_Blend_Move_MkIII%29.webm.jpg",
-    "author": "NASA's Scientific Visualization Studio - KBR Wyle Services, LLC/Scott Wiessinger, Global Science and Technology, Inc./To",
-    "license": "Public domain",
-    "licenseUrl": "",
-    "video": "https://upload.wikimedia.org/wikipedia/commons/transcoded/5/51/SDO_Video_Toolkit_%28SVS14126_-_Holiday_Lights_Blend_Move_MkIII%29.webm/SDO_Video_Toolkit_%28SVS14126_-_Holiday_Lights_Blend_Move_MkIII%29.webm.1080p.vp9.webm"
    }
   ],
   "travel": [
@@ -334,15 +284,6 @@
     "video": "https://upload.wikimedia.org/wikipedia/commons/transcoded/8/88/Video_of_Krka_river_near_%C5%BDu%C5%BEemberk_Castle_by_TheTokl_-_01.webm/Video_of_Krka_river_near_%C5%BDu%C5%BEemberk_Castle_by_TheTokl_-_01.webm.1080p.vp9.webm"
    },
    {
-    "title": "The Beautiful Blue River - DJI Phantom 4 Drone Footage 4K - Breckenridge Colorado",
-    "page": "https://commons.wikimedia.org/wiki/File:The_Beautiful_Blue_River_-_DJI_Phantom_4_Drone_Footage_4K_-_Breckenridge_Colorado.webm",
-    "poster": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/71/The_Beautiful_Blue_River_-_DJI_Phantom_4_Drone_Footage_4K_-_Breckenridge_Colorado.webm/1920px--The_Beautiful_Blue_River_-_DJI_Phantom_4_Drone_Footage_4K_-_Breckenridge_Colorado.webm.jpg",
-    "author": "Bryan Aspenson",
-    "license": "CC BY 3.0",
-    "licenseUrl": "https://creativecommons.org/licenses/by/3.0",
-    "video": "https://upload.wikimedia.org/wikipedia/commons/transcoded/7/71/The_Beautiful_Blue_River_-_DJI_Phantom_4_Drone_Footage_4K_-_Breckenridge_Colorado.webm/The_Beautiful_Blue_River_-_DJI_Phantom_4_Drone_Footage_4K_-_Breckenridge_Colorado.webm.1080p.vp9.webm"
-   },
-   {
     "title": "Drone video of Rakvere in February 2022",
     "page": "https://commons.wikimedia.org/wiki/File:Drone_video_of_Rakvere_in_February_2022.ogv",
     "poster": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/99/Drone_video_of_Rakvere_in_February_2022.ogv/1920px--Drone_video_of_Rakvere_in_February_2022.ogv.jpg",
@@ -415,24 +356,6 @@
     "license": "CC BY-SA 4.0",
     "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
     "video": "https://upload.wikimedia.org/wikipedia/commons/transcoded/7/7b/The_Flower_Fields_at_Carlsbad_Ranch_6_2019-06-10.webm/The_Flower_Fields_at_Carlsbad_Ranch_6_2019-06-10.webm.1080p.vp9.webm"
-   },
-   {
-    "title": "Mount Fuji at sunset (timelapse)",
-    "page": "https://commons.wikimedia.org/wiki/File:Mount_Fuji_at_sunset_(timelapse).webm",
-    "poster": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e2/Mount_Fuji_at_sunset_%28timelapse%29.webm/1920px--Mount_Fuji_at_sunset_%28timelapse%29.webm.jpg",
-    "author": "The Nature Box",
-    "license": "CC BY-SA 4.0",
-    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
-    "video": "https://upload.wikimedia.org/wikipedia/commons/transcoded/e/e2/Mount_Fuji_at_sunset_%28timelapse%29.webm/Mount_Fuji_at_sunset_%28timelapse%29.webm.1080p.vp9.webm"
-   },
-   {
-    "title": "Timelapse of sunset in Norway - Earth spinning or Sun moving-",
-    "page": "https://commons.wikimedia.org/wiki/File:Timelapse_of_sunset_in_Norway_-_Earth_spinning_or_Sun_moving-.webm",
-    "poster": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/97/Timelapse_of_sunset_in_Norway_-_Earth_spinning_or_Sun_moving-.webm/1920px--Timelapse_of_sunset_in_Norway_-_Earth_spinning_or_Sun_moving-.webm.jpg",
-    "author": "NyttNorge",
-    "license": "CC BY 3.0",
-    "licenseUrl": "https://creativecommons.org/licenses/by/3.0",
-    "video": "https://upload.wikimedia.org/wikipedia/commons/transcoded/9/97/Timelapse_of_sunset_in_Norway_-_Earth_spinning_or_Sun_moving-.webm/Timelapse_of_sunset_in_Norway_-_Earth_spinning_or_Sun_moving-.webm.1080p.vp9.webm"
    },
    {
     "title": "Sunset tokyoarea-timelapse-2019-03-17",
@@ -536,15 +459,6 @@
     "video": "https://upload.wikimedia.org/wikipedia/commons/transcoded/6/62/Timelapse_-_kitesurfing_in_Mauritius.webm/Timelapse_-_kitesurfing_in_Mauritius.webm.1080p.vp9.webm"
    },
    {
-    "title": "Skiing in Engelberg Titlis",
-    "page": "https://commons.wikimedia.org/wiki/File:Skiing_in_Engelberg_Titlis.webm",
-    "poster": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/0d/Skiing_in_Engelberg_Titlis.webm/1920px--Skiing_in_Engelberg_Titlis.webm.jpg",
-    "author": "Amada44",
-    "license": "CC BY-SA 4.0",
-    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
-    "video": "https://upload.wikimedia.org/wikipedia/commons/transcoded/0/0d/Skiing_in_Engelberg_Titlis.webm/Skiing_in_Engelberg_Titlis.webm.1080p.vp9.webm"
-   },
-   {
     "title": "Sailing to Orebić 151837",
     "page": "https://commons.wikimedia.org/wiki/File:Sailing_to_Orebi%C4%87_151837.webm",
     "poster": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f3/Sailing_to_Orebi%C4%87_151837.webm/1920px--Sailing_to_Orebi%C4%87_151837.webm.jpg",
@@ -570,15 +484,6 @@
     "license": "CC BY 4.0",
     "licenseUrl": "https://creativecommons.org/licenses/by/4.0",
     "video": "https://upload.wikimedia.org/wikipedia/commons/transcoded/8/82/Sailing_in_sunrise%2C_Pelje%C5%A1ac_channel_072745.webm/Sailing_in_sunrise%2C_Pelje%C5%A1ac_channel_072745.webm.1080p.vp9.webm"
-   },
-   {
-    "title": "Malibu-Surfrider Beach-First Point",
-    "page": "https://commons.wikimedia.org/wiki/File:Malibu-Surfrider_Beach-First_Point.ogg",
-    "poster": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d6/Malibu-Surfrider_Beach-First_Point.ogg/1920px--Malibu-Surfrider_Beach-First_Point.ogg.jpg",
-    "author": "Rybkovich",
-    "license": "CC BY-SA 4.0",
-    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
-    "video": "https://upload.wikimedia.org/wikipedia/commons/transcoded/d/d6/Malibu-Surfrider_Beach-First_Point.ogg/Malibu-Surfrider_Beach-First_Point.ogg.1080p.vp9.webm"
    }
   ],
   "people": [
@@ -655,15 +560,6 @@
     "video": "https://upload.wikimedia.org/wikipedia/commons/transcoded/2/2c/Nagasaki_lantern_festival_-_2023_1_28.webm/Nagasaki_lantern_festival_-_2023_1_28.webm.1080p.vp9.webm"
    },
    {
-    "title": "1000 Lanterns Festival (Emukae Sentourou) (975183)",
-    "page": "https://commons.wikimedia.org/wiki/File:1000_Lanterns_Festival_(Emukae_Sentourou)_(975183).webm",
-    "poster": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/54/1000_Lanterns_Festival_%28Emukae_Sentourou%29_%28975183%29.webm/1920px--1000_Lanterns_Festival_%28Emukae_Sentourou%29_%28975183%29.webm.jpg",
-    "author": "U.S. Navy video by Petty Officer 2nd Class Grant Gorzocoski",
-    "license": "Public domain",
-    "licenseUrl": "",
-    "video": "https://upload.wikimedia.org/wikipedia/commons/transcoded/5/54/1000_Lanterns_Festival_%28Emukae_Sentourou%29_%28975183%29.webm/1000_Lanterns_Festival_%28Emukae_Sentourou%29_%28975183%29.webm.1080p.vp9.webm"
-   },
-   {
     "title": "Timelapse at Cantin, Malmö",
     "page": "https://commons.wikimedia.org/wiki/File:Timelapse_at_Cantin,_Malm%C3%B6.webm",
     "poster": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/67/Timelapse_at_Cantin%2C_Malm%C3%B6.webm/1920px--Timelapse_at_Cantin%2C_Malm%C3%B6.webm.jpg",
@@ -682,15 +578,6 @@
     "license": "CC0",
     "licenseUrl": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
     "video": "https://upload.wikimedia.org/wikipedia/commons/transcoded/9/91/Shanghai_Bund%2C_Lujiazui_Skyline_Timelapse.webm/Shanghai_Bund%2C_Lujiazui_Skyline_Timelapse.webm.1080p.vp9.webm"
-   },
-   {
-    "title": "Timelapse ferry",
-    "page": "https://commons.wikimedia.org/wiki/File:Timelapse_ferry.ogv",
-    "poster": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/43/Timelapse_ferry.ogv/1920px--Timelapse_ferry.ogv.jpg",
-    "author": "Clément Bucco-Lechat",
-    "license": "CC BY-SA 3.0",
-    "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
-    "video": "https://upload.wikimedia.org/wikipedia/commons/transcoded/4/43/Timelapse_ferry.ogv/Timelapse_ferry.ogv.1080p.vp9.webm"
    },
    {
     "title": "今日係2020年嘅最後一日，我特別去咗深水埗嘉頓山(喃嘸山)睇今年最後一次日落",
@@ -740,15 +627,6 @@
     "video": "https://upload.wikimedia.org/wikipedia/commons/transcoded/f/f8/Candles%2Bcamera_dolly.ogv/Candles%2Bcamera_dolly.ogv.1080p.vp9.webm"
    },
    {
-    "title": "Corona.Candle",
-    "page": "https://commons.wikimedia.org/wiki/File:Corona.Candle.webm",
-    "poster": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/72/Corona.Candle.webm/1920px--Corona.Candle.webm.jpg",
-    "author": "Bautsch",
-    "license": "CC0",
-    "licenseUrl": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
-    "video": "https://upload.wikimedia.org/wikipedia/commons/transcoded/7/72/Corona.Candle.webm/Corona.Candle.webm.1080p.vp9.webm"
-   },
-   {
     "title": "028 Lighting and blowing of a candle (normal speed) Video by Giles Laurent",
     "page": "https://commons.wikimedia.org/wiki/File:028_Lighting_and_blowing_of_a_candle_(normal_speed)_Video_by_Giles_Laurent.webm",
     "poster": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a7/028_Lighting_and_blowing_of_a_candle_%28normal_speed%29_Video_by_Giles_Laurent.webm/1920px--028_Lighting_and_blowing_of_a_candle_%28normal_speed%29_Video_by_Giles_Laurent.webm.jpg",
@@ -756,15 +634,6 @@
     "license": "CC BY-SA 4.0",
     "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
     "video": "https://upload.wikimedia.org/wikipedia/commons/transcoded/a/a7/028_Lighting_and_blowing_of_a_candle_%28normal_speed%29_Video_by_Giles_Laurent.webm/028_Lighting_and_blowing_of_a_candle_%28normal_speed%29_Video_by_Giles_Laurent.webm.1080p.vp9.webm"
-   },
-   {
-    "title": "Beachfront B-Roll- Record Background (Free to Use Stock Footage)",
-    "page": "https://commons.wikimedia.org/wiki/File:Beachfront_B-Roll-_Record_Background_(Free_to_Use_Stock_Footage).webm",
-    "poster": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/37/Beachfront_B-Roll-_Record_Background_%28Free_to_Use_Stock_Footage%29.webm/1920px--Beachfront_B-Roll-_Record_Background_%28Free_to_Use_Stock_Footage%29.webm.jpg",
-    "author": "Beachfront B-Roll: Free Stock Footage",
-    "license": "CC BY 3.0",
-    "licenseUrl": "https://creativecommons.org/licenses/by/3.0",
-    "video": "https://upload.wikimedia.org/wikipedia/commons/transcoded/3/37/Beachfront_B-Roll-_Record_Background_%28Free_to_Use_Stock_Footage%29.webm/Beachfront_B-Roll-_Record_Background_%28Free_to_Use_Stock_Footage%29.webm.1080p.vp9.webm"
    },
    {
     "title": "Collections in Motion- Valentine Typewriter",
@@ -978,15 +847,6 @@
     "video": "https://upload.wikimedia.org/wikipedia/commons/transcoded/7/73/Private_Weihnachtspyramide_in_Hohndorf%2C_Erzgebirgskres_2H1A8550.webm/Private_Weihnachtspyramide_in_Hohndorf%2C_Erzgebirgskres_2H1A8550.webm.1080p.vp9.webm"
    },
    {
-    "title": "Christmas time in Ljubljana",
-    "page": "https://commons.wikimedia.org/wiki/File:Christmas_time_in_Ljubljana.webm",
-    "poster": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/38/Christmas_time_in_Ljubljana.webm/1920px--Christmas_time_in_Ljubljana.webm.jpg",
-    "author": "Sound recording: Dušan Oblak, Video recording: Barbara Rezar Grilc",
-    "license": "CC BY 3.0",
-    "licenseUrl": "https://creativecommons.org/licenses/by/3.0",
-    "video": "https://upload.wikimedia.org/wikipedia/commons/transcoded/3/38/Christmas_time_in_Ljubljana.webm/Christmas_time_in_Ljubljana.webm.1080p.vp9.webm"
-   },
-   {
     "title": "Christmas market in Ljubljana city centre - part 3",
     "page": "https://commons.wikimedia.org/wiki/File:Christmas_market_in_Ljubljana_city_centre_-_part_3.webm",
     "poster": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/7f/Christmas_market_in_Ljubljana_city_centre_-_part_3.webm/1920px--Christmas_market_in_Ljubljana_city_centre_-_part_3.webm.jpg",
@@ -1059,15 +919,6 @@
     "license": "CC BY-SA 4.0",
     "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
     "video": "https://upload.wikimedia.org/wikipedia/commons/transcoded/5/53/007_Volcano_eruption_of_Litli-Hr%C3%BAtur_in_Iceland_in_2023_Video_by_Giles_Laurent.webm/007_Volcano_eruption_of_Litli-Hr%C3%BAtur_in_Iceland_in_2023_Video_by_Giles_Laurent.webm.1080p.vp9.webm"
-   },
-   {
-    "title": "Mandelbrot-Zoom 'Seepferdchenbuchtzyklenkumulation' 4K UHD 60 FPS",
-    "page": "https://commons.wikimedia.org/wiki/File:Mandelbrot-Zoom_%27Seepferdchenbuchtzyklenkumulation%27_4K_UHD_60_FPS.webm",
-    "poster": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/bd/Mandelbrot-Zoom_%27Seepferdchenbuchtzyklenkumulation%27_4K_UHD_60_FPS.webm/1920px--Mandelbrot-Zoom_%27Seepferdchenbuchtzyklenkumulation%27_4K_UHD_60_FPS.webm.jpg",
-    "author": "PantheraLeo1359531",
-    "license": "CC BY-SA 4.0",
-    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
-    "video": "https://upload.wikimedia.org/wikipedia/commons/transcoded/b/bd/Mandelbrot-Zoom_%27Seepferdchenbuchtzyklenkumulation%27_4K_UHD_60_FPS.webm/Mandelbrot-Zoom_%27Seepferdchenbuchtzyklenkumulation%27_4K_UHD_60_FPS.webm.1080p.vp9.webm"
    },
    {
     "title": "Mandelbrot set zoom 2K",

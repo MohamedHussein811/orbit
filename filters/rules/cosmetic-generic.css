@@ -20,7 +20,9 @@
 #AdContainerTop{display:none!important}
 #AdContent{display:none!important}
 #AdDisclaimer{display:none!important}
+#AdDivUnderNews{display:none!important}
 #AdMiddle{display:none!important}
+#AdPlacementBetweenNews{display:none!important}
 #AdPopUp{display:none!important}
 #AdRectangleBanner{display:none!important}
 #AdSense1{display:none!important}
@@ -72,6 +74,7 @@
 #Adv8{display:none!important}
 #Adv9{display:none!important}
 #AdvContainer{display:none!important}
+#AdvContainerTopRightAds{display:none!important}
 #AdvFooter{display:none!important}
 #AdvHeader{display:none!important}
 #Adv_Footer{display:none!important}
@@ -90,6 +93,7 @@
 #Advertorial{display:none!important}
 #Advertorials{display:none!important}
 #AnchorAd{display:none!important}
+#Arpian-ads{display:none!important}
 #ArticleContentAd{display:none!important}
 #Banner728x90{display:none!important}
 #BannerAd{display:none!important}
@@ -105,10 +109,13 @@
 #BottomAdContainer{display:none!important}
 #BottomRightAdWrapper{display:none!important}
 #ButtonAd{display:none!important}
+#ClicksAds{display:none!important}
 #ContentAd{display:none!important}
 #Content_CA_AD_0_BC{display:none!important}
 #Content_CA_AD_1_BC{display:none!important}
 #DFP_top_leaderboard{display:none!important}
+#FixAdv160L{display:none!important}
+#FixAdv160R{display:none!important}
 #FooterAd{display:none!important}
 #FooterAdBlock{display:none!important}
 #FooterAdContainer{display:none!important}
@@ -300,6 +307,7 @@
 #ad-carousel{display:none!important}
 #ad-case{display:none!important}
 #ad-center{display:none!important}
+#ad-center-most-view{display:none!important}
 #ad-chips{display:none!important}
 #ad-circfooter{display:none!important}
 #ad-code{display:none!important}
@@ -545,6 +553,7 @@
 #ad468{display:none!important}
 #ad468x60{display:none!important}
 #ad480x60{display:none!important}
+#ad4game728x90{display:none!important}
 #ad6{display:none!important}
 #ad600{display:none!important}
 #ad728{display:none!important}
@@ -650,6 +659,7 @@
 #adLeaderboard{display:none!important}
 #adLeaderboard-middle{display:none!important}
 #adLeft{display:none!important}
+#adLeftHolder{display:none!important}
 #adLink{display:none!important}
 #adLink1{display:none!important}
 #adLounge{display:none!important}
@@ -668,6 +678,8 @@
 #adModal{display:none!important}
 #adMpu{display:none!important}
 #adMpuBottom{display:none!important}
+#adOTPDesktop{display:none!important}
+#adOTPMobile{display:none!important}
 #adOuter{display:none!important}
 #adPartnerLinks{display:none!important}
 #adPlaceHolder1{display:none!important}
@@ -697,6 +709,7 @@
 #adRight3{display:none!important}
 #adRight4{display:none!important}
 #adRight5{display:none!important}
+#adRightHolder{display:none!important}
 #adScraper{display:none!important}
 #adSection{display:none!important}
 #adSenseBox{display:none!important}
@@ -718,6 +731,8 @@
 #adSlider{display:none!important}
 #adSlot-dmpu{display:none!important}
 #adSlot-dontMissLarge{display:none!important}
+#adSlot-inPage-300x250-left{display:none!important}
+#adSlot-inPage-728x90-top{display:none!important}
 #adSlot-leader{display:none!important}
 #adSlot-leaderBottom{display:none!important}
 #adSlot1{display:none!important}
@@ -1149,6 +1164,7 @@
 #adholderContainerHeader{display:none!important}
 #adhome{display:none!important}
 #adhomepage{display:none!important}
+#adintop_video{display:none!important}
 #adjacency{display:none!important}
 #adlabel{display:none!important}
 #adlabelFooter{display:none!important}
@@ -1198,6 +1214,7 @@
 #adposition3{display:none!important}
 #adposition4{display:none!important}
 #adpositionbottom{display:none!important}
+#adpost2{display:none!important}
 #adrect{display:none!important}
 #adright{display:none!important}
 #adright2{display:none!important}
@@ -1336,6 +1353,7 @@
 #ads_0_container{display:none!important}
 #ads_160{display:none!important}
 #ads_3{display:none!important}
+#ads_300_250{display:none!important}
 #ads_300x250{display:none!important}
 #ads_4{display:none!important}
 #ads_728{display:none!important}
@@ -1546,6 +1564,8 @@
 #adsplace2{display:none!important}
 #adsplace4{display:none!important}
 #adsplash{display:none!important}
+#adspos1{display:none!important}
+#adspos2{display:none!important}
 #adspot{display:none!important}
 #adspot-bottom{display:none!important}
 #adspot-top{display:none!important}
@@ -1867,6 +1887,8 @@
 #after_heading_ad{display:none!important}
 #after_title_ad{display:none!important}
 #aigirlfriendad{display:none!important}
+#alaa-ads{display:none!important}
+#alaa-ads-content{display:none!important}
 #amazon-ads{display:none!important}
 #amazon_ad{display:none!important}
 #analytics_ad{display:none!important}
@@ -1926,6 +1948,8 @@
 #ax-billboard-bottom{display:none!important}
 #ax-billboard-sub{display:none!important}
 #ax-billboard-top{display:none!important}
+#b_ad{display:none!important}
+#b_ad2{display:none!important}
 #backad{display:none!important}
 #background-ad-cover{display:none!important}
 #background-adv{display:none!important}
@@ -2035,6 +2059,8 @@
 #blkAds4{display:none!important}
 #blkAds5{display:none!important}
 #block-ad-articles{display:none!important}
+#block-ads1{display:none!important}
+#block-ads2{display:none!important}
 #block-adsense-0{display:none!important}
 #block-adsense-2{display:none!important}
 #block-adsense-banner-article-bottom{display:none!important}
@@ -2290,8 +2316,10 @@
 #customad{display:none!important}
 #cxense-recs-in-article{display:none!important}
 #ddb_fluid_native_ddb_0{display:none!important}
+#deskads{display:none!important}
 #desktop-ad-top{display:none!important}
 #desktop-sidebar-ad{display:none!important}
+#desktopAds{display:none!important}
 #desktop_middle_ad_fixed{display:none!important}
 #desktop_top_ad_fixed{display:none!important}
 #dfp-ad-bottom-wrapper{display:none!important}
@@ -2666,6 +2694,7 @@
 #googleads{display:none!important}
 #googleads1{display:none!important}
 #googleadsense{display:none!important}
+#googleadside{display:none!important}
 #googleadstop{display:none!important}
 #googlebanner{display:none!important}
 #googlesponsor{display:none!important}
@@ -2704,6 +2733,7 @@
 #head_ads{display:none!important}
 #head_advert{display:none!important}
 #headad{display:none!important}
+#headads{display:none!important}
 #headadvert{display:none!important}
 #header-ad{display:none!important}
 #header-ad-background{display:none!important}
@@ -2948,6 +2978,7 @@
 #islandAdPane2{display:none!important}
 #island_ad_top{display:none!important}
 #islandad{display:none!important}
+#it-ad-header{display:none!important}
 #jobs-ad{display:none!important}
 #js-Sponsored-Container{display:none!important}
 #js-Taboola-Container-0{display:none!important}
@@ -3100,6 +3131,9 @@
 #lrec_ad{display:none!important}
 #lrecad{display:none!important}
 #m-banner-bannerAd{display:none!important}
+#madspos1{display:none!important}
+#madspos2{display:none!important}
+#madspos3{display:none!important}
 #main-ad{display:none!important}
 #main-advert{display:none!important}
 #mainAd{display:none!important}
@@ -3204,6 +3238,7 @@
 #mpu2_parent{display:none!important}
 #mpuAd{display:none!important}
 #mpuAdvert{display:none!important}
+#mpuAfter{display:none!important}
 #mpuContainer{display:none!important}
 #mpuDiv{display:none!important}
 #mpuInContent{display:none!important}
@@ -3401,6 +3436,7 @@
 #rail_ad{display:none!important}
 #rail_ad1{display:none!important}
 #rail_ad2{display:none!important}
+#readmoreads{display:none!important}
 #rec_spot_ad_1{display:none!important}
 #recommendAdBox{display:none!important}
 #rect-ad{display:none!important}
@@ -3471,6 +3507,7 @@
 #rightAd_rdr{display:none!important}
 #rightAds{display:none!important}
 #rightAdsDiv{display:none!important}
+#rightBannerGoogleAd{display:none!important}
 #rightBlockAd{display:none!important}
 #rightBottomAd{display:none!important}
 #rightColAd{display:none!important}
@@ -4235,6 +4272,8 @@
 #zeus_top-banner{display:none!important}
 #zone-adsense{display:none!important}
 #zsAdvertisingBanner{display:none!important}
+#zwaar_ad_id{display:none!important}
+#zwaar_float_ad_area{display:none!important}
 .-advertsSidebar{display:none!important}
 .ADBAR{display:none!important}
 .ADBox{display:none!important}
@@ -4250,6 +4289,7 @@
 .ADVFLEX_250{display:none!important}
 .ADV_Mobile{display:none!important}
 .AD_2{display:none!important}
+.AD_Dynamic{display:none!important}
 .AD_area{display:none!important}
 .ADbox{display:none!important}
 .ADmid{display:none!important}
@@ -4268,6 +4308,8 @@
 .Ad-hor-height{display:none!important}
 .Ad-label{display:none!important}
 .Ad-leaderboard{display:none!important}
+.Ad160-left{display:none!important}
+.Ad160-right{display:none!important}
 .Ad300{display:none!important}
 .Ad3Tile{display:none!important}
 .Ad728x90{display:none!important}
@@ -4318,6 +4360,7 @@
 .Ad_container{display:none!important}
 .Ads--center{display:none!important}
 .Ads-768x90{display:none!important}
+.Ads-PostTop{display:none!important}
 .Ads-background{display:none!important}
 .Ads-leaderboard{display:none!important}
 .Ads-slot{display:none!important}
@@ -4396,7 +4439,9 @@
 .DisplayAd{display:none!important}
 .DisplayAd_Native__XCll3{display:none!important}
 .DisplayAd_PremiumPlacement__gAXXB{display:none!important}
+.ExampleAd{display:none!important}
 .FirstAd{display:none!important}
+.FixAdv160{display:none!important}
 .FooterAd{display:none!important}
 .FooterAdContainer{display:none!important}
 .FooterAds{display:none!important}
@@ -4437,7 +4482,9 @@
 .LeaderAdvertisement{display:none!important}
 .LeaderBoardAd{display:none!important}
 .LearderAd_Border{display:none!important}
+.LeftAds{display:none!important}
 .ListicleAdRow{display:none!important}
+.LongGAds{display:none!important}
 .MPUHolder{display:none!important}
 .MPUad{display:none!important}
 .MPUstyled__MPUWrapper-sc-100o0l7-0{display:none!important}
@@ -4486,6 +4533,7 @@
 .RightAd{display:none!important}
 .RightAd1{display:none!important}
 .RightAd2{display:none!important}
+.RightAds{display:none!important}
 .RightAdvertisement{display:none!important}
 .RightGoogleAd{display:none!important}
 .RightRailAd{display:none!important}
@@ -4498,6 +4546,7 @@
 .SecondaryAdLink{display:none!important}
 .Section-ad{display:none!important}
 .SectionSponsor{display:none!important}
+.Seo-plus-Ads{display:none!important}
 .SideAd{display:none!important}
 .SideAdCol{display:none!important}
 .SideAds{display:none!important}
@@ -4579,6 +4628,10 @@
 .a-dserver{display:none!important}
 .a-dserver_text{display:none!important}
 .a-sponsor{display:none!important}
+.a3lan-Center{display:none!important}
+.a3lan-end{display:none!important}
+.a3lan-related{display:none!important}
+.a3lan-top{display:none!important}
 .ab-ad_placement-article{display:none!important}
 .ablock300{display:none!important}
 .ablock468{display:none!important}
@@ -4641,6 +4694,7 @@
 .ad--inner{display:none!important}
 .ad--large{display:none!important}
 .ad--leaderboard{display:none!important}
+.ad--list{display:none!important}
 .ad--loading{display:none!important}
 .ad--medium-rectangle{display:none!important}
 .ad--medium_rectangle{display:none!important}
@@ -5152,6 +5206,8 @@
 .ad-hoverable{display:none!important}
 .ad-hpto{display:none!important}
 .ad-icon{display:none!important}
+.ad-id_{display:none!important}
+.ad-id_shortcode{display:none!important}
 .ad-identifier{display:none!important}
 .ad-iframe{display:none!important}
 .ad-iframe-container{display:none!important}
@@ -5222,6 +5278,7 @@
 .ad-left-1{display:none!important}
 .ad-left-top{display:none!important}
 .ad-leftrail{display:none!important}
+.ad-lft{display:none!important}
 .ad-lib-div{display:none!important}
 .ad-line{display:none!important}
 .ad-link{display:none!important}
@@ -5237,6 +5294,20 @@
 .ad-loader{display:none!important}
 .ad-location{display:none!important}
 .ad-location-container{display:none!important}
+.ad-location_{display:none!important}
+.ad-location_comments_above{display:none!important}
+.ad-location_comments_below{display:none!important}
+.ad-location_content_above{display:none!important}
+.ad-location_content_below{display:none!important}
+.ad-location_content_middle{display:none!important}
+.ad-location_content_middle_2{display:none!important}
+.ad-location_footer_above{display:none!important}
+.ad-location_footer_below{display:none!important}
+.ad-location_post_end{display:none!important}
+.ad-location_title_above{display:none!important}
+.ad-location_title_below{display:none!important}
+.ad-location_wrapper_left{display:none!important}
+.ad-location_wrapper_right{display:none!important}
 .ad-lock{display:none!important}
 .ad-lock-content{display:none!important}
 .ad-lowerboard{display:none!important}
@@ -5389,6 +5460,7 @@
 .ad-position-2{display:none!important}
 .ad-poss{display:none!important}
 .ad-post{display:none!important}
+.ad-post-bottom{display:none!important}
 .ad-post-footer{display:none!important}
 .ad-post-top{display:none!important}
 .ad-postText{display:none!important}
@@ -5454,6 +5526,7 @@
 .ad-row-horizontal{display:none!important}
 .ad-row-horizontal-top{display:none!important}
 .ad-row-viewport{display:none!important}
+.ad-rt{display:none!important}
 .ad-s{display:none!important}
 .ad-s-rendered{display:none!important}
 .ad-sample{display:none!important}
@@ -5482,6 +5555,7 @@
 .ad-sidebar-mrec{display:none!important}
 .ad-sidebar-skyscraper{display:none!important}
 .ad-siderail{display:none!important}
+.ad-sidy{display:none!important}
 .ad-signup{display:none!important}
 .ad-single-bottom{display:none!important}
 .ad-sitewide{display:none!important}
@@ -5669,6 +5743,8 @@
 .ad-type-branding{display:none!important}
 .ad-type-cube{display:none!important}
 .ad-type-flex-leaderboard{display:none!important}
+.ad-type_adsense{display:none!important}
+.ad-type_code{display:none!important}
 .ad-unit{display:none!important}
 .ad-unit--leaderboard{display:none!important}
 .ad-unit-2{display:none!important}
@@ -5775,6 +5851,8 @@
 .ad160_l{display:none!important}
 .ad160_r{display:none!important}
 .ad160b{display:none!important}
+.ad160left{display:none!important}
+.ad160right{display:none!important}
 .ad160x160{display:none!important}
 .ad160x600{display:none!important}
 .ad160x600GrayBorder{display:none!important}
@@ -5796,6 +5874,7 @@
 .ad2-float{display:none!important}
 .ad200{display:none!important}
 .ad200x60{display:none!important}
+.ad220{display:none!important}
 .ad220x50{display:none!important}
 .ad230{display:none!important}
 .ad233x224{display:none!important}
@@ -5804,6 +5883,7 @@
 .ad236x62{display:none!important}
 .ad240{display:none!important}
 .ad250{display:none!important}
+.ad250250{display:none!important}
 .ad250wrap{display:none!important}
 .ad250x250{display:none!important}
 .ad250x300{display:none!important}
@@ -5896,6 +5976,7 @@
 .ad650x140{display:none!important}
 .ad652{display:none!important}
 .ad70{display:none!important}
+.ad720{display:none!important}
 .ad728{display:none!important}
 .ad72890{display:none!important}
 .ad728By90{display:none!important}
@@ -5923,6 +6004,7 @@
 .adArticleBanner{display:none!important}
 .adArticleBody{display:none!important}
 .adArticleSideTop300x250{display:none!important}
+.adAsync{display:none!important}
 .adBan{display:none!important}
 .adBanner300x250{display:none!important}
 .adBanner728x90{display:none!important}
@@ -6087,6 +6169,8 @@
 .adMpuHolder{display:none!important}
 .adMrginBottom{display:none!important}
 .adNarrow{display:none!important}
+.adNavDesktop{display:none!important}
+.adNavMob{display:none!important}
 .adNoBorder{display:none!important}
 .adNoOutline{display:none!important}
 .adNone{display:none!important}
@@ -6095,6 +6179,8 @@
 .adNotice90{display:none!important}
 .adNoticeOut{display:none!important}
 .adNotification{display:none!important}
+.adOTPDesktop{display:none!important}
+.adOTPMobile{display:none!important}
 .adObj{display:none!important}
 .adOne{display:none!important}
 .adOuterContainer{display:none!important}
@@ -6208,6 +6294,7 @@
 .adTopRight{display:none!important}
 .adTopWrapper{display:none!important}
 .adTopboxright{display:none!important}
+.adTtl{display:none!important}
 .adTwo{display:none!important}
 .adTxt{display:none!important}
 .adType2{display:none!important}
@@ -6265,6 +6352,8 @@
 .ad_300_250_1{display:none!important}
 .ad_300_250_2{display:none!important}
 .ad_300_250_wrapper{display:none!important}
+.ad_300_300-widget{display:none!important}
+.ad_300_300-widget-2{display:none!important}
 .ad_300_600{display:none!important}
 .ad_300by250{display:none!important}
 .ad_300x100{display:none!important}
@@ -6341,6 +6430,7 @@
 .ad_background_true{display:none!important}
 .ad_banner{display:none!important}
 .ad_banner2{display:none!important}
+.ad_banner728{display:none!important}
 .ad_banner_2{display:none!important}
 .ad_banner_250x250{display:none!important}
 .ad_banner_468{display:none!important}
@@ -6762,6 +6852,7 @@
 .adbot_postbit{display:none!important}
 .adbot_showthread{display:none!important}
 .adbottom{display:none!important}
+.adbottomfixed{display:none!important}
 .adbottomright{display:none!important}
 .adbox-300x250{display:none!important}
 .adbox-468x60{display:none!important}
@@ -6857,6 +6948,8 @@
 .add300top{display:none!important}
 .add300x250{display:none!important}
 .addAdvertContainer{display:none!important}
+.add_banner{display:none!important}
+.add_banner2{display:none!important}
 .add_topbanner{display:none!important}
 .addarea{display:none!important}
 .addarearight{display:none!important}
@@ -6870,6 +6963,7 @@
 .addtitle{display:none!important}
 .addvert{display:none!important}
 .addwide{display:none!important}
+.ade160{display:none!important}
 .adengageadzone{display:none!important}
 .adenquire{display:none!important}
 .adex-ad-text{display:none!important}
@@ -7068,6 +7162,7 @@
 .ads-728by90{display:none!important}
 .ads-728x90{display:none!important}
 .ads-980x90{display:none!important}
+.ads-aa{display:none!important}
 .ads-above-comments{display:none!important}
 .ads-ad{display:none!important}
 .ads-advertorial{display:none!important}
@@ -7143,6 +7238,7 @@
 .ads-google-bottom{display:none!important}
 .ads-google-top{display:none!important}
 .ads-grp{display:none!important}
+.ads-h-100{display:none!important}
 .ads-half{display:none!important}
 .ads-header{display:none!important}
 .ads-header-desktop{display:none!important}
@@ -7296,10 +7392,12 @@
 .ads125-widget{display:none!important}
 .ads160{display:none!important}
 .ads160-600{display:none!important}
+.ads1post{display:none!important}
 .ads2{display:none!important}
 .ads250{display:none!important}
 .ads250-250{display:none!important}
 .ads2Block{display:none!important}
+.ads2post{display:none!important}
 .ads3{display:none!important}
 .ads300{display:none!important}
 .ads300-200{display:none!important}
@@ -7414,11 +7512,14 @@
 .ads__native{display:none!important}
 .ads__right-rail-ad{display:none!important}
 .ads__sidebar{display:none!important}
+.ads__slot{display:none!important}
+.ads__title{display:none!important}
 .ads__top{display:none!important}
 .ads_ad_box{display:none!important}
 .ads_after{display:none!important}
 .ads_after_more{display:none!important}
 .ads_amazon{display:none!important}
+.ads_ar_wid{display:none!important}
 .ads_area{display:none!important}
 .ads_article{display:none!important}
 .ads_ba_cad{display:none!important}
@@ -7441,6 +7542,7 @@
 .ads_css{display:none!important}
 .ads_div{display:none!important}
 .ads_div1{display:none!important}
+.ads_en_wid{display:none!important}
 .ads_foot{display:none!important}
 .ads_footer{display:none!important}
 .ads_footerad{display:none!important}
@@ -7498,6 +7600,7 @@
 .ads_small_rectangle{display:none!important}
 .ads_space_long{display:none!important}
 .ads_spacer{display:none!important}
+.ads_sq{display:none!important}
 .ads_square{display:none!important}
 .ads_takeover{display:none!important}
 .ads_text{display:none!important}
@@ -7524,6 +7627,7 @@
 .ads_wrap-para{display:none!important}
 .ads_wrapper{display:none!important}
 .adsafp{display:none!important}
+.adsagcompa{display:none!important}
 .adsanity-alignnone{display:none!important}
 .adsanity-group{display:none!important}
 .adsanity-single{display:none!important}
@@ -7594,6 +7698,8 @@
 .adsense-article{display:none!important}
 .adsense-block{display:none!important}
 .adsense-box{display:none!important}
+.adsense-box-l{display:none!important}
+.adsense-box-r{display:none!important}
 .adsense-center{display:none!important}
 .adsense-code{display:none!important}
 .adsense-container{display:none!important}
@@ -7682,6 +7788,7 @@
 .adsghori{display:none!important}
 .adsgrd{display:none!important}
 .adsgvert{display:none!important}
+.adsheadmu{display:none!important}
 .adsheight-250{display:none!important}
 .adshome{display:none!important}
 .adshowbig{display:none!important}
@@ -7771,6 +7878,7 @@
 .adsnippet_widget{display:none!important}
 .adsns{display:none!important}
 .adsntl{display:none!important}
+.adsonadsbox{display:none!important}
 .adsoptimal-slot{display:none!important}
 .adsother{display:none!important}
 .adspace{display:none!important}
@@ -7805,7 +7913,9 @@
 .adsplat{display:none!important}
 .adsponsor{display:none!important}
 .adspop{display:none!important}
+.adspos{display:none!important}
 .adspost{display:none!important}
+.adspostsfotter{display:none!important}
 .adspot{display:none!important}
 .adspot-desk{display:none!important}
 .adspot-title{display:none!important}
@@ -7940,6 +8050,7 @@
 .adv-970-250{display:none!important}
 .adv-970-250-2{display:none!important}
 .adv-ad{display:none!important}
+.adv-area{display:none!important}
 .adv-aside{display:none!important}
 .adv-background{display:none!important}
 .adv-banner{display:none!important}
@@ -8020,8 +8131,10 @@
 .advBottom{display:none!important}
 .advBottomHome{display:none!important}
 .advBox{display:none!important}
+.advCON{display:none!important}
 .advLeaderboard{display:none!important}
 .advRightBig{display:none!important}
+.advSmall{display:none!important}
 .advSquare{display:none!important}
 .advText{display:none!important}
 .advTop{display:none!important}
@@ -8063,10 +8176,13 @@
 .adv_message{display:none!important}
 .adv_msg{display:none!important}
 .adv_outbrain{display:none!important}
+.adv_outer{display:none!important}
 .adv_panel{display:none!important}
 .adv_right{display:none!important}
 .adv_side1{display:none!important}
 .adv_side2{display:none!important}
+.adv_side_left{display:none!important}
+.adv_side_right{display:none!important}
 .adv_sidebar{display:none!important}
 .adv_title{display:none!important}
 .adv_top{display:none!important}
@@ -8327,6 +8443,7 @@
 .advertisement-block{display:none!important}
 .advertisement-bottom{display:none!important}
 .advertisement-box{display:none!important}
+.advertisement-box-desktop{display:none!important}
 .advertisement-card{display:none!important}
 .advertisement-cell{display:none!important}
 .advertisement-container{display:none!important}
@@ -8348,6 +8465,7 @@
 .advertisement-sidebar{display:none!important}
 .advertisement-space{display:none!important}
 .advertisement-sponsor{display:none!important}
+.advertisement-square-mobile{display:none!important}
 .advertisement-tag{display:none!important}
 .advertisement-text{display:none!important}
 .advertisement-title{display:none!important}
@@ -8663,6 +8781,7 @@
 .anchor-ad-wrapper{display:none!important}
 .anchorAd{display:none!important}
 .anchored-ad-widget{display:none!important}
+.angular_advertisement{display:none!important}
 .aniview-inline-player{display:none!important}
 .annonstext{display:none!important}
 .anyClipWrapper{display:none!important}
@@ -8706,6 +8825,7 @@
 .article-ad-box{display:none!important}
 .article-ad-cont{display:none!important}
 .article-ad-container{display:none!important}
+.article-ad-feed{display:none!important}
 .article-ad-holder{display:none!important}
 .article-ad-horizontal{display:none!important}
 .article-ad-left{display:none!important}
@@ -8959,6 +9079,7 @@
 .below_game_ad{display:none!important}
 .below_nav_ad_wrap{display:none!important}
 .below_player_ad{display:none!important}
+.bestaAds_desktop{display:none!important}
 .bg-ad-gray{display:none!important}
 .bg-ads{display:none!important}
 .bg-ads-space{display:none!important}
@@ -9081,6 +9202,7 @@
 .blogAdvertisement{display:none!important}
 .blog_ad{display:none!important}
 .blogads{display:none!important}
+.bloxad{display:none!important}
 .bmd_advert{display:none!important}
 .bn_ads{display:none!important}
 .bnr_ad{display:none!important}
@@ -9091,6 +9213,7 @@
 .body_ad{display:none!important}
 .bodyads{display:none!important}
 .bodyads2{display:none!important}
+.borderMobAds{display:none!important}
 .bordered-ad{display:none!important}
 .botAd{display:none!important}
 .bot_ad{display:none!important}
@@ -9163,12 +9286,15 @@
 .box-fixed-ads{display:none!important}
 .box-footer-ad{display:none!important}
 .box-outbrain{display:none!important}
+.box-s-ad{display:none!important}
 .boxAd{display:none!important}
 .boxAdContainer{display:none!important}
 .boxAds{display:none!important}
 .boxAds2{display:none!important}
 .boxAdvertisement{display:none!important}
+.boxLeftAd{display:none!important}
 .boxOverContent__banner{display:none!important}
+.boxRightAd{display:none!important}
 .boxSponsor{display:none!important}
 .box_ad{display:none!important}
 .box_ad_container{display:none!important}
@@ -9572,6 +9698,7 @@
 .desktop-sidebar-ad-wrapper{display:none!important}
 .desktop-top-ad-wrapper{display:none!important}
 .desktopAd{display:none!important}
+.desktopAds{display:none!important}
 .desktop_ad{display:none!important}
 .desktop_mpu{display:none!important}
 .desktop_only_ad{display:none!important}
@@ -9589,6 +9716,10 @@
 .dfp-ad-container{display:none!important}
 .dfp-ad-container-box{display:none!important}
 .dfp-ad-container-wide{display:none!important}
+.dfp-ad-desktop-halfpage-1{display:none!important}
+.dfp-ad-desktop-halfpage-2{display:none!important}
+.dfp-ad-desktop-mpu-1{display:none!important}
+.dfp-ad-desktop-mpu-2{display:none!important}
 .dfp-ad-full{display:none!important}
 .dfp-ad-hideempty{display:none!important}
 .dfp-ad-lazy{display:none!important}
@@ -9596,10 +9727,13 @@
 .dfp-ad-lead3-wrap{display:none!important}
 .dfp-ad-midbreaker-wrap{display:none!important}
 .dfp-ad-midbreaker2-wrap{display:none!important}
+.dfp-ad-mobile-halfpage{display:none!important}
 .dfp-ad-placeholder{display:none!important}
 .dfp-ad-rect{display:none!important}
 .dfp-ad-region-1{display:none!important}
 .dfp-ad-region-2{display:none!important}
+.dfp-ad-tablet-ldb-1{display:none!important}
+.dfp-ad-tablet-ldb-2{display:none!important}
 .dfp-ad-tags{display:none!important}
 .dfp-ad-top-wrapper{display:none!important}
 .dfp-ad-unit{display:none!important}
@@ -9652,6 +9786,9 @@
 .dfp_ad_footer{display:none!important}
 .dfp_ad_header{display:none!important}
 .dfp_ad_pos{display:none!important}
+.dfp_ad_top_ldb1_desktop{display:none!important}
+.dfp_ad_top_ldb1_mobile{display:none!important}
+.dfp_ad_top_ldb1_tablet{display:none!important}
 .dfp_ad_unit{display:none!important}
 .dfp_ads_block{display:none!important}
 .dfp_frame{display:none!important}
@@ -9754,11 +9891,14 @@
 .e-ad{display:none!important}
 .e-advertise{display:none!important}
 .e3lan{display:none!important}
+.e3lan-code{display:none!important}
+.e3lan-header_after{display:none!important}
 .e3lan-top{display:none!important}
 .e3lan-widget-content{display:none!important}
 .e3lan300-100{display:none!important}
 .e3lan300-250{display:none!important}
 .e3lan300_250-widget{display:none!important}
+.e3lan300_600-widget{display:none!important}
 .eaa-ad{display:none!important}
 .eads{display:none!important}
 .easy-ads{display:none!important}
@@ -9824,6 +9964,7 @@
 .f-item-ad{display:none!important}
 .f-item-ad-inhouse{display:none!important}
 .fah-btn__container{display:none!important}
+.fbAdsCont{display:none!important}
 .fbs-ad--ntv-home-wrapper{display:none!important}
 .fbs-ad--top-wrapper{display:none!important}
 .fbs-ad--topx-wrapper{display:none!important}
@@ -9863,10 +10004,13 @@
 .fixed-ad-aside{display:none!important}
 .fixed-ad-bottom{display:none!important}
 .fixed-ads{display:none!important}
+.fixed-ads-left{display:none!important}
+.fixed-ads-right{display:none!important}
 .fixed-bottom-ad{display:none!important}
 .fixed-sidebar-ad{display:none!important}
 .fixedAds{display:none!important}
 .fixedLeftAd{display:none!important}
+.fixedMpu{display:none!important}
 .fixedRightAd{display:none!important}
 .fixed_ad{display:none!important}
 .fixed_adslot{display:none!important}
@@ -9887,6 +10031,7 @@
 .flexadvert{display:none!important}
 .flexiad{display:none!important}
 .flm-ad{display:none!important}
+.float_ads{display:none!important}
 .floatad{display:none!important}
 .floatads{display:none!important}
 .floated-ad{display:none!important}
@@ -10105,8 +10250,12 @@
 .games-ad-wrapper{display:none!important}
 .gb-ad-top{display:none!important}
 .gb_area_ads{display:none!important}
+.geminiLB1Ad{display:none!important}
+.geminiLB2Ad{display:none!important}
+.geminiSC2Ad{display:none!important}
 .general-ad{display:none!important}
 .genericAds{display:none!important}
+.getSponsored{display:none!important}
 .ggl_ads_row{display:none!important}
 .ggl_txt_ads{display:none!important}
 .giant_pushbar_ads_l{display:none!important}
@@ -10365,6 +10514,7 @@
 .header_ad_center{display:none!important}
 .header_ad_div{display:none!important}
 .header_ad_space{display:none!important}
+.header_add{display:none!important}
 .header_ads{display:none!important}
 .header_ads-container{display:none!important}
 .header_ads_box{display:none!important}
@@ -10390,6 +10540,7 @@
 .hero-advert{display:none!important}
 .heroAd{display:none!important}
 .hidden-ad{display:none!important}
+.hidden_pub{display:none!important}
 .hide-ad{display:none!important}
 .hide_ad{display:none!important}
 .hidead{display:none!important}
@@ -10411,6 +10562,7 @@
 .home-advert{display:none!important}
 .home-body-ads{display:none!important}
 .home-page-ad{display:none!important}
+.home-page-ads{display:none!important}
 .home-sidebar-ad{display:none!important}
 .home-sponsored-links{display:none!important}
 .home-sticky-ad{display:none!important}
@@ -10481,11 +10633,14 @@
 .htlad-GL_Adhesion{display:none!important}
 .html-advertisement{display:none!important}
 .hyperAd{display:none!important}
+.i3lan{display:none!important}
 .iAdserver{display:none!important}
 .iframe-ad{display:none!important}
 .iframe-ads{display:none!important}
 .iframeAd{display:none!important}
 .iframeAds{display:none!important}
+.iklan-kanan{display:none!important}
+.iklan-kiri{display:none!important}
 .image-advertisement{display:none!important}
 .imageAd{display:none!important}
 .imageAds{display:none!important}
@@ -10733,7 +10888,14 @@
 .l-grid--ad-card{display:none!important}
 .l-header-advertising{display:none!important}
 .l1-ads-wrapper{display:none!important}
+.la-ads-a-wide{display:none!important}
+.la-ads-b-rec{display:none!important}
+.la-ads-b-wide{display:none!important}
+.la-ads-title{display:none!important}
+.la-mob-ads-250x250{display:none!important}
+.la-mob-ads-320x100{display:none!important}
 .label-ad{display:none!important}
+.label-ads{display:none!important}
 .labelads{display:none!important}
 .large-advert{display:none!important}
 .largeAd{display:none!important}
@@ -10806,6 +10968,7 @@
 .left-ad{display:none!important}
 .left-ads{display:none!important}
 .left-advert{display:none!important}
+.left-and-right-sponsers{display:none!important}
 .left-rail-ad{display:none!important}
 .left-sponser-ad{display:none!important}
 .leftAd{display:none!important}
@@ -10831,6 +10994,7 @@
 .left_google_add{display:none!important}
 .leftad{display:none!important}
 .leftadd{display:none!important}
+.leftadsag{display:none!important}
 .leftadtag{display:none!important}
 .leftbar_ad2{display:none!important}
 .leftbarads{display:none!important}
@@ -10874,6 +11038,7 @@
 .log_ads{display:none!important}
 .logo-ad{display:none!important}
 .logoAds{display:none!important}
+.logoAdv{display:none!important}
 .logoad{display:none!important}
 .logoutAd{display:none!important}
 .logoutAdContainer{display:none!important}
@@ -11076,6 +11241,7 @@
 .mobile-instream-ad-holder{display:none!important}
 .mobile-instream-ad-holder-single{display:none!important}
 .mobileAd{display:none!important}
+.mobileAdSep{display:none!important}
 .mobileAdWrap{display:none!important}
 .mobileAds{display:none!important}
 .mobileAppAd{display:none!important}
@@ -11133,6 +11299,10 @@
 .moduletableadvert{display:none!important}
 .moduletablesquaread{display:none!important}
 .moduletabletowerad{display:none!important}
+.mom-e3lan{display:none!important}
+.mom-e3lanat{display:none!important}
+.mom-e3lanat-inner{display:none!important}
+.mom-e3lanat-wrap{display:none!important}
 .mos-ad{display:none!important}
 .movable-ad{display:none!important}
 .movv-ad{display:none!important}
@@ -11595,6 +11765,7 @@
 .pt-ad--scroll{display:none!important}
 .pt_ad03{display:none!important}
 .pt_col_ad02{display:none!important}
+.pub-980x90{display:none!important}
 .pub_ads{display:none!important}
 .pubexchange_module{display:none!important}
 .publication-ad{display:none!important}
@@ -11679,6 +11850,7 @@
 .region-dfp-ad-header{display:none!important}
 .region-header-ad{display:none!important}
 .region-header-ads{display:none!important}
+.region-pub-widget{display:none!important}
 .region-top-ad{display:none!important}
 .region-top-ad-block{display:none!important}
 .regular-ads{display:none!important}
@@ -11728,6 +11900,7 @@
 .review-ad{display:none!important}
 .reviews-display-ad{display:none!important}
 .revive-ad{display:none!important}
+.reyadiAdvs{display:none!important}
 .rh-ad{display:none!important}
 .rhads{display:none!important}
 .rhs-ad{display:none!important}
@@ -11757,6 +11930,7 @@
 .right-adv{display:none!important}
 .right-advert{display:none!important}
 .right-advertisement{display:none!important}
+.right-and-left-sponsers{display:none!important}
 .right-col-ad{display:none!important}
 .right-column-ad{display:none!important}
 .right-column-ads{display:none!important}
@@ -11864,6 +12038,9 @@
 .s2nContainer{display:none!important}
 .s_ads{display:none!important}
 .sadvert{display:none!important}
+.safeAreaAds{display:none!important}
+.safeAreaLeftAds{display:none!important}
+.safeAreaRightAds{display:none!important}
 .sagreklam{display:none!important}
 .sal-adv-gpt{display:none!important}
 .sam_ad{display:none!important}
@@ -11956,6 +12133,7 @@
 .sideBarAd{display:none!important}
 .sideBlockAd{display:none!important}
 .sideBoxAd{display:none!important}
+.sideColAds{display:none!important}
 .side__ad{display:none!important}
 .side__ad-box{display:none!important}
 .side_ad{display:none!important}
@@ -11966,6 +12144,7 @@
 .side_adsense{display:none!important}
 .side_adv{display:none!important}
 .side_col_ad_wrap{display:none!important}
+.sidea-ad{display:none!important}
 .sidead{display:none!important}
 .sideadmid{display:none!important}
 .sideads{display:none!important}
@@ -12171,6 +12350,7 @@
 .sponsWrap{display:none!important}
 .sponsbox{display:none!important}
 .sponser-link{display:none!important}
+.sponser-stick{display:none!important}
 .sponserLink{display:none!important}
 .sponslink{display:none!important}
 .sponsor-ads{display:none!important}
@@ -12195,6 +12375,7 @@
 .sponsorBlock{display:none!important}
 .sponsorBottom{display:none!important}
 .sponsorBox{display:none!important}
+.sponsorDuplicate{display:none!important}
 .sponsorFooter{display:none!important}
 .sponsorFooter-container{display:none!important}
 .sponsorLabel{display:none!important}
@@ -12350,6 +12531,8 @@
 .sr-adsense{display:none!important}
 .sr-advert{display:none!important}
 .sraAdvert{display:none!important}
+.srapad{display:none!important}
+.srapad_bg{display:none!important}
 .srp-sidebar-ads{display:none!important}
 .ssp-advert{display:none!important}
 .standalonead{display:none!important}
@@ -12559,6 +12742,7 @@
 .tnt-ads{display:none!important}
 .tnt-ads-container{display:none!important}
 .tnt-dmp-reactive{display:none!important}
+.to-ad-text{display:none!important}
 .toaster-ad{display:none!important}
 .top-ad{display:none!important}
 .top-ad-728{display:none!important}
@@ -12699,7 +12883,9 @@
 .top_right_ad{display:none!important}
 .top_rightad{display:none!important}
 .top_side_adv{display:none!important}
+.top_small_ad{display:none!important}
 .top_sponsor{display:none!important}
+.topa-ad{display:none!important}
 .topad-area{display:none!important}
 .topad-bar{display:none!important}
 .topad-bg{display:none!important}
@@ -12766,6 +12952,7 @@
 .type-ad{display:none!important}
 .u-ads{display:none!important}
 .u-lazy-ad-wrapper{display:none!important}
+.udm-ad{display:none!important}
 .udn-ads{display:none!important}
 .ue-c-ad{display:none!important}
 .ult_vp_videoPlayerAD{display:none!important}
@@ -12939,6 +13126,7 @@
 .widget-advads-ad-widget{display:none!important}
 .widget-advert-970{display:none!important}
 .widget-advertisement{display:none!important}
+.widget-custom-ads{display:none!important}
 .widget-dfp{display:none!important}
 .widget-sponsor{display:none!important}
 .widget-sponsor--container{display:none!important}
@@ -12947,6 +13135,7 @@
 .widgetAds{display:none!important}
 .widgetSponsors{display:none!important}
 .widget_300x250_advertisement{display:none!important}
+.widget_a4h_ads{display:none!important}
 .widget_ad{display:none!important}
 .widget_ad-widget{display:none!important}
 .widget_ad125{display:none!important}
@@ -13011,6 +13200,7 @@
 .widget_thesun_dfp_ad_widget{display:none!important}
 .widget_tt_ads_widget{display:none!important}
 .widget_viral_advertisement{display:none!important}
+.widget_widget_pub{display:none!important}
 .widget_wp-bannerize-widget{display:none!important}
 .widget_wp_insert_ad_widget{display:none!important}
 .widget_wpex_advertisement{display:none!important}
@@ -13078,9 +13268,22 @@
 .zox-widget-side-ad{display:none!important}
 .zox_ad_widget{display:none!important}
 .zox_adv_widget{display:none!important}
+[ad-unit="160X600"]{display:none!important}
+[ad-unit="300X250"]{display:none!important}
+[ad-unit="300X600"]{display:none!important}
+[ad-unit="468X60"]{display:none!important}
+[ad-unit="728X300"]{display:none!important}
+[ad-unit="728X90"]{display:none!important}
+[class$="125ads"]{display:none!important}
+[class^="a4h_ads-"]{display:none!important}
+[class^="ad-id_ad"]{display:none!important}
+[class^="ad-location_comments"]{display:none!important}
+[class^="ad-location_content"]{display:none!important}
+[class^="ad-location_post"]{display:none!important}
 [class^="adDisplay-module"]{display:none!important}
 [class^="amp-ad-"]{display:none!important}
 [class^="div-gpt-ad"]{display:none!important}
+[class^="google_ads_container"]{display:none!important}
 [class^="s2nPlayer"]{display:none!important}
 [class^="tile-picker__CitrusBannerContainer-sc-"]{display:none!important}
 [data-ad-cls]{display:none!important}
@@ -13091,6 +13294,7 @@
 [data-asg-ins]{display:none!important}
 [data-block-type="ad"]{display:none!important}
 [data-cl-spot-id]{display:none!important}
+[data-content="advertisement"]{display:none!important}
 [data-css-class="dfp-inarticle"]{display:none!important}
 [data-d-ad-id]{display:none!important}
 [data-desktop-ad-id]{display:none!important}
@@ -13100,6 +13304,8 @@
 [data-identity="adhesive-ad"]{display:none!important}
 [data-m-ad-id]{display:none!important}
 [data-mobile-ad-id]{display:none!important}
+[data-original-title="Advertisment"]{display:none!important}
+[data-original-title="مساحه اعلانية"]{display:none!important}
 [data-rc-widget]{display:none!important}
 [data-revive-zoneid]{display:none!important}
 [data-taboola-options]{display:none!important}
@@ -13110,6 +13316,7 @@
 [data-testid="prism-ad-wrapper"]{display:none!important}
 [data-testid^="section-AdRowBillboard"]{display:none!important}
 [data-testid^="taboola-"]{display:none!important}
+[href*="ad2games.com/"]{display:none!important}
 [href="//sexcams.plus/"]{display:none!important}
 [href="https://snvhost.com/"]{display:none!important}
 [href^="http://clicks.totemcash.com/"]{display:none!important}
@@ -13142,27 +13349,36 @@
 [id^="ad-wrap-"]{display:none!important}
 [id^="ad_sky"]{display:none!important}
 [id^="ad_slider"]{display:none!important}
+[id^="ads300_600-widget-"]{display:none!important}
 [id^="div-gpt-ad"]{display:none!important}
 [id^="google_ads_iframe_"]{display:none!important}
 [id^="section-ad-banner"]{display:none!important}
 [name^="google_ads_iframe"]{display:none!important}
 [onclick*="content.ad/"]{display:none!important}
+a[data-ads-placement-id]{display:none!important}
+a[data-ads-placement-type]{display:none!important}
 a[data-oburl^="https://paid.outbrain.com/network/redir?"]{display:none!important}
 a[data-redirect^="https://paid.outbrain.com/network/redir?"]{display:none!important}
 a[href*="&maxads="]{display:none!important}
 a[href*=".adglare.net/"]{display:none!important}
 a[href*=".adsrv.eacdn.com/"]{display:none!important}
+a[href*=".aflam.info"]{display:none!important}
 a[href*=".cfm?domain="][href*="&fp="]{display:none!important}
+a[href*=".forooqso.tv/"]{display:none!important}
 a[href*=".foxqck.com/"]{display:none!important}
 a[href*=".g2afse.com/"]{display:none!important}
 a[href*=".sadbaguette.com/"]{display:none!important}
 a[href*="//jjgirls.com/sex/Chaturbate"]{display:none!important}
+a[href*="/?track=ad:"]{display:none!important}
 a[href*="/jump/next.php?r="]{display:none!important}
+a[href*="adintop.com/outgoing/click.php?"]{display:none!important}
+a[href*="dubizzle.com/ar/?utm_source="]{display:none!important}
 a[href^=" https://www.friendlyduck.com/AF_"]{display:none!important}
 a[href^="//go.eabids.com/"]{display:none!important}
 a[href^="//hoodingluster.com/"]{display:none!important}
 a[href^="//s.zlinkd.com/"]{display:none!important}
 a[href^="http://adultfriendfinder.com/go/"]{display:none!important}
+a[href^="http://arabyads.go2cloud.org/"]{display:none!important}
 a[href^="http://bongacams.com/track?"]{display:none!important}
 a[href^="http://cam4com.go2cloud.org/aff_c?"]{display:none!important}
 a[href^="http://com-1.pro/"]{display:none!important}
@@ -13173,6 +13389,7 @@ a[href^="http://sarcasmadvisor.com/"]{display:none!important}
 a[href^="http://sneakyadministration.com/"]{display:none!important}
 a[href^="http://stickingrepute.com/"]{display:none!important}
 a[href^="http://trk.globwo.online/"]{display:none!important}
+a[href^="http://viral481.com/srv."]{display:none!important}
 a[href^="http://www.adultempire.com/unlimited/promo?"][href*="&partner_id="]{display:none!important}
 a[href^="http://www.friendlyduck.com/AF_"]{display:none!important}
 a[href^="http://www.h4trck.com/"]{display:none!important}
@@ -13201,6 +13418,7 @@ a[href^="https://ads.planetwin365affiliate.com/"]{display:none!important}
 a[href^="https://adultfriendfinder.com/go/"]{display:none!important}
 a[href^="https://aj1070.online/"]{display:none!important}
 a[href^="https://ak.psaltauw.net/"]{display:none!important}
+a[href^="https://arabic-life.buzz/"]{display:none!important}
 a[href^="https://ausoafab.net/"]{display:none!important}
 a[href^="https://aweptjmp.com/"]{display:none!important}
 a[href^="https://awptjmp.com/"]{display:none!important}
@@ -13227,6 +13445,7 @@ a[href^="https://clickins.slixa.com/"]{display:none!important}
 a[href^="https://clicks.pipaffiliates.com/"]{display:none!important}
 a[href^="https://clixtrac.com/"]{display:none!important}
 a[href^="https://combodef.com/"]{display:none!important}
+a[href^="https://cs-api.postquare.com/gas-api/click.json?"]{display:none!important}
 a[href^="https://ctjdwm.com/"]{display:none!important}
 a[href^="https://ctosrd.com/"]{display:none!important}
 a[href^="https://ctrdwm.com/"]{display:none!important}
@@ -13357,6 +13576,7 @@ a[href^="https://twinrdsrv.com/"]{display:none!important}
 a[href^="https://twinrdsyte.com/"]{display:none!important}
 a[href^="https://upsups.click/"]{display:none!important}
 a[href^="https://voluum.prom-xcams.com/"]{display:none!important}
+a[href^="https://witalfieldt.com/"]{display:none!important}
 a[href^="https://wittered-mainging.com/"]{display:none!important}
 a[href^="https://wmctjd.com/"]{display:none!important}
 a[href^="https://wolf-327b.com/"]{display:none!important}
@@ -13393,9 +13613,12 @@ a[style="width:100%;height:100%;z-index:10000000000000000;position:absolute;top:
 amp-embed[type="taboola"]{display:none!important}
 aside[aria-label="retailmedia.complimentarySponsored"]{display:none!important}
 aside[id^="adrotate_widgets-"]{display:none!important}
+aside[id^="custom-ads-"]{display:none!important}
 div[aria-label="Ads"]{display:none!important}
 div[class$="-adlabel"]{display:none!important}
 div[class^="Adstyled__AdWrapper-"]{display:none!important}
+div[class^="ad-id_shortcode"]{display:none!important}
+div[class^="ads-area-"]{display:none!important}
 div[data-ad-placeholder]{display:none!important}
 div[data-ad-region]{display:none!important}
 div[data-ad-targeting]{display:none!important}
@@ -13411,11 +13634,15 @@ div[data-dfp-id]{display:none!important}
 div[data-id-advertdfpconf]{display:none!important}
 div[id*="MarketGid"]{display:none!important}
 div[id*="ScriptRoot"]{display:none!important}
+div[id^="POSTQUARE_WIDGET"]{display:none!important}
 div[id^="ad-div-"]{display:none!important}
 div[id^="ad-position-"]{display:none!important}
+div[id^="adSlot-inPage"]{display:none!important}
 div[id^="ad_position_"]{display:none!important}
+div[id^="admixer_"]{display:none!important}
 div[id^="adngin-"]{display:none!important}
 div[id^="adrotate_widgets-"]{display:none!important}
+div[id^="ads-postbr"]{display:none!important}
 div[id^="adspot-"]{display:none!important}
 div[id^="apn_native_ad_slot_"]{display:none!important}
 div[id^="dfp-ad-"]{display:none!important}
@@ -13433,10 +13660,17 @@ div[id^="sticky_ad_"]{display:none!important}
 div[id^="taboola-stream-"]{display:none!important}
 div[id^="vuukle-ad-"]{display:none!important}
 div[id^="zergnet-widget"]{display:none!important}
+div[itemtype="https://schema.org/WPAdBlock"]{display:none!important}
 div[ow-ad-unit-wrapper]{display:none!important}
 iframe[scrolling="no"][sandbox*="allow-popups allow-modals"][style^="width: 100%; height: 100%; border: none;"]{display:none!important}
+img[alt="إعلان"][height="60"]{display:none!important}
+img[alt="إعلان"][width="150"]{display:none!important}
+img[alt="ضع إعلانك هنا"]{display:none!important}
+img[alt^="مساحة اعلانية"]{display:none!important}
+img[src*="/adv/"][alt="إعلان"]{display:none!important}
 img[src^="https://images.purevpnaffiliates.com"]{display:none!important}
 img[src^="https://s-img.adskeeper.com/"]{display:none!important}
+img[title="اعــلن مــــــعنا"]{display:none!important}
 in-page-message[doskip]{display:none!important}
 span[data-ez-ph-id]{display:none!important}
 span[id^="ezoic-pub-ad-placeholder-"]{display:none!important}
