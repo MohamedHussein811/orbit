@@ -6,6 +6,7 @@ cd src
 python3 tools/clang/scripts/update.py
 python3 tools/rust/update_rust.py
 python3 build/linux/sysroot_scripts/install-sysroot.py --arch=amd64
+python3 build/linux/sysroot_scripts/install-sysroot.py --arch=i386
 third_party/node/update_node_binaries > /dev/null 2>&1
 third_party/node/linux/node-linux-x64/bin/node --version
 test -f third_party/node/node_modules/typescript/lib/tsc.js
