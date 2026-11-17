@@ -10,6 +10,14 @@ diff --git a/chrome/browser/BUILD.gn b/chrome/browser/BUILD.gn
        "font_prewarmer_tab_helper.cc",
        "fullscreen_win.cc",
        "icon_loader_win.cc",
+@@ -1629,6 +1631,7 @@
+     deps += [
+       ":font_prewarmer_tab_helper",
+       ":fullscreen",
++      "//chrome/browser/ui/webui/help",
+       "//chrome/app:chrome_exe_main_exports",
+       "//chrome/app/theme:chrome_unscaled_resources_grit",
+       "//chrome/browser/install_verification:impl",
 diff --git a/chrome/browser/chrome_browser_main_win.cc b/chrome/browser/chrome_browser_main_win.cc
 --- a/chrome/browser/chrome_browser_main_win.cc
 +++ b/chrome/browser/chrome_browser_main_win.cc
@@ -42,7 +50,7 @@ diff --git a/chrome/browser/chrome_browser_main_win.cc b/chrome/browser/chrome_b
 diff --git a/chrome/browser/orbit_updater_win.cc b/chrome/browser/orbit_updater_win.cc
 --- a/chrome/browser/orbit_updater_win.cc
 +++ b/chrome/browser/orbit_updater_win.cc
-@@ -0,0 +1,355 @@
+@@ -0,0 +1,433 @@
 +// Copyright 2026 NovaTech. All rights reserved.
 +// Use of this source code is governed by a BSD-style license that can be
 +// found in the LICENSE file.
@@ -51,12 +59,14 @@ diff --git a/chrome/browser/orbit_updater_win.cc b/chrome/browser/orbit_updater_
 +
 +#include <windows.h>
 +
++#include <algorithm>
 +#include <array>
 +#include <memory>
 +#include <optional>
 +#include <string>
 +#include <string_view>
 +#include <utility>
++#include <vector>
 +
 +#include "base/base64.h"
 +#include "base/command_line.h"
@@ -77,6 +87,7 @@ diff --git a/chrome/browser/orbit_updater_win.cc b/chrome/browser/orbit_updater_
 +#include "base/version.h"
 +#include "base/win/registry.h"
 +#include "chrome/browser/browser_process.h"
++#include "chrome/browser/ui/webui/help/orbit_update_check.h"
 +#include "chrome/browser/upgrade_detector/get_installed_version.h"
 +#include "chrome/common/chrome_switches.h"
 +#include "chrome/install_static/install_util.h"
@@ -257,22 +268,63 @@ diff --git a/chrome/browser/orbit_updater_win.cc b/chrome/browser/orbit_updater_
 +
 +  void Start() { Schedule(kFirstCheck); }
 +
++  // A check asked for by the About page: joins the running one, or starts one now.
++  void CheckNow(UpdateCheckCallback callback) {
++    if (busy_) {
++      callback.Run(status_, progress_, 0);
++      watchers_.push_back(std::move(callback));
++      return;
++    }
++    watchers_.push_back(std::move(callback));
++    manual_ = true;
++    timer_.Stop();
++    Check();
++  }
++
 + private:
 +  void Schedule(base::TimeDelta delay) {
 +    timer_.Start(FROM_HERE, delay,
 +                 base::BindOnce(&Updater::Check, weak_factory_.GetWeakPtr()));
 +  }
 +
++  void Report(UpdateCheckStatus status, int progress) {
++    status_ = status;
++    progress_ = progress;
++    for (const UpdateCheckCallback& watcher : watchers_) {
++      watcher.Run(status, progress, 0);
++    }
++  }
++
++  // Ends a check: tells the About page how it went and plans the next one.
++  void Finish(UpdateCheckStatus status, int error,
++              std::optional<base::TimeDelta> next) {
++    loader_.reset();
++    std::vector<UpdateCheckCallback> watchers = std::move(watchers_);
++    watchers_.clear();
++    busy_ = false;
++    manual_ = false;
++    status_ = UpdateCheckStatus::kChecking;
++    progress_ = 0;
++    if (next) {
++      Schedule(*next);
++    }
++    for (const UpdateCheckCallback& watcher : watchers) {
++      watcher.Run(status, 0, error);
++    }
++  }
++
 +  void Check() {
++    busy_ = true;
++    Report(UpdateCheckStatus::kChecking, 0);
 +    base::ThreadPool::PostTaskAndReplyWithResult(
-+        FROM_HERE, {base::MayBlock(), base::TaskPriority::BEST_EFFORT},
++        FROM_HERE, {base::MayBlock(), base::TaskPriority::USER_VISIBLE},
 +        base::BindOnce(&ReadLocalState),
 +        base::BindOnce(&Updater::OnLocalState, weak_factory_.GetWeakPtr()));
 +  }
 +
 +  void OnLocalState(LocalState state) {
-+    if (!state.enabled) {
-+      Schedule(kCheckPeriod);
++    if (!state.enabled && !manual_) {
++      Finish(UpdateCheckStatus::kUnavailable, 0, kCheckPeriod);
 +      return;
 +    }
 +    GetInstalledVersion(base::BindOnce(&Updater::OnInstalledVersion,
@@ -282,6 +334,7 @@ diff --git a/chrome/browser/orbit_updater_win.cc b/chrome/browser/orbit_updater_
 +  void OnInstalledVersion(InstalledAndCriticalVersion versions) {
 +    // Only an installed copy updates itself; a build run from its own folder does not.
 +    if (!versions.installed_version.IsValid()) {
++      Finish(UpdateCheckStatus::kUnavailable, 0, std::nullopt);
 +      return;
 +    }
 +    installed_ = std::move(versions.installed_version);
@@ -294,7 +347,7 @@ diff --git a/chrome/browser/orbit_updater_win.cc b/chrome/browser/orbit_updater_
 +
 +  void OnFeed(std::optional<std::string> feed) {
 +    if (!feed) {
-+      Schedule(kRetryPeriod);
++      Finish(UpdateCheckStatus::kFailed, 1, kRetryPeriod);
 +      return;
 +    }
 +    loader_ = Load(GURL(kSignatureUrl));
@@ -308,27 +361,33 @@ diff --git a/chrome/browser/orbit_updater_win.cc b/chrome/browser/orbit_updater_
 +  void OnSignature(std::string feed, std::optional<std::string> signature) {
 +    loader_.reset();
 +    if (!signature) {
-+      Schedule(kRetryPeriod);
++      Finish(UpdateCheckStatus::kFailed, 1, kRetryPeriod);
 +      return;
 +    }
 +    if (!SignatureMatches(feed, *signature)) {
 +      LOG(ERROR) << "Orbit update: the feed signature does not match";
-+      Schedule(kCheckPeriod);
++      Finish(UpdateCheckStatus::kFailed, 2, kCheckPeriod);
 +      return;
 +    }
 +    std::optional<Offer> offer = ParseOffer(feed);
 +    if (!offer) {
-+      Schedule(kCheckPeriod);
++      Finish(UpdateCheckStatus::kFailed, 3, kCheckPeriod);
 +      return;
 +    }
 +    const base::Version& running = version_info::GetVersion();
 +    if (offer->version.CompareTo(running) <= 0 ||
 +        offer->version.CompareTo(installed_) <= 0) {
-+      Schedule(kCheckPeriod);
++      // A newer copy already installed next to the running one waits for a relaunch.
++      Finish(installed_.CompareTo(running) > 0 ? UpdateCheckStatus::kInstalled
++                                               : UpdateCheckStatus::kUpToDate,
++             0, kCheckPeriod);
 +      return;
 +    }
 +    const int64_t max_size = offer->size + 1;
++    Report(UpdateCheckStatus::kDownloading, 0);
 +    loader_ = Load(offer->url);
++    loader_->SetOnDownloadProgressCallback(base::BindRepeating(
++        &Updater::OnProgress, weak_factory_.GetWeakPtr(), offer->size));
 +    loader_->DownloadToTempFile(
 +        g_browser_process->shared_url_loader_factory().get(),
 +        base::BindOnce(&Updater::OnDownloaded, weak_factory_.GetWeakPtr(),
@@ -336,10 +395,18 @@ diff --git a/chrome/browser/orbit_updater_win.cc b/chrome/browser/orbit_updater_
 +        max_size);
 +  }
 +
++  void OnProgress(int64_t size, uint64_t current) {
++    const int percent = static_cast<int>(
++        std::clamp<int64_t>(static_cast<int64_t>(current) * 100 / size, 0, 99));
++    if (percent != progress_) {
++      Report(UpdateCheckStatus::kDownloading, percent);
++    }
++  }
++
 +  void OnDownloaded(Offer offer, base::FilePath download) {
 +    loader_.reset();
 +    if (download.empty()) {
-+      Schedule(kRetryPeriod);
++      Finish(UpdateCheckStatus::kFailed, 4, kRetryPeriod);
 +      return;
 +    }
 +    base::ThreadPool::PostTaskAndReplyWithResult(
@@ -353,7 +420,11 @@ diff --git a/chrome/browser/orbit_updater_win.cc b/chrome/browser/orbit_updater_
 +  }
 +
 +  void OnInstalled(bool installed) {
-+    Schedule(installed ? kCheckPeriod : kRetryPeriod);
++    if (installed) {
++      Finish(UpdateCheckStatus::kInstalled, 0, kCheckPeriod);
++    } else {
++      Finish(UpdateCheckStatus::kFailed, 5, kRetryPeriod);
++    }
 +  }
 +
 +  static std::unique_ptr<network::SimpleURLLoader> Load(const GURL& url) {
@@ -374,10 +445,23 @@ diff --git a/chrome/browser/orbit_updater_win.cc b/chrome/browser/orbit_updater_
 +  base::OneShotTimer timer_;
 +  base::Version installed_;
 +  std::unique_ptr<network::SimpleURLLoader> loader_;
++  std::vector<UpdateCheckCallback> watchers_;
++  bool busy_ = false;
++  bool manual_ = false;
++  UpdateCheckStatus status_ = UpdateCheckStatus::kChecking;
++  int progress_ = 0;
 +  base::WeakPtrFactory<Updater> weak_factory_{this};
 +};
 +
 +Updater* g_updater = nullptr;
++
++void CheckNowForAboutPage(UpdateCheckCallback callback) {
++  if (g_updater) {
++    g_updater->CheckNow(std::move(callback));
++  } else {
++    callback.Run(UpdateCheckStatus::kUnavailable, 0, 0);
++  }
++}
 +
 +}  // namespace
 +
@@ -389,10 +473,12 @@ diff --git a/chrome/browser/orbit_updater_win.cc b/chrome/browser/orbit_updater_
 +    return;
 +  }
 +  g_updater = new Updater();
++  SetUpdateCheckFunction(&CheckNowForAboutPage);
 +  g_updater->Start();
 +}
 +
 +void StopUpdater() {
++  SetUpdateCheckFunction(nullptr);
 +  delete g_updater;
 +  g_updater = nullptr;
 +}
@@ -401,7 +487,7 @@ diff --git a/chrome/browser/orbit_updater_win.cc b/chrome/browser/orbit_updater_
 diff --git a/chrome/browser/orbit_updater_win.h b/chrome/browser/orbit_updater_win.h
 --- a/chrome/browser/orbit_updater_win.h
 +++ b/chrome/browser/orbit_updater_win.h
-@@ -0,0 +1,22 @@
+@@ -0,0 +1,23 @@
 +// Copyright 2026 NovaTech. All rights reserved.
 +// Use of this source code is governed by a BSD-style license that can be
 +// found in the LICENSE file.
@@ -417,13 +503,168 @@ diff --git a/chrome/browser/orbit_updater_win.h b/chrome/browser/orbit_updater_w
 +// silently. The setup installs next to the running copy; the menu then offers to relaunch.
 +// Turned off by --disable-background-networking, by system-wide installs (updated by their
 +// administrators), and by the "Enabled" value 0 under HKCU\Software\NovaTech\Orbit Update,
-+// which Orbit's setup writes when the person turns automatic updates off.
++// which Orbit's setup writes when the person turns automatic updates off. The About page can ask
++// for a check at any time, also when automatic updates are off.
 +void StartUpdater();
 +void StopUpdater();
 +
 +}  // namespace orbit
 +
 +#endif  // CHROME_BROWSER_ORBIT_UPDATER_WIN_H_
+diff --git a/chrome/browser/ui/webui/help/BUILD.gn b/chrome/browser/ui/webui/help/BUILD.gn
+--- a/chrome/browser/ui/webui/help/BUILD.gn
++++ b/chrome/browser/ui/webui/help/BUILD.gn
+@@ -62,7 +62,12 @@
+         "//ui/gfx",
+       ]
+     } else {
+-      sources = [ "version_updater_basic.cc" ]
++      public += [ "orbit_update_check.h" ]
++      sources = [ "version_updater_orbit_win.cc" ]
++      deps += [
++        "//chrome/app:generated_resources_grit",
++        "//ui/base",
++      ]
+     }
+   }
+ 
+diff --git a/chrome/browser/ui/webui/help/orbit_update_check.h b/chrome/browser/ui/webui/help/orbit_update_check.h
+--- a/chrome/browser/ui/webui/help/orbit_update_check.h
++++ b/chrome/browser/ui/webui/help/orbit_update_check.h
+@@ -0,0 +1,34 @@
++// Copyright 2026 NovaTech. All rights reserved.
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++
++#ifndef CHROME_BROWSER_UI_WEBUI_HELP_ORBIT_UPDATE_CHECK_H_
++#define CHROME_BROWSER_UI_WEBUI_HELP_ORBIT_UPDATE_CHECK_H_
++
++#include "base/functional/callback.h"
++
++namespace orbit {
++
++// Where an update check asked for by the About page stands.
++enum class UpdateCheckStatus {
++  kChecking,
++  kDownloading,
++  kInstalled,
++  kUpToDate,
++  kFailed,
++  kUnavailable,
++};
++
++// |progress| is the download's percentage; |error| names the failed step.
++using UpdateCheckCallback = base::RepeatingCallback<
++    void(UpdateCheckStatus status, int progress, int error)>;
++using UpdateCheckFunction = void (*)(UpdateCheckCallback callback);
++
++// Orbit's updater registers how to check now; the About page calls it. Without one (system-wide
++// installs, builds run from their own folder) the About page shows no update status.
++void SetUpdateCheckFunction(UpdateCheckFunction function);
++UpdateCheckFunction GetUpdateCheckFunction();
++
++}  // namespace orbit
++
++#endif  // CHROME_BROWSER_UI_WEBUI_HELP_ORBIT_UPDATE_CHECK_H_
+diff --git a/chrome/browser/ui/webui/help/version_updater_orbit_win.cc b/chrome/browser/ui/webui/help/version_updater_orbit_win.cc
+--- a/chrome/browser/ui/webui/help/version_updater_orbit_win.cc
++++ b/chrome/browser/ui/webui/help/version_updater_orbit_win.cc
+@@ -0,0 +1,95 @@
++// Copyright 2026 NovaTech. All rights reserved.
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++
++#include <memory>
++#include <string>
++#include <utility>
++
++#include "base/functional/bind.h"
++#include "base/memory/weak_ptr.h"
++#include "chrome/browser/ui/webui/help/orbit_update_check.h"
++#include "chrome/browser/ui/webui/help/version_updater.h"
++#include "chrome/browser/upgrade_detector/upgrade_detector.h"
++#include "chrome/grit/generated_resources.h"
++#include "ui/base/l10n/l10n_util.h"
++
++namespace orbit {
++
++namespace {
++UpdateCheckFunction g_update_check = nullptr;
++}  // namespace
++
++void SetUpdateCheckFunction(UpdateCheckFunction function) {
++  g_update_check = function;
++}
++
++UpdateCheckFunction GetUpdateCheckFunction() {
++  return g_update_check;
++}
++
++}  // namespace orbit
++
++namespace {
++
++// The About page's update section, driven by Orbit's own updater.
++class VersionUpdaterOrbit : public VersionUpdater {
++ public:
++  VersionUpdaterOrbit() = default;
++  VersionUpdaterOrbit(const VersionUpdaterOrbit&) = delete;
++  VersionUpdaterOrbit& operator=(const VersionUpdaterOrbit&) = delete;
++  ~VersionUpdaterOrbit() override = default;
++
++  void CheckForUpdate(StatusCallback callback, PromoteCallback) override {
++    callback_ = std::move(callback);
++    if (UpgradeDetector::GetInstance()->is_upgrade_available()) {
++      Report(NEARLY_UPDATED, 0, std::u16string());
++      return;
++    }
++    orbit::UpdateCheckFunction check = orbit::GetUpdateCheckFunction();
++    if (!check) {
++      Report(DISABLED, 0, std::u16string());
++      return;
++    }
++    check(base::BindRepeating(&VersionUpdaterOrbit::OnStatus,
++                              weak_factory_.GetWeakPtr()));
++  }
++
++ private:
++  void OnStatus(orbit::UpdateCheckStatus status, int progress, int error) {
++    switch (status) {
++      case orbit::UpdateCheckStatus::kChecking:
++        Report(CHECKING, 0, std::u16string());
++        break;
++      case orbit::UpdateCheckStatus::kDownloading:
++        Report(UPDATING, progress, std::u16string());
++        break;
++      case orbit::UpdateCheckStatus::kInstalled:
++        Report(NEARLY_UPDATED, 0, std::u16string());
++        break;
++      case orbit::UpdateCheckStatus::kUpToDate:
++        Report(UPDATED, 0, std::u16string());
++        break;
++      case orbit::UpdateCheckStatus::kFailed:
++        Report(FAILED, 0, l10n_util::GetStringFUTF16Int(IDS_UPGRADE_ERROR, error));
++        break;
++      case orbit::UpdateCheckStatus::kUnavailable:
++        Report(DISABLED, 0, std::u16string());
++        break;
++    }
++  }
++
++  void Report(Status status, int progress, const std::u16string& message) {
++    callback_.Run(status, progress, false, false, std::string(), 0, message);
++  }
++
++  StatusCallback callback_;
++  base::WeakPtrFactory<VersionUpdaterOrbit> weak_factory_{this};
++};
++
++}  // namespace
++
++std::unique_ptr<VersionUpdater> VersionUpdater::Create(
++    content::WebContents* web_contents) {
++  return std::make_unique<VersionUpdaterOrbit>();
++}
 diff --git a/chrome/browser/upgrade_detector/upgrade_detector_impl.cc b/chrome/browser/upgrade_detector/upgrade_detector_impl.cc
 --- a/chrome/browser/upgrade_detector/upgrade_detector_impl.cc
 +++ b/chrome/browser/upgrade_detector/upgrade_detector_impl.cc

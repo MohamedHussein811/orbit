@@ -1,4 +1,4 @@
-// Orbit Gallery: videos by category from Wikimedia Commons (see tools/gallery.mjs), plus Orbit's own
+// Orbit Gallery: HD videos by category from Pixabay (see tools/gallery.mjs), plus Orbit's own
 // space videos. People pick a category or all of them, either one video or a new one each day, and
 // whether it plays or shows as a still picture.
 
@@ -9,7 +9,7 @@ export const GALLERY_MOTIONS = ["video", "still"] as const;
 export type GalleryMotion = (typeof GALLERY_MOTIONS)[number];
 
 export interface GalleryItem {
-  /** Stable key: the file's page on Wikimedia Commons, or the source page of Orbit's own video. */
+  /** Stable key: the video's page on Pixabay, or the source page of Orbit's own video. */
   page: string;
   title: string;
   /** The still frame, or the picture for items without a video. */
@@ -52,8 +52,8 @@ export const NASA_BLACK_HOLE: GalleryItem = {
   local: true,
 };
 
-const POSTER = /^https:\/\/(upload|thumb)\.wikimedia\.org\//;
-const VIDEO = /^https:\/\/upload\.wikimedia\.org\/.+\.webm$/;
+const POSTER = /^https:\/\/cdn\.pixabay\.com\/video\/[\w/-]+_(large|medium|small)\.jpg$/;
+const VIDEO = /^https:\/\/cdn\.pixabay\.com\/video\/[\w/-]+\.mp4$/;
 
 const MAX_CLIP_SECONDS = 3600;
 
@@ -117,12 +117,23 @@ export function currentItem(gallery: Gallery, category: GalleryCategory | "all",
   return list[hash(`${dayOf(now)}|${category}`) % list.length]!;
 }
 
-/** A smaller copy of the still frame for the picker, in one of Wikimedia's standard widths. */
-export function thumbnailOf(item: GalleryItem, width: 250 | 330 | 500 | 960 = 500): string {
-  return item.local ? item.poster : item.poster.replace(/\/\d+px-([^/]+)$/, `/${width}px-$1`);
+/** A smaller copy of the still frame for the picker. */
+export function thumbnailOf(item: GalleryItem): string {
+  return item.local ? item.poster : item.poster.replace(/_(large|medium|small)\.jpg$/, "_tiny.jpg");
 }
 
-/** Whether this item plays: it has a video and the person wants motion. */
-export function playsVideo(item: GalleryItem, motion: GalleryMotion): item is GalleryItem & { video: string } {
-  return Boolean(item.video) && motion === "video";
+/**
+ * Whether this item plays: it has a video the browser can decode and the person wants motion.
+ * Pixabay's videos are H.264, which Orbit for Linux does not decode; there they show as stills.
+ */
+export function playsVideo(item: GalleryItem, motion: GalleryMotion, playsMp4 = true): item is GalleryItem & { video: string } {
+  if (!item.video || motion !== "video") return false;
+  return playsMp4 || !item.video.endsWith(".mp4");
+}
+
+/** The media type of a gallery file, since Pixabay's CDN serves them untyped. */
+export function mediaTypeOf(url: string): string {
+  if (url.endsWith(".mp4")) return "video/mp4";
+  if (url.endsWith(".jpg")) return "image/jpeg";
+  return "";
 }

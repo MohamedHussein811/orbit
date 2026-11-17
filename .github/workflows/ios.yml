@@ -1,0 +1,82 @@
+name: Orbit for iPhone
+
+# Builds the iPhone app (ios/) for the simulator and runs its tests, including WebKit compiling
+# every blocking list that tools/apple-rules.mjs makes from filters/rules. No signing yet.
+
+on:
+  push:
+    branches: [design]
+    paths:
+      - ios/**
+      - tools/apple-rules.mjs
+      - filters/rules/**
+      - .github/workflows/ios.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ios-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: macos-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+
+      - name: Convert the blocking lists for WebKit
+        run: |
+          node --test tests/tools/apple-rules.test.mjs
+          node tools/apple-rules.mjs ios/Orbit/Rules
+
+      - name: Generate the Xcode project
+        run: |
+          brew install --quiet xcodegen
+          xcodegen generate --spec ios/project.yml
+          xcodebuild -version
+
+      - name: Pick a simulator
+        id: simulator
+        run: |
+          id=$(xcrun simctl list devices available --json | python3 -I -c '
+          import json, sys
+          devices = json.load(sys.stdin)["devices"]
+          for runtime in sorted(devices, reverse=True):
+              if "iOS" in runtime:
+                  for device in devices[runtime]:
+                      if device["name"].startswith("iPhone"):
+                          print(device["udid"]); sys.exit()
+          ')
+          test -n "$id"
+          xcrun simctl list devices | grep "$id"
+          echo "id=$id" >> "$GITHUB_OUTPUT"
+
+      - name: Build and test
+        run: |
+          set -o pipefail
+          xcodebuild test \
+            -project ios/Orbit.xcodeproj \
+            -scheme Orbit \
+            -destination "id=${{ steps.simulator.outputs.id }}" \
+            -resultBundlePath "$RUNNER_TEMP/Orbit.xcresult" \
+            CODE_SIGNING_ALLOWED=NO | tee "$RUNNER_TEMP/xcodebuild.log" | grep -E "error:|warning: .*Orbit/|Test Case|Executed|\*\* (BUILD|TEST)" || true
+          grep -q "\*\* TEST SUCCEEDED \*\*" "$RUNNER_TEMP/xcodebuild.log"
+
+      - name: Keep the test results
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ios-test-results
+          path: |
+            ${{ runner.temp }}/Orbit.xcresult
+            ${{ runner.temp }}/xcodebuild.log
+          if-no-files-found: ignore

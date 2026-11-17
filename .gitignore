@@ -10,3 +10,6 @@ keys/*.pem
 /chromium/overlay/chrome/browser/resources/orbit_extensions/*.crx
 /chromium/overlay/chrome/browser/resources/orbit_extensions/*.json
 __pycache__/
+/ios/Orbit.xcodeproj/
+/ios/Orbit/Info.plist
+/ios/Orbit/Rules/

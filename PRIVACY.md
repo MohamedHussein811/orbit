@@ -23,7 +23,7 @@ Releases, which the package adds when installed.
 | What | Where it goes | What it sends |
 | --- | --- | --- |
 | Weather on the new tab page | Open-Meteo | The city name the person enters, then coordinates rounded to about 11 km |
-| Orbit Gallery | Wikimedia's servers | Requests for the chosen video, its still frame and the small previews, without cookies |
+| Orbit Gallery | Pixabay's servers (cdn.pixabay.com) | Requests for the chosen video, its still frame and the small previews, without cookies |
 | Shortcut icons on the new tab page | Each shortcut's own site | A request for the site's icon, without cookies or a referrer, once per shortcut |
 
 A person's own background image or video, notes, shortcuts, history and settings stay on the

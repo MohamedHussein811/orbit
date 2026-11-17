@@ -446,6 +446,9 @@
   "updateGet": {
     "message": "تنزيله"
   },
+  "updateNow": {
+    "message": "تحديث"
+  },
   "shields": {
     "message": "الدروع"
   },
@@ -744,7 +747,7 @@
     "message": "أو اختر واحدًا أدناه ليبقى"
   },
   "galleryCredit": {
-    "message": "الصورة: $1، $2، ويكيميديا كومنز"
+    "message": "صورة من $1 عبر Pixabay"
   },
   "galleryFailed": {
     "message": "تعذّر تحميل الفيديو. تحقّق من اتصالك."
@@ -753,13 +756,13 @@
     "message": "جارٍ تحميل المعرض..."
   },
   "gallerySource": {
-    "message": "فيديوهات من ويكيميديا كومنز، منها فيديوهات ناسا، تُنزَّل من ويكيميديا عند عرضها. فيديوهات Orbit الفضائية مضمّنة في المتصفح."
+    "message": "فيديوهات عالية الدقة من Pixabay، تُنزَّل من Pixabay عند عرضها. فيديوهات Orbit الفضائية مضمّنة في المتصفح."
   },
   "videoBy": {
     "message": "الفيديو: $1"
   },
   "galleryVideoCredit": {
-    "message": "فيديو: $1، $2، ويكيميديا كومنز"
+    "message": "فيديو من $1 عبر Pixabay"
   },
   "galleryMotion": {
     "message": "طريقة العرض"

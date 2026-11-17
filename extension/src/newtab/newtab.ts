@@ -19,7 +19,7 @@ import {
   type Settings,
   type TopSitesMode,
 } from "../shared/settings.ts";
-import { currentItem, DEFAULT_ITEM, GALLERY_CATEGORIES, itemsIn, playsVideo, sanitizeGallery, thumbnailOf, type Gallery, type GalleryCategory, type GalleryItem, type GalleryMotion } from "../shared/gallery.ts";
+import { currentItem, DEFAULT_ITEM, GALLERY_CATEGORIES, itemsIn, mediaTypeOf, playsVideo, sanitizeGallery, thumbnailOf, type Gallery, type GalleryCategory, type GalleryItem, type GalleryMotion } from "../shared/gallery.ts";
 import { h, icon, iconButton } from "./dom.ts";
 import { loadCustomMedia, loadGalleryMedia, MAX_MEDIA_BYTES, MEDIA_TYPES, removeCustomMedia, saveCustomMedia, saveGalleryMedia, type GallerySlot } from "./media-store.ts";
 import { ENGINE_NAMES, mountBookmarks, mountNotes, mountSearch, mountStats, mountWeather, type WidgetContext } from "./widgets.ts";
@@ -111,6 +111,7 @@ const dock = document.getElementById("dock")!;
 const credit = document.getElementById("credit")!;
 const motion = document.getElementById("motion") as HTMLButtonElement;
 const video = document.getElementById("backdrop-video") as HTMLVideoElement;
+const PLAYS_MP4 = video.canPlayType("video/mp4; codecs=\"avc1.640028\"") !== "";
 const image = document.getElementById("backdrop-image") as HTMLImageElement;
 const customize = document.getElementById("customize") as HTMLDialogElement;
 const openButton = document.getElementById("open-customize") as HTMLButtonElement;
@@ -217,7 +218,8 @@ async function galleryBlob(slot: GallerySlot, src: string): Promise<Blob> {
   if (cached) return cached;
   const response = await fetch(src, { credentials: "omit", referrerPolicy: "no-referrer" });
   if (!response.ok) throw new Error(`${slot} ${response.status}`);
-  const blob = await response.blob();
+  const fetched = await response.blob();
+  const blob = new Blob([fetched], { type: mediaTypeOf(src) || fetched.type });
   await saveGalleryMedia(slot, src, blob);
   return blob;
 }
@@ -236,7 +238,7 @@ async function showGallery(): Promise<void> {
   credit.replaceChildren(creditFor(item));
   if (item.local) {
     keepGalleryUrls([]);
-    if (playsVideo(item, settings.galleryMotion)) showVideo(item.video, item.poster);
+    if (playsVideo(item, settings.galleryMotion, PLAYS_MP4)) showVideo(item.video, item.poster);
     else showImage(item.poster);
     syncPlayback();
     return;
@@ -249,7 +251,7 @@ async function showGallery(): Promise<void> {
     keepGalleryUrls([still]);
     showImage(still);
     syncPlayback();
-    if (playsVideo(item, settings.galleryMotion)) {
+    if (playsVideo(item, settings.galleryMotion, PLAYS_MP4)) {
       const videoBlob = await galleryBlob("gallery-video", item.video);
       if (stale()) return;
       const clipUrl = URL.createObjectURL(videoBlob);
@@ -444,7 +446,7 @@ function backgroundThumb(card: BackgroundCard): HTMLElement {
     else thumb.style.setProperty("--swatch", COLORS[settings.color]);
   } else {
     const today = gallery ? currentItem(gallery, settings.galleryCategory, settings.galleryChoice, Date.now()) : null;
-    thumb.append(today ? h("img", { src: thumbnailOf(today, 330), alt: "", decoding: "async" }) : icon("image"));
+    thumb.append(today ? h("img", { src: thumbnailOf(today), alt: "", decoding: "async" }) : icon("image"));
   }
   thumb.append(h("span", { class: "bg-check" }, icon("check")));
   return thumb;
@@ -455,7 +457,7 @@ function backgroundHasVideo(): boolean {
   if (settings.background === "custom") return Boolean(customMedia && customUrl && !customFailed && isVideo(customMedia));
   if (settings.background !== "gallery") return false;
   const item = (gallery && currentItem(gallery, settings.galleryCategory, settings.galleryChoice, Date.now())) ?? DEFAULT_ITEM;
-  return playsVideo(item, settings.galleryMotion);
+  return playsVideo(item, settings.galleryMotion, PLAYS_MP4);
 }
 
 /** Orbit Gallery: a category, a new video each day or one the person picks, and live or still. */
@@ -997,16 +999,23 @@ async function main(): Promise<void> {
   });
 }
 
-// A quiet note in the corner when a newer Orbit is out. The background check stores it.
+// A quiet note in the corner when a newer Orbit is out. The background check stores it. Windows
+// updates itself, so the note opens the About page, which checks, installs and offers to relaunch.
 async function showUpdate(): Promise<void> {
   const { update } = await chrome.storage.local.get("update");
   const release = sanitizeRelease(update);
   document.querySelector(".update-chip")?.remove();
   if (!release || !isNewer(release, await runningVersion())) return;
   const label = t("updateAvailable", release.tag.slice(1));
-  document.body.append(
-    h("a", { class: "update-chip", href: release.url, target: "_blank", rel: "noopener" }, h("span", { class: "update-dot", "aria-hidden": "true" }), h("span", {}, label), h("strong", {}, t("updateGet"))),
-  );
+  const parts = [h("span", { class: "update-dot", "aria-hidden": "true" }), h("span", {}, label)];
+  const selfUpdates = (navigator as Navigator & { userAgentData?: { platform?: string } }).userAgentData?.platform === "Windows";
+  const chip = selfUpdates
+    ? h("a", { class: "update-chip", href: "chrome://settings/help", onclick: (event: Event) => {
+        event.preventDefault();
+        void chrome.tabs.update({ url: "chrome://settings/help" });
+      } }, ...parts, h("strong", {}, t("updateNow")))
+    : h("a", { class: "update-chip", href: release.url, target: "_blank", rel: "noopener" }, ...parts, h("strong", {}, t("updateGet")));
+  document.body.append(chip);
 }
 
 chrome.storage.onChanged.addListener((changes, area) => {
