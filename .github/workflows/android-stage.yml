@@ -1,0 +1,136 @@
+name: Orbit Android stage
+
+# One slice of the Android build, on the same plan as chromium-stage.yml: each job compiles until
+# its time budget runs out and saves its work for the next one. For now it builds plain Chromium
+# for Android (no Orbit patches yet), with is_desktop_android so the extension system is compiled.
+
+on:
+  workflow_call:
+    inputs:
+      stage:
+        type: number
+        required: true
+      cpu:
+        type: string
+        default: arm64
+      resume_run:
+        type: string
+        default: ""
+      resume_state:
+        type: number
+        default: 0
+    outputs:
+      done:
+        value: ${{ jobs.build.outputs.done }}
+
+permissions:
+  contents: read
+  actions: read
+
+env:
+  CHROMIUM_VERSION: "157.0.8103.78"
+  TARGETS: chrome_public_apk
+  ANDROID_CPU: ${{ inputs.cpu }}
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 350
+    outputs:
+      done: ${{ steps.compile.outputs.done }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Free disk space and add swap
+        run: |
+          sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc /usr/local/.ghcup /opt/hostedtoolcache/CodeQL /usr/local/share/boost /usr/local/share/powershell /usr/share/swift
+          sudo docker image prune --all --force > /dev/null
+          sudo fallocate -l 16G /extra-swap
+          sudo chmod 600 /extra-swap
+          sudo mkswap /extra-swap > /dev/null
+          sudo swapon /extra-swap
+          df -h /
+          free -h
+
+      - name: Download and verify the Chromium source
+        run: tools/chromium/fetch-source.sh
+
+      - name: Install build packages
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ninja-build zstd python3 lld pkg-config > /dev/null
+          cd src
+          sudo build/install-build-deps.sh --no-prompt --android --no-chromeos-fonts --no-nacl > /dev/null
+
+      - name: Fetch the Android SDK, NDK and Java libraries
+        run: |
+          python3 -I tools/android/fetch-deps.py src
+          du -sh src/third_party/android_sdk src/third_party/android_toolchain src/third_party/jdk 2> /dev/null || true
+          df -h .
+
+      - name: Install Go for Dawn
+        run: tools/chromium/go.sh
+
+      - name: Prepare the first stage
+        if: inputs.stage == 1 && inputs.resume_run == ''
+        run: tools/android/prepare.sh
+
+      - name: Restore the previous stage
+        if: inputs.stage != 1 || inputs.resume_run != ''
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: android-state-${{ inputs.resume_run != '' && inputs.resume_state || inputs.stage }}
+          path: state
+          run-id: ${{ inputs.resume_run || github.run_id }}
+          github-token: ${{ github.token }}
+
+      - name: Unpack the previous stage
+        if: inputs.stage != 1 || inputs.resume_run != ''
+        run: |
+          set -o pipefail
+          zstd -dc state/state.tar.zst | tar -xf - -C src
+          rm -rf state
+          saved=$(cat src/out/orbit-chromium-version 2>/dev/null || echo unknown)
+          if [ "$saved" != "$CHROMIUM_VERSION" ]; then
+            echo "::error::The restored build is Chromium $saved and the source is $CHROMIUM_VERSION. Build from scratch (no resume_run)."
+            exit 1
+          fi
+          tools/android/args.sh src/out/Release/args.gn
+          df -h .
+
+      - name: Compile
+        id: compile
+        env:
+          STAGE: ${{ inputs.stage }}
+          COMPILE_SECONDS: ${{ inputs.stage == 1 && inputs.resume_run == '' && '3600' || '18600' }}
+        run: |
+          echo "$CHROMIUM_VERSION" > src/out/orbit-chromium-version
+          tools/chromium/compile.sh
+
+      - name: Save this stage
+        if: steps.compile.outputs.done != ''
+        run: tools/chromium/save-state.sh
+
+      - name: Keep this stage for the next job
+        if: steps.compile.outputs.done != ''
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: android-state-${{ steps.compile.outputs.next }}
+          path: state.tar.zst
+          retention-days: 5
+          compression-level: 0
+
+      - name: Keep the APK
+        if: steps.compile.outputs.done == 'true'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: orbit-android-${{ inputs.cpu }}
+          path: src/out/Release/apks/ChromePublic.apk
+          retention-days: 30
+          compression-level: 0
+          if-no-files-found: error
