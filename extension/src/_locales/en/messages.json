@@ -446,6 +446,9 @@
   "updateGet": {
     "message": "Get it"
   },
+  "updateNow": {
+    "message": "Update"
+  },
   "shields": {
     "message": "Shields"
   },

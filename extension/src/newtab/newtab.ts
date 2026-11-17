@@ -997,16 +997,23 @@ async function main(): Promise<void> {
   });
 }
 
-// A quiet note in the corner when a newer Orbit is out. The background check stores it.
+// A quiet note in the corner when a newer Orbit is out. The background check stores it. Windows
+// updates itself, so the note opens the About page, which checks, installs and offers to relaunch.
 async function showUpdate(): Promise<void> {
   const { update } = await chrome.storage.local.get("update");
   const release = sanitizeRelease(update);
   document.querySelector(".update-chip")?.remove();
   if (!release || !isNewer(release, await runningVersion())) return;
   const label = t("updateAvailable", release.tag.slice(1));
-  document.body.append(
-    h("a", { class: "update-chip", href: release.url, target: "_blank", rel: "noopener" }, h("span", { class: "update-dot", "aria-hidden": "true" }), h("span", {}, label), h("strong", {}, t("updateGet"))),
-  );
+  const parts = [h("span", { class: "update-dot", "aria-hidden": "true" }), h("span", {}, label)];
+  const selfUpdates = (navigator as Navigator & { userAgentData?: { platform?: string } }).userAgentData?.platform === "Windows";
+  const chip = selfUpdates
+    ? h("a", { class: "update-chip", href: "chrome://settings/help", onclick: (event: Event) => {
+        event.preventDefault();
+        void chrome.tabs.update({ url: "chrome://settings/help" });
+      } }, ...parts, h("strong", {}, t("updateNow")))
+    : h("a", { class: "update-chip", href: release.url, target: "_blank", rel: "noopener" }, ...parts, h("strong", {}, t("updateGet")));
+  document.body.append(chip);
 }
 
 chrome.storage.onChanged.addListener((changes, area) => {
