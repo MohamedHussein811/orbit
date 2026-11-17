@@ -1,0 +1,68 @@
+name: Orbit Android emulator check
+
+# Installs an APK from an earlier Android build on an emulator and checks that it opens a page.
+# browser-android.yml calls it after each build; a push that changes only the check runs it alone
+# against the last APK, so the check can be fixed without rebuilding.
+
+on:
+  workflow_call:
+    inputs:
+      apk_run:
+        type: string
+        required: true
+      cpu:
+        type: string
+        default: arm64
+  push:
+    branches: [design]
+    paths:
+      - tools/android/smoke.sh
+      - .github/workflows/android-emulator.yml
+
+permissions:
+  contents: read
+  actions: read
+
+env:
+  LAST_APK_RUN: "44091873856"
+
+jobs:
+  emulator:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: orbit-android-${{ inputs.cpu || 'arm64' }}
+          path: apk
+          run-id: ${{ inputs.apk_run || env.LAST_APK_RUN }}
+          github-token: ${{ github.token }}
+
+      - name: Let the emulator use KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Install the APK on an emulator and load a page
+        uses: ReactiveCircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
+        with:
+          api-level: 34
+          target: google_apis
+          arch: x86_64
+          disable-animations: true
+          script: bash tools/android/smoke.sh apk/ChromePublic.apk
+
+      - name: Keep the screen and logs
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: android-smoke-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/smoke.png
+            ${{ runner.temp }}/logcat.txt
+          if-no-files-found: ignore
