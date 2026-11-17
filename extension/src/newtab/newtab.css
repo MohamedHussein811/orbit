@@ -572,6 +572,10 @@ body {
 
 .add-tile .tile-title {
   color: var(--muted);
+  white-space: normal;
+  text-align: center;
+  text-wrap: balance;
+  line-height: 1.25;
 }
 
 /* The edit button takes the satellite's place on the ring. */
@@ -1406,6 +1410,20 @@ body {
   align-items: center;
   gap: 0.35rem;
   min-height: 2.85rem;
+}
+
+.startup-url {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.875rem;
+}
+
+.startup-add > input {
+  flex: 1 1 12rem;
+  min-width: 0;
 }
 
 .widget-list label {

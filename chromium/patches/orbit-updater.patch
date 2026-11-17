@@ -427,7 +427,17 @@ diff --git a/chrome/browser/orbit_updater_win.h b/chrome/browser/orbit_updater_w
 diff --git a/chrome/browser/upgrade_detector/upgrade_detector_impl.cc b/chrome/browser/upgrade_detector/upgrade_detector_impl.cc
 --- a/chrome/browser/upgrade_detector/upgrade_detector_impl.cc
 +++ b/chrome/browser/upgrade_detector/upgrade_detector_impl.cc
-@@ -493,6 +493,12 @@
+@@ -48,7 +48,8 @@
+ namespace {
+ 
+ // The default thresholds for reaching annoyance levels.
+-constexpr auto kDefaultVeryLowThreshold = base::Hours(1);
++// Orbit offers the relaunch as soon as the newer version is installed.
++constexpr auto kDefaultVeryLowThreshold = base::TimeDelta();
+ constexpr auto kDefaultLowThreshold = base::Days(2);
+ constexpr auto kDefaultElevatedThreshold = base::Days(4);
+ constexpr auto kDefaultHighThreshold = base::Days(7);
+@@ -493,6 +494,12 @@
    auto* const build_state = g_browser_process->GetBuildState();
    build_state->AddObserver(this);
    installed_version_poller_.emplace(build_state);

@@ -75,3 +75,16 @@ for (const [scale, height] of [["100", 22], ["200", 44]]) {
   }
 }
 console.log("wrote product_logo_name_22 to the Chromium overlay");
+
+// The same name at full height for orbit://version (IDR_PRODUCT_LOGO), and its tab icon.
+const VERSION = path.join(ROOT, "chromium", "overlay", "components", "resources");
+for (const [scale, height] of [["100", 32], ["200", 64]]) {
+  const dir = path.join(VERSION, `default_${scale}_percent`, "chromium");
+  fs.mkdirSync(dir, { recursive: true });
+  for (const [suffix, color] of [["", "#171b2c"], ["_white", "#ffffff"]]) {
+    const png = new Resvg(wordmark(color), { fitTo: { mode: "height", value: height }, font: { fontFiles: [FONT], loadSystemFonts: false, defaultFontFamily: "Readex Pro" } }).render().asPng();
+    fs.writeFileSync(path.join(dir, `product_logo${suffix}.png`), png);
+  }
+  fs.writeFileSync(path.join(dir, "favicon_product.png"), bySize.get(height / 2));
+}
+console.log("wrote the orbit://version logo to the Chromium overlay");

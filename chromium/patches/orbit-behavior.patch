@@ -118,3 +118,18 @@ diff --git a/chrome/browser/ui/startup/startup_browser_creator_impl.cc b/chrome/
      // Don't perform a session restore on a post-crash launch, as this could
      // cause a crash loop.
      if (!(options & IS_POST_CRASH_LAUNCH)) {
+diff --git a/chrome/browser/ui/views/omnibox/omnibox_view_views.cc b/chrome/browser/ui/views/omnibox/omnibox_view_views.cc
+--- a/chrome/browser/ui/views/omnibox/omnibox_view_views.cc
++++ b/chrome/browser/ui/views/omnibox/omnibox_view_views.cc
+@@ -2618,6 +2618,11 @@
+ 
+ void OmniboxViewViews::OnTemplateURLServiceChanged() {
+   InstallPlaceholderText();
++  // The location icon shows the default search engine's icon, so it changes
++  // with the placeholder.
++  if (location_bar_view_ && location_bar_view_->IsInitialized()) {
++    static_cast<LocationBar*>(location_bar_view_.get())->OnChanged();
++  }
+ }
+ 
+ void OmniboxViewViews::DidFinishNavigation(

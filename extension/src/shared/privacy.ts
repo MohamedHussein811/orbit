@@ -19,10 +19,12 @@ export interface PrivacySettings {
   clearOnStart: ClearableData[];
   historyDays: number;
   checkUpdates: boolean;
+  /** Blocks known dangerous sites with the threat lists (Orbit's Safe Browsing). */
+  threats: boolean;
 }
 
 export function defaultPrivacy(): PrivacySettings {
-  return { version: 1, fingerprinting: "standard", webrtc: "default_public_interface_only", clearOnStart: [], historyDays: 0, checkUpdates: true };
+  return { version: 1, fingerprinting: "standard", webrtc: "default_public_interface_only", clearOnStart: [], historyDays: 0, checkUpdates: true, threats: true };
 }
 
 export function sanitizePrivacy(raw: unknown): PrivacySettings {
@@ -36,6 +38,7 @@ export function sanitizePrivacy(raw: unknown): PrivacySettings {
     clearOnStart: [...new Set(clear)],
     historyDays: (HISTORY_DAYS as readonly number[]).includes(source.historyDays as number) ? (source.historyDays as number) : 0,
     checkUpdates: source.checkUpdates !== false,
+    threats: source.threats !== false,
   };
 }
 

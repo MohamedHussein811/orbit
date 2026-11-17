@@ -1,3 +1,45 @@
+diff --git a/components/omnibox/browser/autocomplete_controller.cc b/components/omnibox/browser/autocomplete_controller.cc
+--- a/components/omnibox/browser/autocomplete_controller.cc
++++ b/components/omnibox/browser/autocomplete_controller.cc
+@@ -378,6 +378,30 @@
+   return contextual_search_params.show_suggestions_on_no_apc;
+ }
+ 
++// Suggestions for Orbit's internal pages read orbit://, like the address bar.
++// Choosing one still opens the chrome:// page.
++void ShowOrbitScheme(AutocompleteResult* result) {
++  for (AutocompleteMatch& match : *result) {
++    if (!match.destination_url.SchemeIs("chrome") &&
++        !AutocompleteMatch::IsSearchType(match.type)) {
++      continue;
++    }
++    if (base::StartsWith(match.contents, u"chrome://",
++                         base::CompareCase::INSENSITIVE_ASCII)) {
++      match.contents.replace(0, 6, u"orbit");
++      for (ACMatchClassification& style : match.contents_class) {
++        if (style.offset >= 6) {
++          --style.offset;
++        }
++      }
++    }
++    if (base::StartsWith(match.fill_into_edit, u"chrome://",
++                         base::CompareCase::INSENSITIVE_ASCII)) {
++      match.fill_into_edit.replace(0, 6, u"orbit");
++    }
++  }
++}
++
+ }  // namespace
+ 
+ AutocompleteController::OldResult::OldResult(UpdateType update_type,
+@@ -1772,6 +1796,7 @@
+   internal_result_.Validate();
+ #endif  // DCHECK_IS_ON()
+ 
++  ShowOrbitScheme(&internal_result_);
+   UpdateKeywordDescriptions(&internal_result_);
+   UpdateAssociatedKeywords(&internal_result_);
+   AttachActions();
 diff --git a/components/omnibox/browser/autocomplete_input.cc b/components/omnibox/browser/autocomplete_input.cc
 --- a/components/omnibox/browser/autocomplete_input.cc
 +++ b/components/omnibox/browser/autocomplete_input.cc

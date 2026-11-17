@@ -39,10 +39,17 @@ function normalizeDomain(raw) {
   return ascii;
 }
 
+/** A domain in a rule option. Rule conditions also take a bare top-level domain such as "gov". */
+function optionDomain(raw) {
+  const text = raw.trim().toLowerCase();
+  if (/^[a-z]{2,}$/.test(text)) return text;
+  return normalizeDomain(text);
+}
+
 function parseDomainOption(value, out) {
   for (const part of value.split("|")) {
     const negated = part.startsWith("~");
-    const domain = normalizeDomain(negated ? part.slice(1) : part);
+    const domain = optionDomain(negated ? part.slice(1) : part);
     if (!domain) return false;
     (negated ? out.excludedInitiatorDomains : out.initiatorDomains).push(domain);
   }
@@ -51,7 +58,7 @@ function parseDomainOption(value, out) {
 
 /** Returns the rule's condition fields and flags, or null when any option has no exact equivalent. */
 function parseOptions(text) {
-  const parsed = { types: [], excludedTypes: [], initiatorDomains: [], excludedInitiatorDomains: [], excludedRequestDomains: [], methods: [], domainType: null, caseSensitive: false, important: false };
+  const parsed = { types: [], excludedTypes: [], initiatorDomains: [], excludedInitiatorDomains: [], requestDomains: [], excludedRequestDomains: [], methods: [], domainType: null, caseSensitive: false, important: false, badfilter: false };
   if (!text) return parsed;
   for (const option of text.split(",")) {
     const equals = option.indexOf("=");
@@ -65,6 +72,15 @@ function parseOptions(text) {
       parsed.domainType = negated ? "thirdParty" : "firstParty";
     } else if (name === "domain" || name === "from") {
       if (!parseDomainOption(value, parsed)) return null;
+    } else if (name === "to") {
+      for (const part of value.split("|")) {
+        const negatedPart = part.startsWith("~");
+        const domain = optionDomain(negatedPart ? part.slice(1) : part);
+        if (!domain) return null;
+        (negatedPart ? parsed.excludedRequestDomains : parsed.requestDomains).push(domain);
+      }
+    } else if (name === "badfilter") {
+      parsed.badfilter = true;
     } else if (name === "denyallow") {
       for (const part of value.split("|")) {
         const domain = normalizeDomain(part);
@@ -118,10 +134,14 @@ export function parseFilter(raw) {
 
   const allow = line.startsWith("@@");
   const [patternText, optionText] = splitOptions(allow ? line.slice(2) : line);
-  if (patternText.startsWith("/") && patternText.endsWith("/") && patternText.length > 1) return { skipped: "regex" };
-
   const options = parseOptions(optionText);
   if (!options) return { skipped: "option" };
+
+  if (patternText.startsWith("/") && patternText.endsWith("/") && patternText.length > 2) {
+    const regex = patternText.slice(1, -1);
+    if (!isPortableRegex(regex)) return { skipped: "regex" };
+    return { allow, regex, host: null, options };
+  }
 
   const pattern = cleanPattern(patternText);
   // eslint-disable-next-line no-control-regex
@@ -137,12 +157,37 @@ export function parseFilter(raw) {
   return { allow, pattern, host: hostOnly ? hostOnly[1].toLowerCase() : null, options };
 }
 
+/** Chromium checks rule regexes with RE2, and one it rejects stops the whole extension from
+ * loading. Only plain syntax both engines read the same way is kept: no lookaround or named
+ * groups, no backreferences, no repeat count above RE2's 1000, no JavaScript-only escapes. */
+export function isPortableRegex(regex) {
+  if (regex.length > 500) return false;
+  if (/\(\?(?!:)/.test(regex) || /\\[1-9kcupPxX]/.test(regex) || /\[\^?\]/.test(regex) || /\{,/.test(regex)) return false;
+  for (const [, low, high] of regex.matchAll(/\{(\d+)(?:,(\d*))?\}/g)) {
+    if (Number(low) > 1000 || (high && Number(high) > 1000)) return false;
+  }
+  try {
+    new RegExp(regex);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** The filter as written, without its badfilter option. */
+function badfilterKey(line) {
+  const [pattern, options] = splitOptions(line.trim());
+  const kept = options.split(",").filter((option) => option && option !== "badfilter");
+  return kept.length ? `${pattern}$${kept.join(",")}` : pattern;
+}
+
 function conditionFor(parsed) {
   const { options } = parsed;
   const condition = {};
   if (options.domainType) condition.domainType = options.domainType;
   if (options.initiatorDomains.length) condition.initiatorDomains = [...new Set(options.initiatorDomains)].sort();
   if (options.excludedInitiatorDomains.length) condition.excludedInitiatorDomains = [...new Set(options.excludedInitiatorDomains)].sort();
+  if (options.requestDomains.length) condition.requestDomains = [...new Set(options.requestDomains)].sort();
   if (options.excludedRequestDomains.length) condition.excludedRequestDomains = [...new Set(options.excludedRequestDomains)].sort();
   if (options.methods.length) condition.requestMethods = [...new Set(options.methods)].sort();
   if (options.types.length) condition.resourceTypes = [...new Set(options.types)].sort();
@@ -277,11 +322,18 @@ export function compileFilters(texts, { firstId = 1, firstAllowId = ALLOW_ID_BAS
   const stats = { lines: 0, compiled: 0, skipped: {} };
   const groups = new Map();
   const single = new Map();
+  const disabled = new Set();
+  for (const text of texts) {
+    for (const line of text.split(/\r?\n/)) {
+      if (parseFilter(line)?.options?.badfilter) disabled.add(badfilterKey(line));
+    }
+  }
   for (const text of texts) {
     for (const line of text.split(/\r?\n/)) {
       const parsed = parseFilter(line);
       if (!parsed) continue;
       stats.lines++;
+      if (!parsed.skipped && (parsed.options.badfilter || disabled.has(line.trim()))) parsed.skipped = "badfilter";
       if (parsed.skipped) {
         stats.skipped[parsed.skipped] = (stats.skipped[parsed.skipped] ?? 0) + 1;
         continue;
@@ -299,7 +351,8 @@ export function compileFilters(texts, { firstId = 1, firstAllowId = ALLOW_ID_BAS
         if (!groups.has(key)) groups.set(key, { type, priority, condition, hosts: new Set() });
         groups.get(key).hosts.add(parsed.host);
       } else {
-        if (parsed.pattern) condition.urlFilter = parsed.pattern;
+        if (parsed.regex) condition.regexFilter = parsed.regex;
+        else if (parsed.pattern) condition.urlFilter = parsed.pattern;
         if (parsed.options.caseSensitive) condition.isUrlFilterCaseSensitive = true;
         single.set(JSON.stringify([type, priority, condition]), { type, priority, condition });
       }
@@ -365,4 +418,147 @@ export function compilePopups(texts) {
   }
   for (const host of everywhere) scoped.delete(host);
   return { hosts: [...everywhere].sort(), scoped: Object.fromEntries([...scoped].sort(([a], [b]) => (a < b ? -1 : 1))) };
+}
+
+/** Scriptlets Orbit runs (extension/src/sites/scriptlets.ts), by every name lists use for them. */
+const SCRIPTLET_NAMES = {
+  "set-constant": "set", set: "set",
+  "abort-on-property-read": "aopr", aopr: "aopr",
+  "abort-on-property-write": "aopw", aopw: "aopw",
+  "abort-current-script": "acs", acs: "acs", "abort-current-inline-script": "acs", acis: "acs",
+  "abort-on-stack-trace": "aost", aost: "aost",
+  "no-window-open-if": "nowoif", nowoif: "nowoif", "window.open-defuser": "nowoif",
+  "no-setTimeout-if": "nostif", nostif: "nostif", "setTimeout-defuser": "nostif", "prevent-setTimeout": "nostif",
+  "no-setInterval-if": "nosiif", nosiif: "nosiif", "setInterval-defuser": "nosiif", "prevent-setInterval": "nosiif",
+  "nano-setInterval-booster": "nano-sib", "nano-sib": "nano-sib",
+  "nano-setTimeout-booster": "nano-stb", "nano-stb": "nano-stb",
+  "remove-node-text": "rmnt", rmnt: "rmnt",
+  "replace-node-text": "rpnt", rpnt: "rpnt",
+  "addEventListener-defuser": "aeld", aeld: "aeld", "prevent-addEventListener": "aeld",
+  "no-fetch-if": "no-fetch-if", "prevent-fetch": "no-fetch-if",
+  "no-xhr-if": "no-xhr-if", "prevent-xhr": "no-xhr-if",
+  "noeval-if": "noeval-if", "prevent-eval-if": "noeval-if",
+  noeval: "noeval", "silent-noeval": "noeval",
+  "json-prune": "json-prune",
+  "remove-attr": "ra", ra: "ra",
+  "remove-class": "rc", rc: "rc",
+  "set-local-storage-item": "set-local-storage-item",
+  "set-session-storage-item": "set-session-storage-item",
+  "window.name-defuser": "window.name-defuser",
+};
+
+/** Splits scriptlet arguments the way uBlock Origin does: on commas not escaped with a backslash,
+ * trimmed, with surrounding quotes removed. */
+export function scriptletArgs(text) {
+  const args = [];
+  let i = 0;
+  while (i <= text.length) {
+    while (text[i] === " ") i++;
+    const quote = text[i];
+    if (quote === "'" || quote === '"' || quote === "`") {
+      const end = text.indexOf(quote, i + 1);
+      const after = end === -1 ? -1 : text.slice(end + 1).search(/\S/);
+      if (end !== -1 && (after === -1 || text[end + 1 + after] === ",")) {
+        args.push(text.slice(i + 1, end));
+        i = after === -1 ? text.length + 1 : end + 1 + after + 1;
+        continue;
+      }
+    }
+    let current = "";
+    for (; i < text.length; i++) {
+      if (text[i] === "\\" && text[i + 1] === ",") {
+        current += ",";
+        i++;
+      } else if (text[i] === ",") {
+        break;
+      } else {
+        current += text[i];
+      }
+    }
+    args.push(current.trim());
+    i++;
+  }
+  return args;
+}
+
+/** A site key: a hostname, or an entity such as "example.*" (the name under any public suffix). */
+function siteKey(raw) {
+  const text = raw.trim().toLowerCase();
+  if (text.endsWith(".*")) {
+    const base = normalizeDomain(`${text.slice(0, -2)}.example`);
+    return base ? `${base.slice(0, -".example".length)}.*` : null;
+  }
+  return normalizeDomain(text);
+}
+
+/**
+ * Compiles site-specific scriptlet filters (`site##+js(name, args)`). Generic ones, without sites,
+ * are left out: they would run on every page. Exceptions (`site#@#+js(...)`) and negated sites
+ * turn a call off for that site; an empty exception turns all of them off.
+ */
+export function compileScriptlets(texts) {
+  const calls = [];
+  const callIndex = new Map();
+  const sites = new Map();
+  const except = new Map();
+  const stats = { compiled: 0, unsupported: 0, generic: 0, skipped: 0 };
+  const indexOf = (call) => {
+    const key = JSON.stringify(call);
+    if (!callIndex.has(key)) {
+      callIndex.set(key, calls.length);
+      calls.push(call);
+    }
+    return callIndex.get(key);
+  };
+  const add = (map, key, value) => {
+    if (!map.has(key)) map.set(key, new Set());
+    map.get(key).add(value);
+  };
+  const exceptions = [];
+  for (const text of texts) {
+    for (const raw of text.split(/\r?\n/)) {
+      const match = /^([^#!][^#]*)?#(@?)#\+js\((.*)\)$/.exec(raw.trim());
+      if (!match) continue;
+      const [, siteList = "", exception, body] = match;
+      const domains = siteList ? siteList.split(",").map((d) => d.trim()).filter(Boolean) : [];
+      if (exception) {
+        exceptions.push({ domains, body });
+        continue;
+      }
+      if (domains.length === 0) {
+        stats.generic++;
+        continue;
+      }
+      const [rawName, ...args] = scriptletArgs(body);
+      const name = SCRIPTLET_NAMES[rawName.replace(/\.js$/, "")];
+      if (!name) {
+        stats.unsupported++;
+        continue;
+      }
+      const included = domains.filter((d) => !d.startsWith("~")).map(siteKey);
+      const excluded = domains.filter((d) => d.startsWith("~")).map((d) => siteKey(d.slice(1)));
+      if (included.length === 0 || included.includes(null) || excluded.includes(null)) {
+        stats.skipped++;
+        continue;
+      }
+      const index = indexOf([name, ...args]);
+      for (const site of included) add(sites, site, index);
+      for (const site of excluded) add(except, site, index);
+      stats.compiled++;
+    }
+  }
+  for (const { domains, body } of exceptions) {
+    const keys = domains.map(siteKey).filter(Boolean);
+    if (body.trim() === "") {
+      for (const key of keys) add(except, key, -1);
+      continue;
+    }
+    const [rawName, ...args] = scriptletArgs(body);
+    const name = SCRIPTLET_NAMES[rawName.replace(/\.js$/, "")];
+    const index = name ? callIndex.get(JSON.stringify([name, ...args])) : undefined;
+    if (index === undefined) continue;
+    for (const key of keys) add(except, key, index);
+  }
+  const sorted = (map) => Object.fromEntries([...map].sort(([a], [b]) => (a < b ? -1 : 1)).map(([key, set]) => [key, [...set].sort((a, b) => a - b)]));
+  return { calls, sites: sorted(sites), except: sorted(except), stats };
 }

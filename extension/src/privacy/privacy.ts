@@ -123,8 +123,19 @@ async function draw(): Promise<void> {
   const rulesTotal = Object.values(meta.rulesets as Record<string, { rules: number }>).reduce((total, ruleset) => total + ruleset.rules, 0);
   const updated = new Date(meta.generated).toLocaleDateString(locale(), { year: "numeric", month: "long", day: "numeric" });
 
+  const safeBrowsing = section(
+    t("safeBrowsingTitle"),
+    t("safeBrowsingDetail"),
+    radioGroup("threats", t("safeBrowsingTitle"), [
+      { value: "on", label: t("safeBrowsingOn"), detail: t("safeBrowsingOnDetail") },
+      { value: "off", label: t("safeBrowsingOff"), detail: t("safeBrowsingOffDetail") },
+    ], settings.threats ? "on" : "off", (value) => void change({ threats: value === "on" })),
+  );
+  safeBrowsing.id = "safe-browsing";
+
   page.replaceChildren(
     h("header", { class: "page-head" }, h("img", { src: "../icons/orbit-48.png", alt: "", width: 40, height: 40 }), h("div", {}, h("h1", {}, t("privacyTitle")), h("p", { class: "notice" }, t("privacyIntro")))),
+    safeBrowsing,
     section(t("fpTitle"), t("fpDetail"), radioGroup("fingerprinting", t("fpTitle"), FINGERPRINT_CHOICES.map((c) => ({ ...c, label: t(c.label), detail: t(c.detail) })), settings.fingerprinting, (value) => void change({ fingerprinting: value }))),
     section(t("rtcTitle"), t("rtcDetail"), radioGroup("webrtc", t("rtcTitle"), WEBRTC_CHOICES.map((c) => ({ ...c, label: t(c.label), detail: t(c.detail) })), settings.webrtc, (value) => void change({ webrtc: value }))),
     section(t("clearTitle"), t("clearDetail"), clearBoxes),
@@ -178,4 +189,7 @@ const applyTheme = () => {
 prefersDark.addEventListener("change", applyTheme);
 applyTheme();
 localizePage();
-void draw();
+void draw().then(() => {
+  const target = location.hash.length > 1 ? document.getElementById(location.hash.slice(1)) : null;
+  target?.scrollIntoView({ block: "start" });
+});

@@ -36,6 +36,9 @@ CHROME = re.compile(
     r'(?!<ph name="END_LINK_CHROMIUM")'
 )
 CHROME_STRING_FILES = ["chrome/app/generated_resources.grd", "components/components_strings.grd"]
+ABOUT_VERSION = re.compile(
+    r'(<message name="IDS_ABOUT_VERSION_(?:COMPANY_NAME|COPYRIGHT)"[^>]*>)(.*?)(</message>)', re.DOTALL
+)
 YOU_AND_GOOGLE = re.compile(r"(>\s*)You and Google(\s*</message>)")
 
 
@@ -200,6 +203,30 @@ def rename_messages(src, relative, english, translation):
     return changed
 
 
+def about_version_names(src):
+    """NovaTech as the company on orbit://version, with the Chromium Authors kept in the
+    copyright line."""
+    sys.path.insert(0, str(src / "tools" / "grit"))
+
+    def english(text):
+        def one(m):
+            body = m.group(2)
+            if m.group(1).find("COPYRIGHT") >= 0:
+                body = body.replace("The Chromium Authors", "NovaTech and The Chromium Authors")
+            else:
+                body = body.replace("The Chromium Authors", "NovaTech")
+            return m.group(1) + body + m.group(3)
+
+        return ABOUT_VERSION.sub(one, text)
+
+    def translation(text):
+        if 'name="YEAR"' in text:
+            return 'Copyright <ph name="YEAR" /> NovaTech and The Chromium Authors. All rights reserved.'
+        return "NovaTech"
+
+    return rename_messages(src, "chrome/app/chromium_strings.grd", english, translation)
+
+
 def rename_chrome(src):
     """Renames "Chrome" used as the browser's name in shared strings, and the Settings section
     "You and Google", which holds the Orbit profile and import."""
@@ -264,7 +291,7 @@ def mac_icons(src):
 
 def main():
     src = pathlib.Path(sys.argv[1]).resolve()
-    changed = copy_overlay(src) + orbit_version(src) + apply_patches(src) + brand_strings(src) + rename_chrome(src)
+    changed = copy_overlay(src) + orbit_version(src) + apply_patches(src) + brand_strings(src) + about_version_names(src) + rename_chrome(src)
     if sys.platform == "darwin":
         changed += mac_icons(src)
     hashes = {

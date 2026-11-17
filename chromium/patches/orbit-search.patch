@@ -1,7 +1,15 @@
 diff --git a/chrome/browser/extensions/api/search/search_api.cc b/chrome/browser/extensions/api/search/search_api.cc
 --- a/chrome/browser/extensions/api/search/search_api.cc
 +++ b/chrome/browser/extensions/api/search/search_api.cc
-@@ -15,6 +15,8 @@
+@@ -8,6 +8,7 @@
+ #include "base/strings/stringprintf.h"
+ #include "base/strings/utf_string_conversions.h"
+ #include "chrome/browser/extensions/extension_tab_util.h"
++#include "chrome/browser/prefs/session_startup_pref.h"
+ #include "chrome/browser/profiles/profile.h"
+ #include "chrome/browser/search_engines/template_url_service_factory.h"
+ #include "chrome/browser/tab_list/tab_list_interface.h"
+@@ -15,9 +16,13 @@
  #include "chrome/browser/ui/browser_window/public/browser_window_interface_iterator.h"
  #include "chrome/browser/ui/navigator/browser_navigator.h"
  #include "chrome/common/extensions/api/search.h"
@@ -10,7 +18,12 @@ diff --git a/chrome/browser/extensions/api/search/search_api.cc b/chrome/browser
  #include "components/search_engines/util.h"
  #include "content/public/browser/navigation_controller.h"
  #include "content/public/browser/web_contents.h"
-@@ -196,4 +198,84 @@
++#include "content/public/common/url_constants.h"
++#include "url/gurl.h"
+ #include "extensions/browser/api/constants.h"
+ #include "extensions/buildflags/buildflags.h"
+ #include "ui/base/page_transition_types.h"
+@@ -196,4 +201,148 @@
    Respond(NoArguments());
  }
  
@@ -94,6 +107,70 @@ diff --git a/chrome/browser/extensions/api/search/search_api.cc b/chrome/browser
 +  return NoArguments();
 +}
 +
++ExtensionFunction::ResponseAction SearchGetStartupFunction::Run() {
++  if (extension_id() != kOrbitExtensionId) {
++    return RespondNow(Error("Not available."));
++  }
++  Profile* profile = Profile::FromBrowserContext(browser_context());
++  const SessionStartupPref pref = SessionStartupPref::GetStartupPref(profile);
++  api::search::StartupSettings settings;
++  switch (pref.type) {
++    case SessionStartupPref::LAST:
++    case SessionStartupPref::LAST_AND_URLS:
++      settings.mode = api::search::StartupMode::kRestore;
++      break;
++    case SessionStartupPref::URLS:
++      settings.mode = api::search::StartupMode::kPages;
++      break;
++    default:
++      settings.mode = api::search::StartupMode::kNewTab;
++      break;
++  }
++  for (const GURL& url : pref.urls) {
++    settings.urls.push_back(url.spec());
++  }
++  settings.managed =
++      SessionStartupPref::TypeIsManaged(profile->GetPrefs()) ||
++      SessionStartupPref::URLsAreManaged(profile->GetPrefs());
++  return RespondNow(
++      ArgumentList(api::search::GetStartup::Results::Create(settings)));
++}
++
++ExtensionFunction::ResponseAction SearchSetStartupFunction::Run() {
++  if (extension_id() != kOrbitExtensionId) {
++    return RespondNow(Error("Not available."));
++  }
++  std::optional<api::search::SetStartup::Params> params =
++      api::search::SetStartup::Params::Create(args());
++  EXTENSION_FUNCTION_VALIDATE(params);
++  Profile* profile = Profile::FromBrowserContext(browser_context());
++  if (profile->IsGuestSession()) {
++    return RespondNow(Error("Not available in a guest window."));
++  }
++  SessionStartupPref::Type type = SessionStartupPref::DEFAULT;
++  switch (params->settings.mode) {
++    case api::search::StartupMode::kRestore:
++      type = SessionStartupPref::LAST;
++      break;
++    case api::search::StartupMode::kPages:
++      type = SessionStartupPref::URLS;
++      break;
++    default:
++      break;
++  }
++  SessionStartupPref pref(type);
++  for (const std::string& spec : params->settings.urls) {
++    GURL url(spec);
++    if (!url.is_valid() || !(url.SchemeIsHTTPOrHTTPS() ||
++                             url.SchemeIs(content::kChromeUIScheme))) {
++      return RespondNow(Error("Each page must be a web address."));
++    }
++    pref.urls.push_back(std::move(url));
++  }
++  SessionStartupPref::SetStartupPref(profile, pref);
++  return RespondNow(NoArguments());
++}
++
  }  // namespace extensions
 diff --git a/chrome/browser/extensions/api/search/search_api.h b/chrome/browser/extensions/api/search/search_api.h
 --- a/chrome/browser/extensions/api/search/search_api.h
@@ -108,7 +185,7 @@ diff --git a/chrome/browser/extensions/api/search/search_api.h b/chrome/browser/
  #include "extensions/browser/extension_function.h"
  #include "extensions/buildflags/buildflags.h"
  
-@@ -25,6 +28,37 @@
+@@ -25,6 +28,59 @@
    void OnNavigate();
  };
  
@@ -143,22 +220,68 @@ diff --git a/chrome/browser/extensions/api/search/search_api.h b/chrome/browser/
 +  base::CallbackListSubscription loaded_subscription_;
 +};
 +
++// Orbit: reads what opens when Orbit starts.
++class SearchGetStartupFunction : public ExtensionFunction {
++ public:
++  DECLARE_EXTENSION_FUNCTION("search.getStartup", SEARCH_GETSTARTUP)
++  SearchGetStartupFunction() = default;
++
++ private:
++  ~SearchGetStartupFunction() override = default;
++  ResponseAction Run() override;
++};
++
++// Orbit: sets what opens when Orbit starts.
++class SearchSetStartupFunction : public ExtensionFunction {
++ public:
++  DECLARE_EXTENSION_FUNCTION("search.setStartup", SEARCH_SETSTARTUP)
++  SearchSetStartupFunction() = default;
++
++ private:
++  ~SearchSetStartupFunction() override = default;
++  ResponseAction Run() override;
++};
++
  }  // namespace extensions
  
  #endif  // CHROME_BROWSER_EXTENSIONS_API_SEARCH_SEARCH_API_H_
 diff --git a/chrome/common/extensions/api/search.idl b/chrome/common/extensions/api/search.idl
 --- a/chrome/common/extensions/api/search.idl
 +++ b/chrome/common/extensions/api/search.idl
-@@ -31,6 +31,8 @@
+@@ -31,6 +31,32 @@
  
    callback QueryCallback = void();
  
 +  callback GetDefaultCallback = void(DOMString keyword);
 +
++  // Orbit: what opens when Orbit starts.
++  enum StartupMode {
++    // The new tab page.
++    newTab,
++
++    // The tabs that were open last time.
++    restore,
++
++    // The pages in <code>urls</code>.
++    pages
++  };
++
++  dictionary StartupSettings {
++    StartupMode mode;
++
++    // The pages to open. Kept when another mode is chosen.
++    DOMString[] urls;
++
++    // True when a policy sets what opens at start.
++    boolean? managed;
++  };
++
++  callback GetStartupCallback = void(StartupSettings settings);
++
    interface Functions {
      // Used to query the default search provider.
      // In case of an error,
-@@ -38,5 +40,15 @@
+@@ -38,5 +64,25 @@
      static void query(
          QueryInfo queryInfo,
          optional QueryCallback callback);
@@ -172,17 +295,29 @@ diff --git a/chrome/common/extensions/api/search.idl b/chrome/common/extensions/
 +    static void setDefault(
 +        DOMString keyword,
 +        optional QueryCallback callback);
++
++    // Orbit: what opens when Orbit starts. Only Orbit's built-in extension
++    // can call this.
++    static void getStartup(GetStartupCallback callback);
++
++    // Orbit: sets what opens when Orbit starts. Only Orbit's built-in
++    // extension can call this.
++    static void setStartup(
++        StartupSettings settings,
++        optional QueryCallback callback);
    };
  };
 diff --git a/extensions/browser/extension_function_histogram_value.h b/extensions/browser/extension_function_histogram_value.h
 --- a/extensions/browser/extension_function_histogram_value.h
 +++ b/extensions/browser/extension_function_histogram_value.h
-@@ -2055,6 +2055,8 @@
+@@ -2055,6 +2055,10 @@
    AUTOFILLPRIVATE_GETDETAILSFORUPSERTPASS = 1990,
    AUTOFILLPRIVATE_PRELOADDETAILSFORUPSERTPASS = 1991,
    EXPERIMENTALAIDATA_GETAPCSNAPSHOT = 1992,
 +  SEARCH_GETDEFAULT = 1993,
 +  SEARCH_SETDEFAULT = 1994,
++  SEARCH_GETSTARTUP = 1995,
++  SEARCH_SETSTARTUP = 1996,
    // Last entry: Add new entries above, then run:
    // tools/metrics/histograms/update_extension_histograms.py
    ENUM_BOUNDARY

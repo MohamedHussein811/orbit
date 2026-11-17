@@ -25,7 +25,7 @@ import { loadCustomMedia, loadGalleryMedia, MAX_MEDIA_BYTES, MEDIA_TYPES, remove
 import { ENGINE_NAMES, mountBookmarks, mountNotes, mountSearch, mountStats, mountWeather, type WidgetContext } from "./widgets.ts";
 import { installContextMenu } from "./context-menu.ts";
 import { isNewer, runningVersion, sanitizeRelease } from "../shared/updates.ts";
-import { browserEngine, canSetBrowserEngine, setBrowserEngine } from "../shared/search.ts";
+import { browserEngine, browserStartup, canSetBrowserEngine, setBrowserEngine, setBrowserStartup, startupUrl, type StartupMode, type StartupSettings } from "../shared/search.ts";
 
 const DEFAULT_VIDEO = DEFAULT_ITEM.video!;
 const DEFAULT_POSTER = DEFAULT_ITEM.poster;
@@ -80,16 +80,17 @@ const TOP_SITES_NAMES: Record<TopSitesMode, [string, string]> = {
 };
 const DOCK = new Set<WidgetId>(["stats", "weather", "notes"]);
 
-const SECTIONS = ["background", "clock", "search", "layout", "theme"] as const;
+const SECTIONS = ["background", "clock", "search", "layout", "startup", "theme"] as const;
 type Section = (typeof SECTIONS)[number];
 const SECTION_NAMES: Record<Section, string> = {
   background: "background",
   clock: "sectionClock",
   search: "sectionSearch",
   layout: "widgets",
+  startup: "sectionStartup",
   theme: "sectionTheme",
 };
-const SECTION_ICONS: Record<Section, string> = { background: "image", clock: "clock", search: "search", layout: "grid", theme: "palette" };
+const SECTION_ICONS: Record<Section, string> = { background: "image", clock: "clock", search: "search", layout: "grid", startup: "power", theme: "palette" };
 
 let settings: Settings;
 let layout: Layout;
@@ -98,6 +99,8 @@ let customUrl: string | null = null;
 let customFailed = false;
 let mediaNotice = "";
 let engineNotice = "";
+let startup: StartupSettings | null = null;
+let startupNotice = "";
 let colorsOpen = false;
 let section: Section = "background";
 
@@ -726,6 +729,77 @@ function layoutSection(): HTMLElement[] {
   return parts;
 }
 
+const STARTUP_MODES: readonly StartupMode[] = ["newTab", "restore", "pages"];
+const STARTUP_NAMES: Record<StartupMode, string> = { newTab: "startupNewTab", restore: "startupRestore", pages: "startupPages" };
+
+async function saveStartup(next: StartupSettings): Promise<void> {
+  const saved = await setBrowserStartup(next);
+  startupNotice = saved ? "" : t("startupNotSet");
+  startup = (await browserStartup()) ?? (saved ? next : startup);
+  drawCustomize();
+}
+
+/** What opens when Orbit starts, the same choice as Settings > On startup. */
+function startupSection(): HTMLElement[] {
+  const settingsLink = h("button", { type: "button", class: "link", "data-focus-key": "startup-settings", onclick: () => void chrome.tabs.update({ url: "chrome://settings/onStartup" }) }, t("startupMore"));
+  if (!startup) return [h("p", { class: "notice lead" }, t("startupUnavailable")), settingsLink];
+  const current = startup;
+  const parts: HTMLElement[] = [
+    h("h3", {}, t("startupHeading")),
+    choiceGroup("startup", t("startupHeading"), STARTUP_MODES.map((value) => ({ value, title: t(STARTUP_NAMES[value]) })), current.mode, (mode) => void saveStartup({ ...current, mode })),
+  ];
+  if (current.managed) {
+    for (const input of parts[1]!.querySelectorAll("input")) input.disabled = true;
+    parts.push(h("p", { class: "notice" }, t("startupManaged")));
+  }
+  if (current.mode === "pages") {
+    const list = h(
+      "ul",
+      { class: "widget-list startup-pages" },
+      ...current.urls.map((url, index) =>
+        h(
+          "li",
+          {},
+          h("span", { class: "startup-url", dir: "ltr", title: url }, url),
+          current.managed ? null : iconButton("trash", t("startupRemove", url), () => void saveStartup({ ...current, urls: current.urls.filter((_, i) => i !== index) }), { "data-focus-key": `startup-remove-${index}` }),
+        ),
+      ),
+    );
+    parts.push(h("h3", {}, t("startupPagesHeading")));
+    if (current.urls.length === 0) parts.push(h("p", { class: "notice" }, t("startupNoPages")));
+    else parts.push(list);
+    if (!current.managed) {
+      const field = h("input", { type: "url", "data-focus-key": "startup-new", placeholder: t("startupAddPlaceholder"), "aria-label": t("startupAdd"), dir: "ltr" });
+      const add = async () => {
+        const url = startupUrl(field.value);
+        if (!url) {
+          startupNotice = t("startupBadUrl");
+          drawCustomize();
+          return;
+        }
+        await saveStartup({ ...current, urls: [...current.urls.filter((item) => item !== url), url] });
+      };
+      field.addEventListener("keydown", (event) => {
+        if (event.key === "Enter") {
+          event.preventDefault();
+          void add();
+        }
+      });
+      const useOpen = async () => {
+        const tabs = await chrome.tabs.query({});
+        const urls = [...new Set(tabs.map((tab) => tab.url ?? "").filter((url) => /^https?:/.test(url)))];
+        await saveStartup({ ...current, urls });
+      };
+      parts.push(
+        h("form", { class: "drawer-row startup-add", onsubmit: (event: Event) => event.preventDefault() }, field, h("button", { type: "button", class: "button quiet", "data-focus-key": "startup-add", onclick: () => void add() }, icon("plus"), t("startupAdd"))),
+        h("button", { type: "button", class: "button quiet", "data-focus-key": "startup-open", onclick: () => void useOpen() }, icon("tab"), t("startupUseOpen")),
+      );
+    }
+  }
+  parts.push(h("p", { class: "notice alert", role: "status" }, startupNotice), settingsLink);
+  return parts;
+}
+
 function themeSection(): HTMLElement[] {
   return [
     h("p", { class: "notice lead" }, t("browserThemeExplained")),
@@ -743,6 +817,7 @@ const SECTION_BODY: Record<Section, () => HTMLElement[]> = {
   clock: clockSection,
   search: searchSection,
   layout: layoutSection,
+  startup: startupSection,
   theme: themeSection,
 };
 
@@ -804,6 +879,8 @@ async function openCustomize(): Promise<void> {
   await loadGallery();
   colorsOpen = false;
   engineNotice = "";
+  startupNotice = "";
+  startup = await browserStartup();
   const keyword = await browserEngine();
   if (keyword !== null && engineForKeyword(keyword) !== settings.searchEngine) await saveSettings({ searchEngine: engineForKeyword(keyword) });
   customize.showModal();

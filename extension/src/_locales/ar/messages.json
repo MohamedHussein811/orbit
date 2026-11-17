@@ -862,5 +862,71 @@
   },
   "widgetsDocked": {
     "message": "أسفل الصفحة"
+  },
+  "sectionStartup": {
+    "message": "بدء التشغيل"
+  },
+  "startupHeading": {
+    "message": "عند بدء تشغيل Orbit"
+  },
+  "startupNewTab": {
+    "message": "فتح صفحة علامة التبويب الجديدة"
+  },
+  "startupRestore": {
+    "message": "المتابعة من حيث توقفت"
+  },
+  "startupPages": {
+    "message": "فتح صفحات محددة"
+  },
+  "startupPagesHeading": {
+    "message": "الصفحات التي تُفتح"
+  },
+  "startupNoPages": {
+    "message": "لا توجد صفحات بعد. يفتح Orbit صفحة علامة التبويب الجديدة حتى تضيف صفحة."
+  },
+  "startupAdd": {
+    "message": "إضافة صفحة"
+  },
+  "startupAddPlaceholder": {
+    "message": "example.com"
+  },
+  "startupBadUrl": {
+    "message": "أدخل عنوان موقع، مثل example.com."
+  },
+  "startupUseOpen": {
+    "message": "استخدام الصفحات المفتوحة الآن"
+  },
+  "startupRemove": {
+    "message": "إزالة $1"
+  },
+  "startupManaged": {
+    "message": "تحدد مؤسستك ما يُفتح عند البدء."
+  },
+  "startupNotSet": {
+    "message": "تعذّر على Orbit حفظ هذا. يمكنك تغييره من الإعدادات."
+  },
+  "startupUnavailable": {
+    "message": "اختر ما يُفتح عند بدء تشغيل Orbit من الإعدادات."
+  },
+  "startupMore": {
+    "message": "فتح إعدادات بدء التشغيل"
+  },
+  "safeBrowsingTitle": {
+    "message": "التصفح الآمن"
+  },
+  "safeBrowsingDetail": {
+    "message": "يحذّرك قبل فتح موقع معروف بالبرامج الضارة أو التصيّد. تُفحص القوائم على هذا الجهاز، فلا تُرسل المواقع التي تزورها إلى أي مكان. لا يستخدم Orbit التصفح الآمن من Google."
+  },
+  "safeBrowsingOn": {
+    "message": "الحماية العادية (مستحسن)"
+  },
+  "safeBrowsingOnDetail": {
+    "message": "يحظر المواقع الخطيرة المعروفة ويعرض صفحة تحذير بدلًا منها."
+  },
+  "safeBrowsingOff": {
+    "message": "بلا حماية (غير مستحسن)"
+  },
+  "safeBrowsingOffDetail": {
+    "message": "يفتح كل موقع دون فحصه في القوائم."
   }
 }

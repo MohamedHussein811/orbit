@@ -18,6 +18,13 @@ export async function applyWebRtc(settings: PrivacySettings): Promise<void> {
   await chrome.privacy.network.webRTCIPHandlingPolicy.set({ value: settings.webrtc as chrome.privacy.IPHandlingPolicy });
 }
 
+/** Turns the threat lists on or off. */
+export async function applyThreats(settings: PrivacySettings): Promise<void> {
+  const enabled = await chrome.declarativeNetRequest.getEnabledRulesets();
+  if (enabled.includes("threats") === settings.threats) return;
+  await chrome.declarativeNetRequest.updateEnabledRulesets(settings.threats ? { enableRulesetIds: ["threats"] } : { disableRulesetIds: ["threats"] });
+}
+
 /** Sites in |hostsOff| have Shields off, so they get their real values. */
 export async function applyFingerprinting(settings: PrivacySettings, hostsOff: readonly string[]): Promise<void> {
   await chrome.scripting.unregisterContentScripts({ ids: [SCRIPT_ID] }).catch(() => {});
@@ -80,6 +87,48 @@ export async function applySiteFixes(hostsOff: readonly string[]): Promise<void>
       runAt: "document_start",
     },
   ]);
+}
+
+const SCRIPTLET_PREFIX = "orbit-scriptlets-";
+
+interface ScriptletIndex {
+  shards: Array<{ name: string; hosts?: string[]; everywhere?: boolean }>;
+}
+
+function hostMatches(host: string): string[] {
+  if (!/^[a-z0-9.-]+$/.test(host)) return [];
+  return /^\d+(\.\d+){3}$/.test(host) ? [`*://${host}/*`] : [`*://*.${host}/*`];
+}
+
+/** Scriptlets from the filter lists, each shard only on the sites it names. */
+export async function applyScriptlets(hostsOff: readonly string[]): Promise<void> {
+  const registered = await chrome.scripting.getRegisteredContentScripts();
+  const old = registered.map((script) => script.id).filter((id) => id.startsWith(SCRIPTLET_PREFIX));
+  if (old.length) await chrome.scripting.unregisterContentScripts({ ids: old }).catch(() => {});
+  let index: ScriptletIndex;
+  try {
+    index = (await (await fetch(chrome.runtime.getURL("rules/scriptlets/index.json"))).json()) as ScriptletIndex;
+  } catch {
+    return;
+  }
+  for (const shard of index.shards) {
+    const matches = shard.everywhere ? ["http://*/*", "https://*/*"] : (shard.hosts ?? []).flatMap(hostMatches);
+    if (matches.length === 0) continue;
+    await chrome.scripting
+      .registerContentScripts([
+        {
+          id: `${SCRIPTLET_PREFIX}${shard.name}`,
+          js: [`rules/scriptlets/${shard.name}.js`],
+          matches,
+          excludeMatches: excludeMatches(hostsOff),
+          allFrames: true,
+          matchOriginAsFallback: true,
+          runAt: "document_start",
+          world: "MAIN",
+        },
+      ])
+      .catch((error: unknown) => console.warn(`scriptlets ${shard.name}:`, error));
+  }
 }
 
 /** Runs once each time Orbit starts. */

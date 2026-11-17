@@ -5,7 +5,7 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { compileCosmetic, compileFilters, compileHosts, compilePopups } from "./filter-compiler.mjs";
+import { compileCosmetic, compileFilters, compileHosts, compilePopups, compileScriptlets, cosmeticShard } from "./filter-compiler.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const SOURCES = path.join(ROOT, "filters", "sources.json");
@@ -26,10 +26,128 @@ async function download(url) {
   return res.text();
 }
 
+/** Downloads a list with the files it includes (`!#include name`, relative to the list). */
+async function downloadList(url, seen = new Set()) {
+  if (seen.has(url)) return "";
+  seen.add(url);
+  const text = await download(url);
+  const parts = [];
+  for (const line of text.split(/\r?\n/)) {
+    const include = /^!#include\s+(\S+)/.exec(line);
+    if (include) parts.push(await downloadList(new URL(include[1], url).href, seen));
+    else parts.push(line);
+  }
+  return parts.join("\n");
+}
+
+/** Capabilities lists may test with `!#if`. Orbit applies rules the way uBlock Origin Lite
+ * (Manifest V3, Chromium) does. */
+const ENVIRONMENT = new Set(["env_chromium", "env_mv3", "ext_ublock", "cap_user_stylesheet"]);
+
+function evaluateCondition(expression) {
+  const tokens = expression.match(/!|\(|\)|&&|\|\||[\w-]+/g) ?? [];
+  let at = 0;
+  const primary = () => {
+    const token = tokens[at++];
+    if (token === "!") return !primary();
+    if (token === "(") {
+      const value = or();
+      at++;
+      return value;
+    }
+    return ENVIRONMENT.has(token);
+  };
+  const and = () => {
+    let value = primary();
+    while (tokens[at] === "&&") {
+      at++;
+      value = primary() && value;
+    }
+    return value;
+  };
+  const or = () => {
+    let value = and();
+    while (tokens[at] === "||") {
+      at++;
+      value = and() || value;
+    }
+    return value;
+  };
+  return or();
+}
+
+/**
+ * Keeps the lines whose `!#if` blocks hold for Orbit. A Safari block made only of network filters
+ * is kept too: those are lookahead-free versions of regex filters that Chromium's rule engine
+ * (RE2) cannot read in their usual form.
+ */
+export function preprocess(text) {
+  const out = [];
+  const stack = [];
+  const networkOnly = (lines) => {
+    const rules = lines.filter((line) => line.trim() && !line.startsWith("!"));
+    return rules.length > 0 && rules.every((line) => !/#[@?$%]?#|\$\$/.test(line));
+  };
+  for (const line of text.split(/\r?\n/)) {
+    const directive = /^!#(if|else|endif)\b\s*(.*)$/.exec(line.trim());
+    if (directive) {
+      const [, kind, expression] = directive;
+      if (kind === "if") stack.push({ active: evaluateCondition(expression), safari: expression.trim() === "env_safari", held: [] });
+      else if (kind === "else" && stack.length) {
+        const frame = stack.at(-1);
+        if (frame.safari && stack.slice(0, -1).every((outer) => outer.active) && networkOnly(frame.held)) out.push(...frame.held);
+        frame.active = !frame.active;
+        frame.safari = false;
+      } else if (kind === "endif") {
+        const frame = stack.pop();
+        if (frame?.safari && stack.every((outer) => outer.active) && networkOnly(frame.held)) out.push(...frame.held);
+      }
+      continue;
+    }
+    if (stack.every((frame) => frame.active)) out.push(line);
+    else if (stack.at(-1)?.safari && stack.slice(0, -1).every((frame) => frame.active)) stack.at(-1).held.push(line);
+  }
+  return out.join("\n");
+}
+
 /** Refuses a list that came back truncated or empty, which would silently weaken blocking. Small
  * regional lists set their own minimum in sources.json. */
 function checkSize(name, text, minimum = 100_000) {
   if (text.length < minimum) throw new Error(`${name} looks truncated: ${text.length} bytes`);
+}
+
+export const SCRIPTLET_SHARDS = 32;
+
+/**
+ * Splits scriptlet data so a page runs only what concerns it. Hostnames go to shards, each of
+ * which the extension registers for its own hosts only. Entities such as "example.*" cannot be
+ * expressed as match patterns, so they share one file that runs on every page.
+ */
+function writeScriptlets({ calls, sites, except }, skip = []) {
+  const dir = path.join(RULES_DIR, "scriptlets");
+  fs.rmSync(dir, { recursive: true, force: true });
+  fs.mkdirSync(dir, { recursive: true });
+  const groups = new Map();
+  for (const [key, indexes] of Object.entries(sites)) {
+    if (skip.some((site) => key === site || key.endsWith(`.${site}`))) continue;
+    const group = key.endsWith(".*") ? "entities" : `hosts-${cosmeticShard(key) % SCRIPTLET_SHARDS}`;
+    if (!groups.has(group)) groups.set(group, {});
+    groups.get(group)[key] = indexes;
+  }
+  const index = { shards: [] };
+  for (const [name, groupSites] of [...groups].sort(([a], [b]) => (a < b ? -1 : 1))) {
+    const used = [...new Set(Object.values(groupSites).flat())].sort((a, b) => a - b);
+    const local = new Map(used.map((global, position) => [global, position]));
+    const remap = (indexes) => indexes.filter((i) => i === -1 || local.has(i)).map((i) => (i === -1 ? -1 : local.get(i)));
+    const data = {
+      calls: used.map((i) => calls[i]),
+      sites: Object.fromEntries(Object.entries(groupSites).map(([key, indexes]) => [key, remap(indexes)])),
+      except: Object.fromEntries(Object.entries(except).map(([key, indexes]) => [key, remap(indexes)]).filter(([, indexes]) => indexes.length)),
+    };
+    fs.writeFileSync(path.join(dir, `${name}.json`), `${JSON.stringify(data)}\n`);
+    index.shards.push(name === "entities" ? { name, everywhere: true } : { name, hosts: Object.keys(groupSites).sort() });
+  }
+  fs.writeFileSync(path.join(dir, "index.json"), `${JSON.stringify(index)}\n`);
 }
 
 /** One rule per line, so git stores small changes between updates as small differences. */
@@ -40,7 +158,7 @@ async function update() {
   const meta = { generated: new Date().toISOString(), lists: {}, rulesets: {} };
   const texts = {};
   for (const [id, list] of Object.entries(sources.lists)) {
-    const text = await download(list.url);
+    const text = preprocess(await downloadList(list.url));
     checkSize(id, text, list.minBytes);
     texts[id] = text;
     meta.lists[id] = { name: list.name, license: list.license, attribution: list.attribution, homepage: list.homepage, url: list.url, sha256: sha256(text), bytes: text.length };
@@ -73,6 +191,11 @@ async function update() {
 `);
   meta.popups = { hosts: popups.hosts.length, scoped: Object.keys(popups.scoped).length };
   console.error("compiled popups:", JSON.stringify(meta.popups));
+  const scriptlets = compileScriptlets((sources.scriptlets ?? []).map((id) => texts[id]));
+  // Sites Orbit handles with its own script (sites/youtube.ts) take no list scriptlets.
+  writeScriptlets(scriptlets, sources.scriptletsSkip ?? []);
+  meta.scriptlets = { calls: scriptlets.calls.length, sites: Object.keys(scriptlets.sites).length, ...scriptlets.stats };
+  console.error("compiled scriptlets:", JSON.stringify(meta.scriptlets));
   fs.writeFileSync(path.join(RULES_DIR, "meta.json"), `${JSON.stringify(meta, null, 2)}\n`);
 }
 
