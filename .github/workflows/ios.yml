@@ -4,7 +4,8 @@ name: Orbit for iPhone
 # every blocking list that tools/apple-rules.mjs makes from filters/rules.
 #
 # When the repository variable IOS_TESTFLIGHT is "on", a passing build is also signed and uploaded
-# to TestFlight. Signing is automatic: Xcode creates the distribution certificate and profile with
+# to TestFlight. The archive is unsigned and the App Store export signs it: Xcode creates the
+# distribution certificate and App Store profile (no registered devices needed) with
 # the Admin App Store Connect key in ASC_KEY_ID, ASC_ISSUER_ID and ASC_KEY_P8_BASE64 (the notary
 # key has the Developer role, which cannot create distribution certificates). The team comes from
 # MAC_SIGNING_IDENTITY. The app record (bundle id org.novatech.orbit) exists in App Store Connect.
@@ -134,7 +135,7 @@ jobs:
           auth=(-allowProvisioningUpdates -authenticationKeyPath "$RUNNER_TEMP/AuthKey.p8" -authenticationKeyID "$AUTH_KEY_ID" -authenticationKeyIssuerID "$AUTH_ISSUER_ID")
           xcodebuild archive -project ios/Orbit.xcodeproj -scheme Orbit -destination generic/platform=iOS \
             -archivePath "$RUNNER_TEMP/Orbit.xcarchive" "${auth[@]}" \
-            DEVELOPMENT_TEAM="$TEAM_ID" CODE_SIGN_STYLE=Automatic CURRENT_PROJECT_VERSION="${{ github.run_number }}" |
+            DEVELOPMENT_TEAM="$TEAM_ID" CODE_SIGN_STYLE=Automatic CODE_SIGNING_ALLOWED=NO CURRENT_PROJECT_VERSION="${{ github.run_number }}" |
             grep -E "error:|warning: .*Orbit/|\*\* ARCHIVE" || true
           test -d "$RUNNER_TEMP/Orbit.xcarchive"
 
