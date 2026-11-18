@@ -59,13 +59,8 @@ open_page() {
   sleep 20
 }
 store_shots() {
-  open_page "https://en.wikipedia.org/wiki/Web_browser"
-  # Close Wikipedia's app banner (its close button on the 1080 x 1920 screen).
-  adb shell input tap 1010 280
-  sleep 3
-  store_shot 2
   open_page "https://github.com/MohamedHussein811/orbit/blob/main/PRIVACY.md"
-  store_shot 3
+  store_shot 2
   # The new tab button in the bottom toolbar.
   adb shell input tap 405 1778
   sleep 8
