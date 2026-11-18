@@ -52,6 +52,8 @@ finish() {
 
 # Google Play screenshots: 1080 x 1920 on the phone emulator, 2560 x 1440 on the tablet one.
 store_shot() {
+  adb shell am broadcast -a android.intent.action.CLOSE_SYSTEM_DIALOGS > /dev/null 2>&1 || true
+  sleep 1
   adb shell screencap -p /sdcard/store.png > /dev/null 2>&1 && adb pull /sdcard/store.png "$out/store-$1.png" > /dev/null || true
 }
 open_page() {
@@ -59,12 +61,21 @@ open_page() {
   sleep 20
 }
 store_shots() {
+  size=$(adb shell wm size | sed -n 's/.*: *\([0-9]*\)x\([0-9]*\).*/\1 \2/p' | tail -1)
+  tablet=no
+  if [ "${size% *}" -gt "${size#* }" ]; then
+    tablet=yes
+    # The launcher's taskbar shows other apps' icons, and the slow emulator makes it stop
+    # responding; the screenshots do not need it.
+    for launcher in com.google.android.apps.nexuslauncher com.android.launcher3; do
+      adb shell pm disable-user --user 0 "$launcher" > /dev/null 2>&1 || true
+    done
+  fi
   open_page "https://github.com/MohamedHussein811/orbit/blob/main/PRIVACY.md"
   store_shot 2
-  size=$(adb shell wm size | sed -n 's/.*: *\([0-9]*\)x\([0-9]*\).*/\1 \2/p' | tail -1)
-  if [ "${size% *}" -gt "${size#* }" ]; then
-    # Tablet layout: Ctrl+T.
-    adb shell input keycombination 113 48 || true
+  if [ "$tablet" = yes ]; then
+    # The new tab button in the tab strip (2560 x 1440 screen).
+    adb shell input tap 1015 86
   else
     # The new tab button in the bottom toolbar.
     adb shell input tap 405 1778
