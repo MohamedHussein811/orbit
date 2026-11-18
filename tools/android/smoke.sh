@@ -3,9 +3,17 @@
 # Usage: smoke.sh <apk>
 set -euo pipefail
 apk=$1
-package=org.chromium.chrome
 page="https://example.com/"
 out=${RUNNER_TEMP:-.}
+
+sdk=${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}}
+aapt2=$(ls "$sdk"/build-tools/*/aapt2 | sort -V | tail -1)
+badging=$("$aapt2" dump badging "$apk")
+package=$(echo "$badging" | sed -n "s/^package: name='\([^']*\)'.*/\1/p")
+label=$(echo "$badging" | sed -n "s/^application-label:'\(.*\)'$/\1/p")
+version=$(echo "$badging" | sed -n "s/.*versionName='\([^']*\)'.*/\1/p")
+echo "package $package, name $label, version $version"
+test -n "$package"
 
 adb wait-for-device
 abis=$(adb shell getprop ro.product.cpu.abilist | tr -d '\r')
@@ -21,7 +29,7 @@ ls -lh "$apk"
 adb install -r -g "$apk"
 adb root > /dev/null 2>&1 || true
 adb wait-for-device
-flags="_ --disable-fre --no-default-browser-check --no-first-run --enable-remote-debugging"
+flags="_ --disable-fre --no-default-browser-check --no-first-run --enable-remote-debugging --remote-debugging-socket-name=chrome_devtools_remote"
 adb shell "echo '$flags' > /data/local/tmp/chrome-command-line"
 adb shell "echo '$flags' > /data/local/chrome-command-line" 2> /dev/null || true
 echo "debuggable: $(adb shell getprop ro.debuggable | tr -d '\r')"

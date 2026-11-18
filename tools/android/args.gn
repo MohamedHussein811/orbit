@@ -1,6 +1,7 @@
 target_os = "android"
 target_cpu = "arm64"
 is_desktop_android = true
+chrome_public_manifest_package = "org.novatech.orbit"
 android_static_analysis = "off"
 is_debug = false
 is_official_build = false

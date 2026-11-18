@@ -45,8 +45,8 @@ jobs:
     with:
       stage: 1
       cpu: ${{ inputs.cpu || 'x64' }}
-      resume_run: ${{ inputs.resume_run || '44194843041' }}
-      resume_state: ${{ inputs.resume_state || 2 }}
+      resume_run: ${{ inputs.resume_run || '44255121247' }}
+      resume_state: ${{ inputs.resume_state || 3 }}
   stage2:
     needs: stage1
     if: needs.stage1.outputs.done != 'true'
