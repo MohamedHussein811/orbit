@@ -30,6 +30,19 @@ jobs:
   emulator:
     runs-on: ubuntu-24.04
     timeout-minutes: 60
+    # The tablet run takes Google Play's tablet screenshots (16:9, as Play requires); it does not
+    # fail the check.
+    continue-on-error: ${{ matrix.device == 'tablet' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - device: phone
+            profile: pixel_2
+            skin: ""
+          - device: tablet
+            profile: pixel_c
+            skin: -skin 2560x1440
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -54,7 +67,8 @@ jobs:
           api-level: 34
           target: google_apis
           arch: x86_64
-          profile: pixel_2
+          profile: ${{ matrix.profile }}
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim ${{ matrix.skin }}
           disable-animations: true
           script: bash tools/android/smoke.sh apk/ChromePublic.apk
 
@@ -62,7 +76,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: android-smoke-${{ github.run_attempt }}
+          name: android-smoke-${{ matrix.device }}-${{ github.run_attempt }}
           path: |
             ${{ runner.temp }}/smoke.png
             ${{ runner.temp }}/logcat.txt

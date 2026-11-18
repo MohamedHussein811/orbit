@@ -50,7 +50,7 @@ finish() {
   exit "$status"
 }
 
-# Store screenshots (the emulator's 1080 x 1920 screen fits Google Play's 2:1 limit).
+# Google Play screenshots: 1080 x 1920 on the phone emulator, 2560 x 1440 on the tablet one.
 store_shot() {
   adb shell screencap -p /sdcard/store.png > /dev/null 2>&1 && adb pull /sdcard/store.png "$out/store-$1.png" > /dev/null || true
 }
@@ -61,8 +61,14 @@ open_page() {
 store_shots() {
   open_page "https://github.com/MohamedHussein811/orbit/blob/main/PRIVACY.md"
   store_shot 2
-  # The new tab button in the bottom toolbar.
-  adb shell input tap 405 1778
+  size=$(adb shell wm size | sed -n 's/.*: *\([0-9]*\)x\([0-9]*\).*/\1 \2/p' | tail -1)
+  if [ "${size% *}" -gt "${size#* }" ]; then
+    # Tablet layout: Ctrl+T.
+    adb shell input keycombination 113 48 || true
+  else
+    # The new tab button in the bottom toolbar.
+    adb shell input tap 405 1778
+  fi
   sleep 8
   store_shot 1
 }
