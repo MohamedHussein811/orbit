@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""Android's own branding on top of apply-fork.py: the app name and the launcher icons.
+"""Android's own changes on top of apply-fork.py: the patches in tools/android/patches (applied in
+the order of their series file), the app name and the launcher icons.
 
 usage: brand.py <chromium src folder>
 
@@ -68,10 +69,27 @@ def render(svg, size, out):
     subprocess.run(["rsvg-convert", "-w", str(size), "-h", str(size), "-o", str(out), str(svg)], check=True)
 
 
+def apply_patches(src):
+    folder = ROOT / "tools" / "android" / "patches"
+    changed = []
+    for name in (folder / "series").read_text().split():
+        patch = folder / name
+        print(f"applying {name}")
+        subprocess.run(
+            ["patch", "-p1", "--forward", "--batch", "--no-backup-if-mismatch", "-i", str(patch)],
+            cwd=src,
+            check=True,
+        )
+        for line in patch.read_text().splitlines():
+            if line.startswith("+++ b/"):
+                changed.append(src / line[len("+++ b/"):].split("\t")[0])
+    return changed
+
+
 def main():
     src = pathlib.Path(sys.argv[1]).resolve()
     res = src / RES
-    changed = []
+    changed = apply_patches(src)
 
     constants = res / "values" / "channel_constants.xml"
     text = constants.read_text(encoding="utf-8")
@@ -106,7 +124,7 @@ def main():
     for path in changed:
         hashes[path.relative_to(src).as_posix()] = hashlib.sha256(path.read_bytes()).hexdigest()
     record.write_text(json.dumps(hashes, indent=1, sort_keys=True))
-    print(f"{len(changed)} Android files branded")
+    print(f"{len(changed)} Android files changed")
 
 
 if __name__ == "__main__":

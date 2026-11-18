@@ -42,6 +42,7 @@ concurrency:
 jobs:
   stage1:
     uses: ./.github/workflows/android-stage.yml
+    secrets: inherit
     with:
       stage: 1
       cpu: ${{ inputs.cpu || 'x64' }}
@@ -51,6 +52,7 @@ jobs:
     needs: stage1
     if: needs.stage1.outputs.done != 'true'
     uses: ./.github/workflows/android-stage.yml
+    secrets: inherit
     with:
       stage: 2
       cpu: ${{ inputs.cpu || 'x64' }}
@@ -58,6 +60,7 @@ jobs:
     needs: stage2
     if: needs.stage2.outputs.done != 'true'
     uses: ./.github/workflows/android-stage.yml
+    secrets: inherit
     with:
       stage: 3
       cpu: ${{ inputs.cpu || 'x64' }}
@@ -65,6 +68,7 @@ jobs:
     needs: stage3
     if: needs.stage3.outputs.done != 'true'
     uses: ./.github/workflows/android-stage.yml
+    secrets: inherit
     with:
       stage: 4
       cpu: ${{ inputs.cpu || 'x64' }}
@@ -72,6 +76,7 @@ jobs:
     needs: stage4
     if: needs.stage4.outputs.done != 'true'
     uses: ./.github/workflows/android-stage.yml
+    secrets: inherit
     with:
       stage: 5
       cpu: ${{ inputs.cpu || 'x64' }}
@@ -79,6 +84,7 @@ jobs:
     needs: stage5
     if: needs.stage5.outputs.done != 'true'
     uses: ./.github/workflows/android-stage.yml
+    secrets: inherit
     with:
       stage: 6
       cpu: ${{ inputs.cpu || 'x64' }}
@@ -86,6 +92,7 @@ jobs:
     needs: stage6
     if: needs.stage6.outputs.done != 'true'
     uses: ./.github/workflows/android-stage.yml
+    secrets: inherit
     with:
       stage: 7
       cpu: ${{ inputs.cpu || 'x64' }}
@@ -93,6 +100,7 @@ jobs:
     needs: stage7
     if: needs.stage7.outputs.done != 'true'
     uses: ./.github/workflows/android-stage.yml
+    secrets: inherit
     with:
       stage: 8
       cpu: ${{ inputs.cpu || 'x64' }}
@@ -100,6 +108,7 @@ jobs:
     needs: stage8
     if: needs.stage8.outputs.done != 'true'
     uses: ./.github/workflows/android-stage.yml
+    secrets: inherit
     with:
       stage: 9
       cpu: ${{ inputs.cpu || 'x64' }}
@@ -107,6 +116,7 @@ jobs:
     needs: stage9
     if: needs.stage9.outputs.done != 'true'
     uses: ./.github/workflows/android-stage.yml
+    secrets: inherit
     with:
       stage: 10
       cpu: ${{ inputs.cpu || 'x64' }}

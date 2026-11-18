@@ -1,0 +1,133 @@
+diff --git a/chrome/android/BUILD.gn b/chrome/android/BUILD.gn
+--- a/chrome/android/BUILD.gn
++++ b/chrome/android/BUILD.gn
+@@ -1850,6 +1850,7 @@ if (_is_default_toolchain) {
+     deps = [
+       "//chrome/android/webapk/libs/runtime_library:runtime_library_assets",
+       "//components/privacy_sandbox/privacy_sandbox_attestations/preload:privacy_sandbox_attestations_assets",
++      "//chrome/browser/resources/orbit_extensions:orbit_extensions_assets",
+     ]
+   }
+ 
+diff --git a/chrome/browser/extensions/external_pref_loader.cc b/chrome/browser/extensions/external_pref_loader.cc
+--- a/chrome/browser/extensions/external_pref_loader.cc
++++ b/chrome/browser/extensions/external_pref_loader.cc
+@@ -31,6 +31,13 @@
+ #include "extensions/browser/extension_file_task_runner.h"
+ #include "extensions/buildflags/buildflags.h"
+ 
++#if BUILDFLAG(IS_ANDROID)
++#include "base/android/apk_assets.h"
++#include "base/containers/span.h"
++#include "base/files/file.h"
++#include "base/files/memory_mapped_file.h"
++#endif
++
+ #if BUILDFLAG(IS_CHROMEOS)
+ #include "ash/constants/ash_features.h"
+ #include "ash/constants/ash_pref_names.h"
+@@ -244,9 +251,63 @@ base::DictValue ExternalPrefLoader::ExtractExtensionPrefs(
+   return base::DictValue();
+ }
+ 
++#if BUILDFLAG(IS_ANDROID)
++namespace {
++
++// Orbit's built-in extension is packed into the APK as assets. The loader reads plain files, so
++// they are copied to the app's data folder, and copied again when an update brings new ones.
++constexpr const char* kOrbitExtensionAssets[] = {
++    "kceipbaiojomdibnboffoieecidpfdck.json",
++    "orbit.crx",
++};
++
++void CopyOrbitExtensionAssets(const base::FilePath& dir) {
++  if (!base::CreateDirectory(dir)) {
++    LOG(ERROR) << "Cannot create " << dir;
++    return;
++  }
++  for (const char* name : kOrbitExtensionAssets) {
++    base::MemoryMappedFile::Region region;
++    int fd = base::android::OpenApkAsset(
++        std::string("assets/orbit_extensions/") + name, &region);
++    if (fd < 0) {
++      LOG(ERROR) << "Orbit extension asset missing: " << name;
++      return;
++    }
++    base::File asset(fd);
++    std::string contents(region.size, 0);
++    if (!asset.ReadAndCheck(region.offset,
++                            base::as_writable_byte_span(contents))) {
++      LOG(ERROR) << "Cannot read Orbit extension asset " << name;
++      return;
++    }
++    base::FilePath target = dir.AppendASCII(name);
++    std::string existing;
++    if (base::ReadFileToString(target, &existing) && existing == contents) {
++      continue;
++    }
++    if (!base::WriteFile(target, contents)) {
++      LOG(ERROR) << "Cannot write " << target;
++      return;
++    }
++  }
++}
++
++}  // namespace
++#endif  // BUILDFLAG(IS_ANDROID)
++
+ void ExternalPrefLoader::LoadOnFileThread() {
+   base::DictValue prefs;
+ 
++#if BUILDFLAG(IS_ANDROID)
++  if (base_path_id_ == chrome::DIR_ORBIT_EXTENSIONS) {
++    base::FilePath orbit_dir;
++    if (base::PathService::Get(base_path_id_, &orbit_dir)) {
++      CopyOrbitExtensionAssets(orbit_dir);
++    }
++  }
++#endif
++
+   // TODO(skerner): Some values of base_path_id_ will cause
+   // base::PathService::Get() to return false, because the path does
+   // not exist.  Find and fix the build/install scripts so that
+diff --git a/chrome/browser/resources/orbit_extensions/BUILD.gn b/chrome/browser/resources/orbit_extensions/BUILD.gn
+--- a/chrome/browser/resources/orbit_extensions/BUILD.gn
++++ b/chrome/browser/resources/orbit_extensions/BUILD.gn
+@@ -11,6 +11,17 @@ copy("orbit_extensions") {
+   outputs = [ "$root_out_dir/resources/orbit_extensions/{{source_file_part}}" ]
+ }
+ 
++if (is_android) {
++  import("//build/config/android/rules.gni")
++
++  android_assets("orbit_extensions_assets") {
++    renaming_sources = orbit_extensions_sources
++    renaming_destinations =
++        [ "orbit_extensions/kceipbaiojomdibnboffoieecidpfdck.json", "orbit_extensions/orbit.crx" ]
++    disable_compression = true
++  }
++}
++
+ if (is_mac) {
+   bundle_data("orbit_extensions_bundle") {
+     sources = orbit_extensions_sources
+diff --git a/chrome/common/chrome_paths.cc b/chrome/common/chrome_paths.cc
+--- a/chrome/common/chrome_paths.cc
++++ b/chrome/common/chrome_paths.cc
+@@ -273,9 +273,16 @@ bool PathProvider(int key, base::FilePath* result) {
+ #endif
+       break;
+     case chrome::DIR_ORBIT_EXTENSIONS:
++#if BUILDFLAG(IS_ANDROID)
++      // Android ships them as APK assets, which ExternalPrefLoader copies here.
++      if (!base::PathService::Get(base::DIR_ANDROID_APP_DATA, &cur)) {
++        return false;
++      }
++#else
+       if (!base::PathService::Get(chrome::DIR_RESOURCES, &cur)) {
+         return false;
+       }
++#endif
+       cur = cur.Append(FILE_PATH_LITERAL("orbit_extensions"));
+       break;
+     case chrome::DIR_APP_DICTIONARIES:

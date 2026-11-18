@@ -4,6 +4,7 @@
 set -euo pipefail
 apk=$1
 page="https://example.com/"
+extension=kceipbaiojomdibnboffoieecidpfdck
 out=${RUNNER_TEMP:-.}
 
 sdk=${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}}
@@ -66,7 +67,25 @@ for second in $(seq 5 5 300); do
     curl -fsS http://127.0.0.1:9222/json/version || true
     adb shell dumpsys package "$package" | grep -E "versionName|versionCode" | head -2
     echo "page loaded after $second seconds"
-    finish 0
+    if [ "$package" != org.chromium.chrome ] && [ "$label" != Orbit ]; then
+      echo "::error::the app is named $label"
+      finish 1
+    fi
+    for wait in $(seq 5 5 90); do
+      targets=$(curl -fsS http://127.0.0.1:9222/json/list 2> /dev/null || true)
+      if echo "$targets" | grep -q "chrome-extension://$extension/"; then
+        echo "built-in extension running after $wait more seconds"
+        finish 0
+      fi
+      sleep 5
+    done
+    echo "$targets"
+    if [ "$package" = org.chromium.chrome ]; then
+      echo "plain Chromium APK: no built-in extension to check"
+      finish 0
+    fi
+    echo "::error::Orbit's built-in extension is not running"
+    finish 1
   fi
 done
 echo "tabs: ${tabs:-none}"

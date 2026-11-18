@@ -2,8 +2,8 @@ name: Orbit Android stage
 
 # One slice of the Android build, on the same plan as chromium-stage.yml: each job compiles until
 # its time budget runs out and saves its work for the next one. It builds Chromium for Android with
-# Orbit's patch series and Android branding (tools/android/brand.py), with is_desktop_android so the
-# extension system is compiled. The built-in extension is not bundled yet.
+# Orbit's patch series, Android's own patches and branding (tools/android/brand.py), and the
+# built-in extension packed into the APK as assets, with is_desktop_android so extensions run.
 
 on:
   workflow_call:
@@ -49,6 +49,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          fetch-depth: 0
 
       - name: Free disk space and add swap
         run: |
@@ -83,6 +84,18 @@ jobs:
           grep -q '^checkout_android = true$' "$args"
           du -sh src/third_party/android_sdk src/third_party/android_toolchain src/third_party/jdk 2> /dev/null || true
           df -h .
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+
+      - name: Build and sign Orbit's built-in extension
+        env:
+          ORBIT_EXTENSION_KEY: ${{ secrets.ORBIT_EXTENSION_KEY }}
+        run: |
+          node tools/build-extension.mjs "$RUNNER_TEMP/extension"
+          build=$(git rev-list --count HEAD -- extension filters tools/build-extension.mjs tools/chromium/pack-extension.mjs)
+          node tools/chromium/pack-extension.mjs "$RUNNER_TEMP/extension" chromium/overlay/chrome/browser/resources/orbit_extensions "$build"
 
       - name: Apply Orbit's changes to Chromium
         run: |
