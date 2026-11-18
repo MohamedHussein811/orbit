@@ -50,6 +50,17 @@ finish() {
   exit "$status"
 }
 
+# Store screenshots (the emulator's 1080 x 1920 screen fits Google Play's 2:1 limit).
+store_shots() {
+  n=0
+  for shot_page in "https://en.wikipedia.org/wiki/Web_browser" "https://duckduckgo.com/?q=private+web+browser"; do
+    n=$((n + 1))
+    adb shell am start -a android.intent.action.VIEW -d "$shot_page" -n "$package/com.google.android.apps.chrome.Main" > /dev/null
+    sleep 20
+    adb shell screencap -p /sdcard/store.png > /dev/null 2>&1 && adb pull /sdcard/store.png "$out/store-$n.png" > /dev/null || true
+  done
+}
+
 adb logcat -c
 adb shell am start -W -a android.intent.action.VIEW -d "$page" -n "$package/com.google.android.apps.chrome.Main"
 adb forward tcp:9222 localabstract:chrome_devtools_remote
@@ -71,6 +82,7 @@ for second in $(seq 5 5 300); do
       echo "::error::the app is named $label"
       finish 1
     fi
+    store_shots
     for wait in $(seq 5 5 90); do
       targets=$(curl -fsS http://127.0.0.1:9222/json/list 2> /dev/null || true)
       if echo "$targets" | grep -q "chrome-extension://$extension/"; then
