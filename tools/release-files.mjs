@@ -32,6 +32,10 @@ const mac = find(/^Orbit-[\d.]+-mac-arm64(-unsigned)?\.dmg$/);
 const deb = find(/^orbit_[\d.]+_amd64\.deb$/);
 const archive = find(/^Orbit-[\d.]+-linux-x64\.tar\.xz$/);
 find(/^orbit-extension\.crx$/);
+const android = files.find((file) => /^Orbit-[\d.]+-android-arm64\.apk$/.test(file));
+const androidNote = android
+  ? "\n- Android: open the APK and allow installing from your browser or file manager. Installed this way, Orbit does not update by itself; the Google Play version does."
+  : "";
 const browserVersion = windows.match(/^OrbitSetup-([\d.]+)-x64\.exe$/)[1];
 
 const extensionInfo = JSON.parse(fs.readFileSync(path.join(dist, "orbit-extension.json"), "utf8"));
@@ -40,6 +44,7 @@ if (!/^\d+(\.\d+){0,3}$/.test(extensionVersion)) throw new Error(`bad extension 
 fs.rmSync(path.join(dist, "orbit-extension.json"));
 
 const download = (name) => `https://github.com/${repo}/releases/download/${tag}/${name}`;
+const androidRow = android ? `| Android 10 or later (arm64) | [${android}](${download(android)}) |\n` : "";
 
 const updateKey = process.env.ORBIT_UPDATE_KEY;
 if (!updateKey) throw new Error("ORBIT_UPDATE_KEY is required: the Windows updater only installs from a signed feed");
@@ -94,11 +99,11 @@ fs.writeFileSync(
 | macOS 13 or later (Apple silicon) | [${mac}](${download(mac)}) |
 | Linux (x64, Debian and Ubuntu) | [${deb}](${download(deb)}) |
 | Linux (x64, any distribution) | [${archive}](${download(archive)}) |
-
+${androidRow}
 **Installing**
 - Windows: run the installer. ${windowsNote}
 - macOS: open the disk image and drag Orbit to Applications.${unsignedMac ? " This build is not signed yet: the first time, right-click Orbit in Applications and choose Open." : ""}
-- Linux: \`sudo apt install ./${deb}\`. The package adds Orbit's signed package list, so system updates keep Orbit current. Or unpack the archive and run \`orbit/orbit\`, which does not update by itself.
+- Linux: \`sudo apt install ./${deb}\`. The package adds Orbit's signed package list, so system updates keep Orbit current. Or unpack the archive and run \`orbit/orbit\`, which does not update by itself.${androidNote}
 
 Check a download against SHA256SUMS.txt, for example \`sha256sum -c SHA256SUMS.txt --ignore-missing\`.
 

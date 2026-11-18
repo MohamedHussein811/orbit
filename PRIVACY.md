@@ -37,6 +37,19 @@ AI features, and the advertising web APIs (Topics, Protected Audience, Attributi
 off by default. Details are in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) and
 [docs/THREAT_MODEL.md](docs/THREAT_MODEL.md).
 
+## Orbit on phones
+
+The Android and iPhone apps follow the same rules: no accounts, ads, analytics, crash reports or
+telemetry, and nothing is sent to NovaTech. They are published in Google Play and the App Store by
+Runovate LLC.
+
+- **Android** uses the same Chromium engine and defaults as the desktop browser, so the tables
+  above apply, except the Windows updater. Installs from Google Play are updated by Google Play;
+  an APK downloaded from GitHub Releases does not update by itself.
+- **iPhone** uses Apple's WebKit, as Apple requires. The app makes no connections on its own: its
+  blocking lists ship inside the app, and bookmarks, history and settings stay on the device.
+  Updates come from the App Store.
+
 ## Contact
 
 Questions go to the project's [issues](https://github.com/MohamedHussein811/orbit/issues).

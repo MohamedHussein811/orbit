@@ -96,6 +96,24 @@ Run the **Release** workflow by hand with a tag (`vX.Y.Z`) and the run ids of gr
 - `Packages`, `Packages.gz`, `Release`, `InRelease`, `Release.gpg`: a flat apt repository signed with `ORBIT_APT_KEY` (`tools/apt-repo.sh`), served from `releases/latest/download/`,
 - `SHA256SUMS.txt` for every file.
 
+With `android_run` (a green **Orbit browser (Android arm64)** build of the same commit), the release also carries `Orbit-<version>-android-arm64.apk`, signed with the Android upload key, and the run keeps the signed Play bundle as the `orbit-play-bundle` artifact.
+
+## Phones
+
+The Google Play and App Store accounts belong to Runovate LLC, which publishes the apps NovaTech builds. Package and bundle id: `org.novatech.orbit`, which can never change after the first store release.
+
+### Android
+
+- `browser-android.yml` builds x64 for the emulator check (installs the APK, opens a page, checks the app name and that the built-in extension runs). `browser-android-arm64.yml` builds the phone APK and the Play bundle (`.aab`). Both run on pushes that change `tools/android/`.
+- The versionCode is `{BUILD}{PATCH}{release}` (157.5.8103.78 gives 810307805), so each release can be uploaded to Play.
+- Secrets: `ANDROID_UPLOAD_KEYSTORE_BASE64` (PKCS12 keystore, key alias `orbit`) and `ANDROID_UPLOAD_KEYSTORE_PASSWORD`. Play App Signing re-signs Play installs with Google's key, so an APK from GitHub and one from Play cannot update each other; uninstall one to switch.
+- Google Play: the first bundle is uploaded by hand in Play Console (Production or a testing track); the app's store listing, content rating, data safety form (no data collected) and privacy policy link are filled in there.
+
+### iPhone
+
+- `ios.yml` builds and tests on the simulator for every change in `ios/`. With the repository variable `IOS_TESTFLIGHT` set to `on`, a passing build is signed (automatic signing through the App Store Connect key in `APPLE_NOTARY_KEY_*`, team from `MAC_SIGNING_IDENTITY`) and uploaded to TestFlight, build number = run number.
+- The key needs the Admin role, or App Manager with access to cloud-managed distribution certificates. The app record must exist in App Store Connect first.
+
 ## How installed copies update
 
 - **Windows** (`orbit-updater.patch`): four minutes after start and then every five hours, a per-user install downloads `orbit-update.json` and its signature from the latest release, checks the signature against the key built into Orbit, and when the feed names a newer version than both the running and the installed one, downloads the setup, checks its size and SHA-256, and runs it with `/VERYSILENT`. Chromium's installer puts the new version next to the running one. Off with `--disable-background-networking`, for system-wide installs, and when the setup's "Keep Orbit up to date automatically" box was cleared (`HKCU\Software\NovaTech\Orbit Update`, `Enabled` = 0).
