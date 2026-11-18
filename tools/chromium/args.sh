@@ -7,11 +7,14 @@
 # Official builds optimize with Chromium's published PGO profile for this system. The source
 # archive does not carry it, so it is downloaded into chrome/build/pgo_profiles, where the build
 # looks for the file named in chrome/build/<target>.pgo.txt.
+#
+# Windows builds without ThinLTO: Chromium sizes a ThinLTO link of chrome.dll at about 45 GB of
+# memory, and the free Windows runner has 16 GB. PGO, the larger part of the gain, stays on.
 set -euo pipefail
 dest=$1
 src=$(cd "$(dirname "$dest")/../.." && pwd)
 case "$(uname -s)" in
-  MINGW*|MSYS*|CYGWIN*) target=win64; sed 's/^proprietary_codecs = false/proprietary_codecs = true/' "$(dirname "$0")/args.gn" > "$dest.new" ;;
+  MINGW*|MSYS*|CYGWIN*) target=win64; sed -e 's/^proprietary_codecs = false/proprietary_codecs = true/' -e 's/^use_thin_lto = true/use_thin_lto = false/' "$(dirname "$0")/args.gn" > "$dest.new" ;;
   Darwin) target=mac-arm; sed 's/^proprietary_codecs = false/proprietary_codecs = true/' "$(dirname "$0")/args.gn" > "$dest.new" ;;
   *) target=linux; cp "$(dirname "$0")/args.gn" "$dest.new" ;;
 esac

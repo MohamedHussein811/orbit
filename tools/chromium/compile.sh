@@ -35,9 +35,9 @@ case "$(uname -s)" in
   MINGW*|MSYS*)
     { sleep $((COMPILE_SECONDS + 200)); stop_windows_tools; } > /dev/null 2>&1 & watchdog=$!
     # PGO compiles need more memory each. Past 16 GB the Windows runner grows its page file on C:,
-    # which has little free space and holds the runner itself, so three jobs keep memory in RAM,
-    # and temporary files go to the larger D: drive.
-    jobs=(-j 3)
+    # which has little free space and holds the runner itself, so one job per core keeps memory in
+    # RAM, and temporary files go to the larger D: drive.
+    jobs=(-j "${NUMBER_OF_PROCESSORS:-4}")
     if [ -n "${RUNNER_TEMP:-}" ]; then
       export TEMP="$RUNNER_TEMP" TMP="$RUNNER_TEMP"
     fi
