@@ -86,22 +86,9 @@ jobs:
           KEYSTORE: ${{ secrets.ANDROID_UPLOAD_KEYSTORE_BASE64 }}
           ANDROID_UPLOAD_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_UPLOAD_KEYSTORE_PASSWORD }}
         run: |
-          [ -n "$KEYSTORE" ] && [ -n "$ANDROID_UPLOAD_KEYSTORE_PASSWORD" ] || { echo "::error::Set the ANDROID_UPLOAD_KEYSTORE_* secrets (docs/RELEASING.md)"; exit 1; }
-          keystore="$RUNNER_TEMP/upload.p12"
-          echo "$KEYSTORE" | base64 --decode > "$keystore"
           version=$(ls dist | sed -n 's/^OrbitSetup-\([0-9.]*\)-x64\.exe$/\1/p')
-          tools=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)
-          apk="dist/Orbit-$version-android-arm64.apk"
-          "$tools/apksigner" sign --ks "$keystore" --ks-type PKCS12 --ks-pass env:ANDROID_UPLOAD_KEYSTORE_PASSWORD \
-            --ks-key-alias orbit --out "$apk" android/ChromePublic.apk
-          "$tools/apksigner" verify --print-certs "$apk" | grep -E "Signer #1 certificate (DN|SHA-256)"
-          mkdir -p play
-          cp android/ChromePublic.aab "play/Orbit-$version.aab"
-          zip -q -d "play/Orbit-$version.aab" 'META-INF/*' || true
-          jarsigner -keystore "$keystore" -storetype PKCS12 -storepass:env ANDROID_UPLOAD_KEYSTORE_PASSWORD \
-            -sigalg SHA256withRSA -digestalg SHA-256 "play/Orbit-$version.aab" orbit > /dev/null
-          jarsigner -verify "play/Orbit-$version.aab" | tail -1
-          rm -f "$keystore"
+          tools/android/sign.sh android/ChromePublic.apk android/ChromePublic.aab play "$version"
+          mv play/*.apk dist/
           rm -rf android
 
       - name: Keep the Play bundle for upload
