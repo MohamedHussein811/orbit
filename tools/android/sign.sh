@@ -15,18 +15,30 @@ version=$4
 keystore=$(mktemp)
 trap 'rm -f "$keystore"' EXIT
 echo "$KEYSTORE" | base64 --decode > "$keystore"
+if ! keytool -list -keystore "$keystore" -storetype PKCS12 -storepass:env ANDROID_UPLOAD_KEYSTORE_PASSWORD -alias orbit >/dev/null 2>&1; then
+  echo "::error::Android upload keystore or password is invalid"
+  exit 1
+fi
 sdk=${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}}
 tools=$(ls -d "$sdk"/build-tools/* | sort -V | tail -1)
 mkdir -p "$out"
 
 apk="$out/Orbit-$version-android-arm64.apk"
-"$tools/apksigner" sign --ks "$keystore" --ks-type PKCS12 --ks-pass env:ANDROID_UPLOAD_KEYSTORE_PASSWORD \
-  --ks-key-alias orbit --out "$apk" "$apk_in"
+echo "::notice::Signing Android APK"
+if ! "$tools/apksigner" sign --ks "$keystore" --ks-type PKCS12 --ks-pass env:ANDROID_UPLOAD_KEYSTORE_PASSWORD \
+  --ks-key-alias orbit --out "$apk" "$apk_in"; then
+  echo "::error::APK signing failed"
+  exit 1
+fi
 "$tools/apksigner" verify --print-certs "$apk" | grep -E "Signer #1 certificate (DN|SHA-256)"
 
 aab="$out/Orbit-$version.aab"
 cp "$aab_in" "$aab"
 zip -q -d "$aab" 'META-INF/*' || true
-jarsigner -keystore "$keystore" -storetype PKCS12 -storepass:env ANDROID_UPLOAD_KEYSTORE_PASSWORD \
-  -sigalg SHA256withRSA -digestalg SHA-256 "$aab" orbit > /dev/null
+echo "::notice::Signing Android App Bundle"
+if ! jarsigner -keystore "$keystore" -storetype PKCS12 -storepass:env ANDROID_UPLOAD_KEYSTORE_PASSWORD \
+  -sigalg SHA256withRSA -digestalg SHA-256 "$aab" orbit > /dev/null; then
+  echo "::error::App Bundle signing failed"
+  exit 1
+fi
 jarsigner -verify "$aab" | tail -1
