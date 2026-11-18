@@ -51,14 +51,25 @@ finish() {
 }
 
 # Store screenshots (the emulator's 1080 x 1920 screen fits Google Play's 2:1 limit).
+store_shot() {
+  adb shell screencap -p /sdcard/store.png > /dev/null 2>&1 && adb pull /sdcard/store.png "$out/store-$1.png" > /dev/null || true
+}
+open_page() {
+  adb shell am start -a android.intent.action.VIEW -d "$1" -n "$package/com.google.android.apps.chrome.Main" > /dev/null
+  sleep 20
+}
 store_shots() {
-  n=0
-  for shot_page in "https://en.wikipedia.org/wiki/Web_browser" "https://duckduckgo.com/?q=private+web+browser"; do
-    n=$((n + 1))
-    adb shell am start -a android.intent.action.VIEW -d "$shot_page" -n "$package/com.google.android.apps.chrome.Main" > /dev/null
-    sleep 20
-    adb shell screencap -p /sdcard/store.png > /dev/null 2>&1 && adb pull /sdcard/store.png "$out/store-$n.png" > /dev/null || true
-  done
+  open_page "https://en.wikipedia.org/wiki/Web_browser"
+  # Close Wikipedia's app banner (its close button on the 1080 x 1920 screen).
+  adb shell input tap 1010 280
+  sleep 3
+  store_shot 2
+  open_page "https://github.com/MohamedHussein811/orbit/blob/main/PRIVACY.md"
+  store_shot 3
+  # The new tab button in the bottom toolbar.
+  adb shell input tap 405 1778
+  sleep 8
+  store_shot 1
 }
 
 adb logcat -c
