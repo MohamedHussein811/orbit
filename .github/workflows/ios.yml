@@ -77,8 +77,40 @@ jobs:
             -scheme Orbit \
             -destination "id=${{ steps.simulator.outputs.id }}" \
             -resultBundlePath "$RUNNER_TEMP/Orbit.xcresult" \
+            -derivedDataPath "$RUNNER_TEMP/derived" \
             CODE_SIGNING_ALLOWED=NO | tee "$RUNNER_TEMP/xcodebuild.log" | grep -E "error:|warning: .*Orbit/|Test Case|Executed|\*\* (BUILD|TEST)" || true
           grep -q "\*\* TEST SUCCEEDED \*\*" "$RUNNER_TEMP/xcodebuild.log"
+
+      - name: Take App Store screenshots
+        continue-on-error: true
+        run: |
+          # 6.9-inch display (1320 x 2868), the size App Store Connect asks for.
+          device=$(xcrun simctl list devices available | grep -E "iPhone [0-9]+ Pro Max \(" | tail -1 | sed -E 's/.*\(([0-9A-F-]{36})\).*/\1/')
+          test -n "$device"
+          xcrun simctl boot "$device" || true
+          xcrun simctl bootstatus "$device" -b > /dev/null
+          app=$(find "$RUNNER_TEMP/derived/Build/Products" -path "*iphonesimulator*" -name Orbit.app -maxdepth 2 | head -1)
+          xcrun simctl install "$device" "$app"
+          xcrun simctl status_bar "$device" override --time 9:41 --batteryState charged --batteryLevel 100 --wifiBars 3 --cellularBars 4
+          out="$RUNNER_TEMP/screenshots"
+          mkdir -p "$out"
+          shot() {
+            name=$1; wait=$2; shift 2
+            xcrun simctl launch --terminate-running-process "$device" org.novatech.orbit "$@" > /dev/null
+            sleep "$wait"
+            xcrun simctl io "$device" screenshot "$out/$name.png" > /dev/null
+          }
+          shot 1-new-tab 45
+          shot 2-page 25 -OrbitOpen https://en.wikipedia.org/wiki/Web_browser
+          shot 3-search 25 -OrbitOpen "https://duckduckgo.com/?q=private+web+browser"
+          sips -g pixelWidth -g pixelHeight "$out"/*.png
+
+      - name: Keep the screenshots
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ios-screenshots
+          path: ${{ runner.temp }}/screenshots
+          if-no-files-found: ignore
 
       - name: Keep the test results
         if: always()
