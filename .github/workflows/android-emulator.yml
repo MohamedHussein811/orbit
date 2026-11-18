@@ -24,7 +24,7 @@ permissions:
   actions: read
 
 env:
-  LAST_APK_RUN: "44255121247"
+  LAST_APK_RUN: "44364947655"
 
 jobs:
   emulator:
