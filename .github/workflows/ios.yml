@@ -5,9 +5,9 @@ name: Orbit for iPhone
 #
 # When the repository variable IOS_TESTFLIGHT is "on", a passing build is also signed and uploaded
 # to TestFlight. Signing is automatic: Xcode creates the distribution certificate and profile with
-# the App Store Connect key in APPLE_NOTARY_KEY_* (role Admin, or App Manager with access to
-# cloud-managed distribution certificates). The team comes from MAC_SIGNING_IDENTITY. The app
-# record (bundle id org.novatech.orbit) must exist in App Store Connect first.
+# the Admin App Store Connect key in ASC_KEY_ID, ASC_ISSUER_ID and ASC_KEY_P8_BASE64 (the notary
+# key has the Developer role, which cannot create distribution certificates). The team comes from
+# MAC_SIGNING_IDENTITY. The app record (bundle id org.novatech.orbit) exists in App Store Connect.
 
 on:
   push:
@@ -112,12 +112,12 @@ jobs:
 
       - name: Set up the App Store Connect key
         env:
-          KEY_P8: ${{ secrets.APPLE_NOTARY_KEY_P8_BASE64 }}
-          KEY_ID: ${{ secrets.APPLE_NOTARY_KEY_ID }}
-          ISSUER_ID: ${{ secrets.APPLE_NOTARY_ISSUER_ID }}
+          KEY_P8: ${{ secrets.ASC_KEY_P8_BASE64 }}
+          KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
           IDENTITY: ${{ secrets.MAC_SIGNING_IDENTITY }}
         run: |
-          [ -n "$KEY_P8" ] && [ -n "$KEY_ID" ] && [ -n "$ISSUER_ID" ] || { echo "::error::Set the APPLE_NOTARY_KEY_* secrets"; exit 1; }
+          [ -n "$KEY_P8" ] && [ -n "$KEY_ID" ] && [ -n "$ISSUER_ID" ] || { echo "::error::Set the ASC_KEY_ID, ASC_ISSUER_ID and ASC_KEY_P8_BASE64 secrets"; exit 1; }
           team=$(echo "$IDENTITY" | sed -n 's/.*(\([A-Z0-9]\{10\}\))$/\1/p')
           [ -n "$team" ] || { echo "::error::No team id in MAC_SIGNING_IDENTITY"; exit 1; }
           echo "::add-mask::$team"

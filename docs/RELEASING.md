@@ -111,8 +111,8 @@ The Google Play and App Store accounts belong to Runovate LLC, which publishes t
 
 ### iPhone
 
-- `ios.yml` builds and tests on the simulator for every change in `ios/`. With the repository variable `IOS_TESTFLIGHT` set to `on`, a passing build is signed (automatic signing through the App Store Connect key in `APPLE_NOTARY_KEY_*`, team from `MAC_SIGNING_IDENTITY`) and uploaded to TestFlight, build number = run number.
-- The key needs the Admin role, or App Manager with access to cloud-managed distribution certificates. The app record must exist in App Store Connect first.
+- `ios.yml` builds and tests on the simulator for every change in `ios/`. With the repository variable `IOS_TESTFLIGHT` set to `on`, a passing build is signed (automatic signing through the Admin App Store Connect key in `ASC_KEY_ID`, `ASC_ISSUER_ID`, `ASC_KEY_P8_BASE64`, team from `MAC_SIGNING_IDENTITY`) and uploaded to TestFlight, build number = run number.
+- The key needs the Admin role (the notary key is Developer and cannot create distribution certificates). App record: "Orbit: Private Web Browser".
 
 ## How installed copies update
 

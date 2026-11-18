@@ -6,7 +6,7 @@ NovaTech. Package and bundle id: `org.novatech.orbit`. Privacy policy:
 
 ## Google Play
 
-- **App name** (30 max): Orbit Private Browser
+- **App name** (30 max): Orbit: Private Web Browser
 - **Short description** (80 max): Private browser that blocks ads and trackers. No accounts, no telemetry.
 - **Category**: Communication (where Play lists browsers)
 - **Full description**:
@@ -32,7 +32,7 @@ NovaTech. Package and bundle id: `org.novatech.orbit`. Privacy policy:
 
 ## App Store
 
-- **Name** (30 max): Orbit Private Browser
+- **Name** (30 max): Orbit: Private Web Browser ("Orbit Private Browser" is taken on the App Store)
 - **Subtitle** (30 max): Blocks ads and trackers
 - **Category**: Utilities (secondary: Productivity)
 - **Keywords** (100 max): browser,private,privacy,ad blocker,tracker,duckduckgo,secure,web,incognito
