@@ -84,26 +84,30 @@ jobs:
       - name: Take App Store screenshots
         continue-on-error: true
         run: |
-          # 6.9-inch display (1320 x 2868), the size App Store Connect asks for.
-          device=$(xcrun simctl list devices available | grep -E "iPhone [0-9]+ Pro Max \(" | tail -1 | sed -E 's/.*\(([0-9A-F-]{36})\).*/\1/')
-          test -n "$device"
-          xcrun simctl boot "$device" || true
-          xcrun simctl bootstatus "$device" -b > /dev/null
+          # The sizes App Store Connect asks for: iPhone with Dynamic Island, medium display
+          # (1206 x 2622), and 13-inch iPad (2064 x 2752).
           app=$(find "$RUNNER_TEMP/derived/Build/Products" -path "*iphonesimulator*" -name Orbit.app -maxdepth 2 | head -1)
-          xcrun simctl install "$device" "$app"
-          xcrun simctl status_bar "$device" override --time 9:41 --batteryState charged --batteryLevel 100 --wifiBars 3 --cellularBars 4
           out="$RUNNER_TEMP/screenshots"
           mkdir -p "$out"
-          shot() {
-            name=$1; wait=$2; shift 2
-            xcrun simctl launch --terminate-running-process "$device" org.novatech.orbit "$@" > /dev/null
-            sleep "$wait"
-            xcrun simctl io "$device" screenshot "$out/$name.png" > /dev/null
-          }
-          shot 1-new-tab 45
-          shot 2-page 25 -OrbitOpen https://en.wikipedia.org/wiki/Web_browser
-          shot 3-search 25 -OrbitOpen "https://duckduckgo.com/?q=private+web+browser"
-          sips -g pixelWidth -g pixelHeight "$out"/*.png
+          for pair in "iphone:iPhone [0-9]+ Pro \(" "ipad:iPad Pro 13-inch"; do
+            kind=${pair%%:*}
+            device=$(xcrun simctl list devices available | grep -E "${pair#*:}" | tail -1 | sed -E 's/.*\(([0-9A-F-]{36})\).*/\1/')
+            test -n "$device"
+            xcrun simctl boot "$device" || true
+            xcrun simctl bootstatus "$device" -b > /dev/null
+            xcrun simctl install "$device" "$app"
+            xcrun simctl status_bar "$device" override --time 9:41 --batteryState charged --batteryLevel 100 --wifiBars 3 --cellularBars 4
+            shot() {
+              name=$1; wait=$2; shift 2
+              xcrun simctl launch --terminate-running-process "$device" org.novatech.orbit "$@" > /dev/null
+              sleep "$wait"
+              xcrun simctl io "$device" screenshot --type=jpeg "$out/$kind-$name.jpg" > /dev/null
+            }
+            shot 1-new-tab 45
+            shot 2-page 25 -OrbitOpen https://en.wikipedia.org/wiki/Web_browser
+            xcrun simctl shutdown "$device"
+          done
+          sips -g pixelWidth -g pixelHeight "$out"/*.jpg
 
       - name: Keep the screenshots
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
