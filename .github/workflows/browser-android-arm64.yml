@@ -1,0 +1,115 @@
+name: Orbit browser (Android arm64)
+
+# The phone build: arm64 APK and Play bundle (.aab), on the same chained stages as
+# browser-android.yml, which builds x64 for the emulator check. An arm64 APK cannot run on the
+# x86_64 emulator, so this chain has no emulator job. Stage 1 continues from a saved arm64 stage
+# (kept 5 days) given by resume_run/resume_state.
+
+on:
+  push:
+    branches: [design]
+    paths:
+      - tools/android/**
+      - "!tools/android/smoke.sh"
+      - .github/workflows/android-stage.yml
+      - .github/workflows/browser-android-arm64.yml
+  workflow_dispatch:
+    inputs:
+      resume_run:
+        description: run id to continue from (empty builds from scratch)
+        type: string
+        default: ""
+      resume_state:
+        description: saved stage number in that run
+        type: number
+        default: 0
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: browser-android-arm64-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  stage1:
+    uses: ./.github/workflows/android-stage.yml
+    secrets: inherit
+    with:
+      stage: 1
+      cpu: arm64
+      resume_run: ${{ inputs.resume_run || '44091873856' }}
+      resume_state: ${{ inputs.resume_state || 4 }}
+  stage2:
+    needs: stage1
+    if: needs.stage1.outputs.done != 'true'
+    uses: ./.github/workflows/android-stage.yml
+    secrets: inherit
+    with:
+      stage: 2
+      cpu: arm64
+  stage3:
+    needs: stage2
+    if: needs.stage2.outputs.done != 'true'
+    uses: ./.github/workflows/android-stage.yml
+    secrets: inherit
+    with:
+      stage: 3
+      cpu: arm64
+  stage4:
+    needs: stage3
+    if: needs.stage3.outputs.done != 'true'
+    uses: ./.github/workflows/android-stage.yml
+    secrets: inherit
+    with:
+      stage: 4
+      cpu: arm64
+  stage5:
+    needs: stage4
+    if: needs.stage4.outputs.done != 'true'
+    uses: ./.github/workflows/android-stage.yml
+    secrets: inherit
+    with:
+      stage: 5
+      cpu: arm64
+  stage6:
+    needs: stage5
+    if: needs.stage5.outputs.done != 'true'
+    uses: ./.github/workflows/android-stage.yml
+    secrets: inherit
+    with:
+      stage: 6
+      cpu: arm64
+  stage7:
+    needs: stage6
+    if: needs.stage6.outputs.done != 'true'
+    uses: ./.github/workflows/android-stage.yml
+    secrets: inherit
+    with:
+      stage: 7
+      cpu: arm64
+  stage8:
+    needs: stage7
+    if: needs.stage7.outputs.done != 'true'
+    uses: ./.github/workflows/android-stage.yml
+    secrets: inherit
+    with:
+      stage: 8
+      cpu: arm64
+  stage9:
+    needs: stage8
+    if: needs.stage8.outputs.done != 'true'
+    uses: ./.github/workflows/android-stage.yml
+    secrets: inherit
+    with:
+      stage: 9
+      cpu: arm64
+  stage10:
+    needs: stage9
+    if: needs.stage9.outputs.done != 'true'
+    uses: ./.github/workflows/android-stage.yml
+    secrets: inherit
+    with:
+      stage: 10
+      cpu: arm64

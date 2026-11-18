@@ -30,7 +30,7 @@ permissions:
 
 env:
   CHROMIUM_VERSION: "157.0.8103.78"
-  TARGETS: chrome_public_apk
+  TARGETS: ${{ inputs.cpu == 'arm64' && 'chrome_public_apk chrome_public_bundle' || 'chrome_public_apk' }}
   ANDROID_CPU: ${{ inputs.cpu }}
 
 jobs:
@@ -140,6 +140,7 @@ jobs:
         env:
           STAGE: ${{ inputs.stage }}
           FRESH: ${{ inputs.stage == 1 && inputs.resume_run == '' && 'yes' || '' }}
+          CHANGED_SOURCE: ${{ inputs.resume_run != '' && 'yes' || '' }}
         run: |
           # The job stops at 350 minutes; setup time varies (package installs took 9 to 36 minutes),
           # so the compile gets what is left minus 30 minutes for saving the stage.
@@ -169,6 +170,16 @@ jobs:
         with:
           name: orbit-android-${{ inputs.cpu }}
           path: src/out/Release/apks/ChromePublic.apk
+          retention-days: 30
+          compression-level: 0
+          if-no-files-found: error
+
+      - name: Keep the Play bundle
+        if: steps.compile.outputs.done == 'true' && inputs.cpu == 'arm64'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: orbit-android-bundle
+          path: src/out/Release/apks/ChromePublic.aab
           retention-days: 30
           compression-level: 0
           if-no-files-found: error
