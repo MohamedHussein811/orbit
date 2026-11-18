@@ -30,7 +30,12 @@ if ! "$tools/apksigner" sign --ks "$keystore" --ks-type PKCS12 --ks-pass env:AND
   echo "::error::APK signing failed"
   exit 1
 fi
-"$tools/apksigner" verify --print-certs "$apk" | grep -E "Signer #1 certificate (DN|SHA-256)"
+certs=$("$tools/apksigner" verify --print-certs "$apk" 2>&1) || {
+  echo "$certs"
+  echo "::error::The signed APK does not verify"
+  exit 1
+}
+echo "$certs" | grep -E "certificate (DN|SHA-256)" || echo "$certs" | head -20
 
 aab="$out/Orbit-$version.aab"
 cp "$aab_in" "$aab"
@@ -41,4 +46,7 @@ if ! jarsigner -keystore "$keystore" -storetype PKCS12 -storepass:env ANDROID_UP
   echo "::error::App Bundle signing failed"
   exit 1
 fi
-jarsigner -verify "$aab" | tail -1
+jarsigner -verify "$aab" | grep "jar verified" || {
+  echo "::error::The signed bundle does not verify"
+  exit 1
+}
