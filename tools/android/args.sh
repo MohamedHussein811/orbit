@@ -15,6 +15,9 @@ code=$(( $(version BUILD) * 100000 + $(version PATCH) * 100 + release % 100 ))
 {
   sed "s/^target_cpu = .*/target_cpu = \"$cpu\"/" "$(dirname "$0")/args.gn"
   echo "android_override_version_code = \"$code\""
+  # Play refuses debuggable apps, which Chromium makes outside official builds. The x64 build
+  # stays debuggable for the emulator check.
+  if [ "$cpu" = arm64 ]; then echo "debuggable_apks = false"; fi
 } > "$dest.new"
 if cmp -s "$dest.new" "$dest"; then rm "$dest.new"; else mv "$dest.new" "$dest"; fi
 echo "versionCode $code"
