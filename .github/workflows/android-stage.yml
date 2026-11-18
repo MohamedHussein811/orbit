@@ -42,6 +42,9 @@ jobs:
       run:
         shell: bash
     steps:
+      - name: Note when the job started
+        run: echo "JOB_START=$(date +%s)" >> "$GITHUB_ENV"
+
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
@@ -114,8 +117,14 @@ jobs:
         id: compile
         env:
           STAGE: ${{ inputs.stage }}
-          COMPILE_SECONDS: ${{ inputs.stage == 1 && inputs.resume_run == '' && '3600' || '18600' }}
+          FRESH: ${{ inputs.stage == 1 && inputs.resume_run == '' && 'yes' || '' }}
         run: |
+          # The job stops at 350 minutes; setup time varies (package installs took 9 to 36 minutes),
+          # so the compile gets what is left minus 30 minutes for saving the stage.
+          left=$((350 * 60 - ($(date +%s) - JOB_START) - 1800))
+          if [ -n "$FRESH" ] && [ "$left" -gt 3600 ]; then left=3600; fi
+          export COMPILE_SECONDS=$left
+          echo "compile budget: $((left / 60)) minutes"
           echo "$CHROMIUM_VERSION" > src/out/orbit-chromium-version
           tools/chromium/compile.sh
 

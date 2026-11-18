@@ -3,8 +3,9 @@ name: Orbit browser (Android)
 # Builds Chromium for Android on free runners and checks the APK on an emulator. Runs on pushes
 # that change the Android build files (desktop work never starts it) or by hand. Stage 1 can
 # continue from a stage saved by an earlier run of the same Chromium version (kept 5 days) with
-# resume_run/resume_state. Pushes build x64, which the x86_64 emulator runs natively; Chromium
-# loads its library straight from the APK, so an arm64 build cannot run there through translation.
+# resume_run/resume_state (default: the x64 run set in stage1). Pushes build x64, which the
+# x86_64 emulator runs natively; Chromium loads its library straight from the APK, so an arm64
+# build cannot run there through translation.
 
 on:
   push:
@@ -44,8 +45,8 @@ jobs:
     with:
       stage: 1
       cpu: ${{ inputs.cpu || 'x64' }}
-      resume_run: ${{ inputs.resume_run }}
-      resume_state: ${{ inputs.resume_state || 0 }}
+      resume_run: ${{ inputs.resume_run || '44194843041' }}
+      resume_state: ${{ inputs.resume_state || 2 }}
   stage2:
     needs: stage1
     if: needs.stage1.outputs.done != 'true'
