@@ -1,0 +1,88 @@
+name: Google Play permission videos
+
+# Records the short videos Google Play asks for when an app declares sensitive permissions
+# (tools/play-demo), on an emulator with the APK of an earlier Android build.
+
+on:
+  push:
+    branches: [v106]
+    paths:
+      - tools/play-demo/**
+      - .github/workflows/play-demo.yml
+
+permissions:
+  contents: read
+  actions: read
+
+env:
+  APK_RUN: "44505749920"
+
+jobs:
+  record:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: orbit-android-x64
+          path: apk
+          run-id: ${{ env.APK_RUN }}
+          github-token: ${{ github.token }}
+
+      - name: Let the emulator use KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Record the videos on an emulator
+        uses: ReactiveCircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
+        with:
+          api-level: 34
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -no-boot-anim -camera-back emulated -camera-front emulated
+          disable-animations: true
+          script: bash tools/play-demo/demo.sh apk/ChromePublic.apk ${{ runner.temp }}/raw
+
+      - name: Add a caption to each video
+        run: |
+          sudo apt-get install -y -qq ffmpeg > /dev/null
+          mkdir -p "$RUNNER_TEMP/videos"
+          font=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf
+          caption() {
+            case "$1" in
+              1-*) echo "QUERY_ALL_PACKAGES: links open in the right app" ;;
+              2-*) echo "REQUEST_INSTALL_PACKAGES: install a downloaded app" ;;
+              3-*) echo "DATA_SYNC: downloads continue in the background" ;;
+              4-*) echo "MEDIA_PLAYBACK: web audio plays in the background" ;;
+              5-*) echo "CAMERA + MICROPHONE: video calls in web pages" ;;
+              6-*) echo "MEDIA_PROJECTION: screen sharing from a web page" ;;
+            esac
+          }
+          for f in "$RUNNER_TEMP"/raw/*.mp4; do
+            name=$(basename "$f")
+            text=$(caption "$name" | sed "s/:/\\\\:/g")
+            ffmpeg -loglevel error -y -i "$f" -vf "drawtext=fontfile=$font:text='$text':fontsize=34:fontcolor=white:box=1:boxcolor=black@0.75:boxborderw=14:x=(w-text_w)/2:y=h-text_h-150" \
+              -c:v libx264 -preset veryfast -crf 26 -pix_fmt yuv420p -movflags +faststart "$RUNNER_TEMP/videos/orbit-$name"
+          done
+          ls -la "$RUNNER_TEMP/videos"
+
+      - name: Keep the videos
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: play-permission-videos
+          path: |
+            ${{ runner.temp }}/videos
+            ${{ runner.temp }}/raw
+          if-no-files-found: ignore

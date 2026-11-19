@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Orbit permission demo</title>
+<style>
+  body { margin: 0; font: 18px/1.4 system-ui, sans-serif; background: #0d0f12; color: #e8eaed; }
+  header { padding: 20px 20px 12px; background: #1b1e24; }
+  h1 { margin: 0 0 6px; font-size: 22px; }
+  #caption { font-size: 20px; color: #8ab4f8; min-height: 3em; }
+  main { padding: 12px 20px 40px; display: grid; gap: 12px; }
+  a, button { display: block; width: 100%; box-sizing: border-box; padding: 16px; border-radius: 12px; border: 0;
+    font: 600 18px system-ui, sans-serif; text-align: center; text-decoration: none; background: #2d63e8; color: #fff; }
+  video { width: 100%; max-height: 260px; background: #000; border-radius: 12px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Orbit browser: permission demo</h1>
+  <div id="caption">Each step shows a browser feature that needs an Android permission.</div>
+</header>
+<main>
+  <a id="tel" href="tel:+15550100">Open a phone link in the Phone app</a>
+  <a id="apk" href="/files/sample.apk" download>Download an app (APK) file</a>
+  <a id="big" href="/files/large-download.bin" download>Download a large file</a>
+  <button id="play">Play audio</button>
+  <button id="camera">Start a video call (camera and microphone)</button>
+  <button id="share">Share the screen</button>
+  <video id="preview" autoplay muted playsinline></video>
+  <audio id="audio" src="/files/tone.wav" loop></audio>
+</main>
+<script>
+  const caption = document.getElementById("caption");
+  window.say = (text) => { caption.textContent = text; };
+  document.getElementById("play").onclick = () => document.getElementById("audio").play();
+  document.getElementById("camera").onclick = async () => {
+    const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+    document.getElementById("preview").srcObject = stream;
+  };
+  document.getElementById("share").onclick = async () => {
+    const stream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+    document.getElementById("preview").srcObject = stream;
+  };
+</script>
+</body>
+</html>
