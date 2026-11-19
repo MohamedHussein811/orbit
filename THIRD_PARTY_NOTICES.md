@@ -20,6 +20,10 @@ Shields ships rules compiled from these lists. `filters/rules/meta.json` records
 
 Orbit's built-in pages use Readex Pro, copyright 2018 The Readex Pro Project Authors (https://github.com/ThomasJockin/readexpro), under the SIL Open Font License 1.1. The license is in `extension/src/shared/fonts/OFL.txt`.
 
+## Shortcut icons
+
+The icons of the default shortcuts on the new tab page (`extension/src/newtab/sites/`) are drawn from Simple Icons (https://simpleicons.org/), released under CC0 1.0. The brands they show belong to their owners, who do not endorse Orbit.
+
 ## Background videos
 
 The new tab page's default background is a black hole video from Pixabay (https://pixabay.com/videos/space-universe-astronomy-cosmos-175323/), used under the Pixabay Content License (https://pixabay.com/service/license-summary/). Orbit ships it re-encoded to play forward and back as a seamless loop (`extension/src/newtab/media/space.webm`), with its first frame as a still image (`space.jpg`).
