@@ -16,3 +16,38 @@ diff --git a/chrome/android/java/res/xml/legal_information_preferences.xml b/chr
          android:key="privacy_policy"
          android:title="@string/privacy_policy_title"
          app:url="@string/google_privacy_policy_url" />
+diff --git a/chrome/android/java/src/org/chromium/chrome/browser/feedback/HelpAndFeedbackLauncherImpl.java b/chrome/android/java/src/org/chromium/chrome/browser/feedback/HelpAndFeedbackLauncherImpl.java
+--- a/chrome/android/java/src/org/chromium/chrome/browser/feedback/HelpAndFeedbackLauncherImpl.java
++++ b/chrome/android/java/src/org/chromium/chrome/browser/feedback/HelpAndFeedbackLauncherImpl.java
+@@ -38,8 +38,7 @@
+  */
+ @NullMarked
+ public class HelpAndFeedbackLauncherImpl implements HelpAndFeedbackLauncher {
+-    protected static final String FALLBACK_SUPPORT_URL =
+-            "https://support.google.com/chrome/topic/6069782";
++    protected static final String FALLBACK_SUPPORT_URL = "https://github.com/MohamedHussein811/orbit#readme";
+ 
+     private static @Nullable ProfileKeyedMap<HelpAndFeedbackLauncher> sProfileToLauncherMap;
+     private final HelpAndFeedbackLauncherDelegate mDelegate;
+diff --git a/chrome/browser/feedback/android/java/src/org/chromium/chrome/browser/feedback/HelpAndFeedbackLauncherDelegate.java b/chrome/browser/feedback/android/java/src/org/chromium/chrome/browser/feedback/HelpAndFeedbackLauncherDelegate.java
+--- a/chrome/browser/feedback/android/java/src/org/chromium/chrome/browser/feedback/HelpAndFeedbackLauncherDelegate.java
++++ b/chrome/browser/feedback/android/java/src/org/chromium/chrome/browser/feedback/HelpAndFeedbackLauncherDelegate.java
+@@ -17,8 +17,7 @@
+ /** Delegate that handles the display of the HelpAndFeedback flows. */
+ @NullMarked
+ public interface HelpAndFeedbackLauncherDelegate {
+-    String FALLBACK_SUPPORT_URL = "https://support.google.com/chrome/topic/6069782";
+-    String P_LINK_URL_PREFIX = "https://support.google.com/chrome/?p=";
++    String FALLBACK_SUPPORT_URL = "https://github.com/MohamedHussein811/orbit#readme";
+ 
+     /**
+      * Starts an activity showing a help page for the specified context ID.
+@@ -47,7 +46,7 @@
+      * @return The generated help URL.
+      */
+     static String getPLinkHelpUrl(String helpContext) {
+-        return P_LINK_URL_PREFIX + helpContext;
++        return FALLBACK_SUPPORT_URL;
+     }
+ 
+     /**
