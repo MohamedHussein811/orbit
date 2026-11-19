@@ -126,14 +126,16 @@ def apply_palette(src):
         sys.exit(f"{values}: only {replaced} palette colors replaced")
     values.write_text(text, encoding="utf-8")
 
-    night = values.parent.parent / "values-night" / "orbit_palette.xml"
-    night.parent.mkdir(parents=True, exist_ok=True)
-    rows = night_rows
-    night.write_text(
-        '<?xml version="1.0" encoding="utf-8"?>\n<resources>\n' + "\n".join(rows) + "\n</resources>\n",
-        encoding="utf-8",
-    )
-    print(f"palette: {replaced} day colors, {len(rows)} night colors")
+    # Chromium's build only takes resource files its BUILD.gn lists, so the night values join the
+    # folder's existing night colors file.
+    night = values.parent.parent / "values-night" / "colors.xml"
+    text = night.read_text(encoding="utf-8")
+    clash = set(re.findall(r'<color name="([^"]+)"', text)) & {row.split('"')[1] for row in night_rows}
+    if clash or "</resources>" not in text:
+        sys.exit(f"{night}: cannot add the night palette ({sorted(clash)[:5]})")
+    text = text.replace("</resources>", "\n".join(night_rows) + "\n</resources>", 1)
+    night.write_text(text, encoding="utf-8")
+    print(f"palette: {replaced} day colors, {len(night_rows)} night colors")
     return [values, night]
 
 
