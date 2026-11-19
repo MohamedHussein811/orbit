@@ -26,7 +26,6 @@
   <a id="big" href="/files/large-download.bin" download>Download a large file</a>
   <button id="play">Play audio</button>
   <button id="camera">Start a video call (camera and microphone)</button>
-  <button id="share">Share the screen</button>
   <video id="preview" autoplay muted playsinline></video>
   <audio id="audio" src="/files/tone.wav" loop></audio>
 </main>
@@ -36,10 +35,6 @@
   document.getElementById("play").onclick = () => document.getElementById("audio").play();
   document.getElementById("camera").onclick = async () => {
     const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-    document.getElementById("preview").srcObject = stream;
-  };
-  document.getElementById("share").onclick = async () => {
-    const stream = await navigator.mediaDevices.getDisplayMedia({ video: true });
     document.getElementById("preview").srcObject = stream;
   };
 </script>

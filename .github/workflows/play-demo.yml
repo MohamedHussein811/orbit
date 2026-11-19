@@ -63,10 +63,9 @@ jobs:
             case "$1" in
               1-*) echo "QUERY_ALL_PACKAGES: links open in the right app" ;;
               2-*) echo "REQUEST_INSTALL_PACKAGES: install a downloaded app" ;;
-              3-*) echo "DATA_SYNC: downloads continue in the background" ;;
               4-*) echo "MEDIA_PLAYBACK: web audio plays in the background" ;;
               5-*) echo "CAMERA + MICROPHONE: video calls in web pages" ;;
-              6-*) echo "MEDIA_PROJECTION: screen sharing from a web page" ;;
+              6-*) echo "DATA_SYNC: downloads continue in the background" ;;
             esac
           }
           for f in "$RUNNER_TEMP"/raw/*.mp4; do

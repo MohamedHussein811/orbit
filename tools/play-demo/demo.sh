@@ -30,6 +30,8 @@ w = wave.open(sys.argv[1], "wb"); w.setnchannels(1); w.setsampwidth(2); w.setfra
 w.writeframes(b"".join(struct.pack("<h", int(6000 * math.sin(2 * math.pi * 440 * i / 22050))) for i in range(22050 * 20)))
 ' "$site/files/tone.wav"
 python3 -I "$here/serve.py" "$site" &
+server=$!
+trap 'kill "$server" 2> /dev/null || true' EXIT
 adb reverse tcp:8000 tcp:8000
 adb forward tcp:9222 localabstract:chrome_devtools_remote
 

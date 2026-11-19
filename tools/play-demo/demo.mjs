@@ -127,16 +127,6 @@ await record("2-request-install-packages", async () => {
   await sleep(6);
 });
 
-await record("3-data-sync-download", async () => {
-  await launch();
-  await say("FOREGROUND_SERVICE_DATA_SYNC: a large download keeps running with a notification after the user leaves the browser.");
-  await sleep(4);
-  await click("big");
-  await tapText(/^(Download|Download anyway|Keep)$/i, 6);
-  await sleep(6);
-  await home("download notification");
-});
-
 await record("4-media-playback", async () => {
   await launch();
   await say("FOREGROUND_SERVICE_MEDIA_PLAYBACK: audio from a page keeps playing, with media controls, after the user leaves the browser.");
@@ -158,18 +148,12 @@ await record("5-camera-microphone", async () => {
   await home("camera and microphone notification");
 });
 
-await record("6-media-projection", async () => {
+await record("6-data-sync-download", async () => {
   await launch();
-  await say("FOREGROUND_SERVICE_MEDIA_PROJECTION: a web page (for example a meeting) can share the screen after the user agrees, with a notification while sharing.");
+  await say("FOREGROUND_SERVICE_DATA_SYNC: a large download keeps running with a notification after the user leaves the browser.");
   await sleep(4);
-  await click("share");
-  await sleep(3);
-  if (await tapText(/^(A single app|Share one app)$/i, 6)) {
-    await sleep(2);
-    await tapText(/^(Entire screen|Share entire screen)$/i, 4);
-  }
-  await sleep(2);
-  await tapText(/^(Start|Start now|Share screen|Next)$/i, 8);
-  await sleep(7);
-  await home("screen sharing notification");
+  await click("big");
+  await tapText(/^(Download|Download anyway|Keep)$/i, 6);
+  await sleep(6);
+  await home("download notification");
 });
