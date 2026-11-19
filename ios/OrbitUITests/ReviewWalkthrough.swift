@@ -21,11 +21,7 @@ final class ReviewWalkthrough: XCTestCase {
         if address.waitForExistence(timeout: 10) {
             address.tap()
             type("en.wikipedia.org/wiki/Web_browser\n")
-            pause(8)
-            app.swipeUp()
-            pause(2)
-            app.swipeUp()
-            pause(3)
+            pause(10)
         }
 
         menu("Turn Shields off for this site")
