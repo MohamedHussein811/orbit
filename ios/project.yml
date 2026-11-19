@@ -56,6 +56,18 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: org.novatech.orbit.tests
         GENERATE_INFOPLIST_FILE: YES
+  OrbitUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - OrbitUITests
+    dependencies:
+      - target: Orbit
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: org.novatech.orbit.uitests
+        GENERATE_INFOPLIST_FILE: YES
+        TEST_TARGET_NAME: Orbit
 schemes:
   Orbit:
     build:
@@ -65,3 +77,11 @@ schemes:
     test:
       targets:
         - OrbitTests
+  OrbitWalkthrough:
+    build:
+      targets:
+        Orbit: all
+        OrbitUITests: [test]
+    test:
+      targets:
+        - OrbitUITests

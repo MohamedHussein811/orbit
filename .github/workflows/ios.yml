@@ -116,6 +116,38 @@ jobs:
           path: ${{ runner.temp }}/screenshots
           if-no-files-found: ignore
 
+      - name: Record the App Review walkthrough
+        continue-on-error: true
+        run: |
+          # Screen recording of OrbitUITests/ReviewWalkthrough on the simulator, from app launch.
+          device=${{ steps.simulator.outputs.id }}
+          xcrun simctl boot "$device" || true
+          xcrun simctl bootstatus "$device" -b > /dev/null
+          xcrun simctl status_bar "$device" override --time 9:41 --batteryState charged --batteryLevel 100 --wifiBars 3 --cellularBars 4
+          xcrun simctl uninstall "$device" org.novatech.orbit || true
+          mkdir -p "$RUNNER_TEMP/walkthrough"
+          xcrun simctl io "$device" recordVideo --codec=h264 --force "$RUNNER_TEMP/walkthrough/orbit-walkthrough.mp4" &
+          recorder=$!
+          sleep 3
+          set -o pipefail
+          xcodebuild test \
+            -project ios/Orbit.xcodeproj \
+            -scheme OrbitWalkthrough \
+            -destination "id=$device" \
+            -derivedDataPath "$RUNNER_TEMP/derived" \
+            CODE_SIGNING_ALLOWED=NO | grep -E "error:|Test Case|\*\* TEST" || true
+          sleep 2
+          kill -INT "$recorder"
+          wait "$recorder" || true
+          ls -la "$RUNNER_TEMP/walkthrough"
+
+      - name: Keep the walkthrough video
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ios-walkthrough
+          path: ${{ runner.temp }}/walkthrough
+          if-no-files-found: ignore
+
       - name: Keep the test results
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
