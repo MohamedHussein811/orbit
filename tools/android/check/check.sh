@@ -46,6 +46,12 @@ status=0
 node "$here/check.mjs" "$package" "$out" || status=$?
 adb logcat -d -v threadtime > "$out/logcat.txt" 2> /dev/null || true
 adb logcat -d -b crash > "$out/crash.txt" 2> /dev/null || true
+# Main thread stacks of any "isn't responding" (ANR) moments.
+adb pull /data/anr "$out/anr" > /dev/null 2>&1 || true
+grep -l "org.novatech.orbit" "$out"/anr/* 2> /dev/null | while read -r trace; do
+  echo "=== ANR $(basename "$trace"): main thread"
+  sed -n '/^"main"/,/^$/p' "$trace" | head -40
+done
 echo "=== crash buffer"
 head -150 "$out/crash.txt"
 echo "=== fatal lines"

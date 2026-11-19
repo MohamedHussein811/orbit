@@ -6,3 +6,4 @@ orbit-android-first-run.patch
 orbit-android-manifest.patch
 orbit-android-legal.patch
 orbit-android-toolbar.patch
+orbit-android-sync.patch

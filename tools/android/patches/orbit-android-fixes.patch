@@ -1,3 +1,28 @@
+diff --git a/chrome/android/java/src/org/chromium/chrome/browser/ChromeTabbedActivity.java b/chrome/android/java/src/org/chromium/chrome/browser/ChromeTabbedActivity.java
+--- a/chrome/android/java/src/org/chromium/chrome/browser/ChromeTabbedActivity.java
++++ b/chrome/android/java/src/org/chromium/chrome/browser/ChromeTabbedActivity.java
+@@ -4731,8 +4731,19 @@
+         } else if (id == R.id.extensions_menu_menu_id) {
+             ExtensionsToolbarCoordinator coordinator =
+                     assumeNonNull(getToolbarManager()).getExtensionsToolbarCoordinator();
+-            assumeNonNull(coordinator);
+-            coordinator.showExtensionsMenu();
++            if (coordinator != null) {
++                coordinator.showExtensionsMenu();
++            } else {
++                // Phone toolbars have no extensions button for the menu to anchor to.
++                LoadUrlParams params =
++                        new LoadUrlParams(
++                                UrlConstants.CHROME_EXTENSIONS_URL, PageTransition.AUTO_TOPLEVEL);
++                getTabCreator(/* incognito= */ false)
++                        .createNewTab(
++                                params,
++                                TabLaunchType.FROM_CHROME_UI,
++                                getCurrentTabModel().isIncognito() ? null : currentTab);
++            }
+             RecordUserAction.record("MobileMenuExtensionsMenu");
+         } else if (id == R.id.manage_extensions_menu_id) {
+             LoadUrlParams params =
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/tab/TabWebContentsObserver.java b/chrome/android/java/src/org/chromium/chrome/browser/tab/TabWebContentsObserver.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/tab/TabWebContentsObserver.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/tab/TabWebContentsObserver.java
