@@ -1,0 +1,41 @@
+diff --git a/chrome/android/java/src/org/chromium/chrome/browser/ChromeBaseAppCompatActivity.java b/chrome/android/java/src/org/chromium/chrome/browser/ChromeBaseAppCompatActivity.java
+--- a/chrome/android/java/src/org/chromium/chrome/browser/ChromeBaseAppCompatActivity.java
++++ b/chrome/android/java/src/org/chromium/chrome/browser/ChromeBaseAppCompatActivity.java
+@@ -824,9 +824,9 @@
+         AutomotiveBackButtonToolbarCoordinator.hideBackButtonToolbar(this);
+     }
+ 
+-    /** Returns whether dynamic colors should be applied. */
++    /** Returns whether dynamic colors should be applied. Orbit keeps its own palette. */
+     protected boolean shouldApplyDynamicColors() {
+-        return true;
++        return false;
+     }
+ 
+     /**
+diff --git a/chrome/browser/ui/android/theme/java/src/org/chromium/chrome/browser/theme/TopUiThemeColorProvider.java b/chrome/browser/ui/android/theme/java/src/org/chromium/chrome/browser/theme/TopUiThemeColorProvider.java
+--- a/chrome/browser/ui/android/theme/java/src/org/chromium/chrome/browser/theme/TopUiThemeColorProvider.java
++++ b/chrome/browser/ui/android/theme/java/src/org/chromium/chrome/browser/theme/TopUiThemeColorProvider.java
+@@ -198,6 +198,7 @@
+      * activity).
+      */
+     private boolean isThemingAllowed(Tab tab) {
++        if (isOrbitNewTab(tab)) return true;
+         boolean disallowDueToNightMode =
+                 !mAllowThemingInNightMode && ColorUtils.inNightMode(tab.getContext());
+         final boolean isEligibleFormFactor = mAllowThemingOnTablets || !mIsTablet;
+@@ -209,6 +210,14 @@
+                 && !tab.isIncognito();
+     }
+ 
++    /** Orbit's new tab page, which sets the bars' color to match its own top. */
++    private static boolean isOrbitNewTab(Tab tab) {
++        if (tab.isIncognito() || tab.isNativePage()) return false;
++        String url = tab.getUrl().getSpec();
++        return url.startsWith("chrome://newtab")
++                || url.startsWith("chrome-extension://kceipbaiojomdibnboffoieecidpfdck/newtab/");
++    }
++
+     private @BrandedColorScheme int calculateBrandedColorScheme(
+             boolean isIncognito, boolean isDefaultColor) {
+         if (isIncognito) return BrandedColorScheme.INCOGNITO;
