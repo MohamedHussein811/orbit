@@ -2,6 +2,8 @@
 // shortcut's own site, once, for its large icon (apple-touch-icon or the largest declared icon),
 // without cookies. People can also choose their own image. Icons are stored per site.
 
+import { bundledIconPath } from "../shared/default-shortcuts.ts";
+
 const STORE = "siteIcons";
 const SIZE = 96;
 const MIN_SOURCE = 48;
@@ -139,12 +141,16 @@ async function fetchSiteIcon(origin: string): Promise<string | null> {
 
 const inFlight = new Map<string, Promise<string | null>>();
 
-/** The stored icon for this site, fetching it first when it was never tried or a try is old. */
+/** The person's own icon for this site, else the icon Orbit ships for it, else the stored icon,
+ * fetching it first when it was never tried or a try is old. */
 export async function siteIcon(url: string): Promise<string | null> {
   const origin = originOf(url);
   if (!origin) return null;
   const stored = (await readStore())[origin];
-  if (stored && (stored.src || stored.custom || Date.now() - stored.checked < RETRY_MS)) return stored.src;
+  if (stored?.custom) return stored.src;
+  const bundled = bundledIconPath(url);
+  if (bundled) return chrome.runtime.getURL(bundled);
+  if (stored && (stored.src || Date.now() - stored.checked < RETRY_MS)) return stored.src;
   let pending = inFlight.get(origin);
   if (!pending) {
     pending = fetchSiteIcon(origin).then(async (src) => {

@@ -8,6 +8,7 @@ import { sanitizePrivacy } from "../shared/privacy.ts";
 import { addBlockedHost, allowRule, blockedList, categoryOfMatch, emptyBlockedHosts, cosmeticCss, cosmeticShard, hostSuffixes, normalizeHosts, siteOf, type BlockedHosts, type Message, type SiteCosmetic, type TabState } from "../shared/shields.ts";
 import { applyContentScripts, applyThreats, applyWebRtc, readPrivacy, runStartupCleanup } from "./privacy.ts";
 import { checkForUpdate, scheduleUpdateCheck, UPDATE_ALARM } from "./updates.ts";
+import { seedDefaultShortcuts } from "../shared/default-shortcuts.ts";
 
 const FLUSH_DELAY_MS = 500;
 const DYNAMIC_ALLOW_RULE = 1;
@@ -352,12 +353,14 @@ async function applyAll(): Promise<void> {
   await applyContentScripts(privacy, sitesOff);
 }
 
-/** Tabs opened before this extension finished installing show Chromium's own new tab page.
- * A new tab in the same place shows Orbit's page instead. On a new profile the first of them shows
- * Orbit's welcome tour, once. */
+/** Tabs opened before this extension finished installing show Chromium's own new tab page
+ * (chrome-native://newtab/ on Android). A new tab in the same place shows Orbit's page instead.
+ * On a new desktop profile the first of them shows Orbit's welcome tour, once; the tour is about
+ * desktop features, so Android goes straight to the new tab page. */
 async function takeOverNewTabs(welcome: boolean): Promise<void> {
+  if ((await chrome.runtime.getPlatformInfo()).os === "android") welcome = false;
   const tabs = await chrome.tabs.query({});
-  const chromiumNewTab = /^chrome:\/\/(newtab|new-tab-page)\//;
+  const chromiumNewTab = /^chrome(-native)?:\/\/(newtab|new-tab-page)\//;
   await Promise.all(
     tabs
       .filter((tab) => tab.id !== undefined && (chromiumNewTab.test(tab.url ?? "") || chromiumNewTab.test(tab.pendingUrl ?? "")))
@@ -372,6 +375,9 @@ async function takeOverNewTabs(welcome: boolean): Promise<void> {
 chrome.runtime.onInstalled.addListener((details) => {
   void chrome.action.setBadgeBackgroundColor({ color: "#3b4ad0" });
   void chrome.action.setBadgeTextColor({ color: "#ffffff" });
+  if (details.reason === "install" || details.reason === "update") {
+    void seedDefaultShortcuts().catch(() => false);
+  }
   if (details.reason === "install") {
     void chrome.storage.local.get("welcomeShown").then(({ welcomeShown }) => {
       void takeOverNewTabs(!welcomeShown);

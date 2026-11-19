@@ -21,6 +21,7 @@ import {
 import { createNote, dropEmptyNotes, MAX_NOTE_LENGTH, NOTE_COLORS, noteSummary, patchNote, sanitizeNotes, sortNotes, upsertNote, type Note, type NoteColor } from "../shared/notes.ts";
 import { debounce, h, icon, iconButton } from "./dom.ts";
 import { hasCustomIcon, resetIcon, setCustomIcon, siteIcon } from "./site-icons.ts";
+import { bundledIconPath } from "../shared/default-shortcuts.ts";
 
 export interface WidgetContext {
   settings: () => Settings;
@@ -154,7 +155,7 @@ export function mountStats(root: HTMLElement, context: WidgetContext): void {
   root.append(
     h("div", { class: "widget-head" }, h("h2", {}, t("widgetProtection")), select),
     h("dl", { class: "meters" }, ...CATEGORIES.map((category) => rows[category].row)),
-    h("div", { class: "foot" }, h("span", {}, t("countedLocally")), footEnd),
+    h("div", { class: "foot foot-end" }, footEnd),
   );
   const changed = (changes: Record<string, chrome.storage.StorageChange>, area: string) => {
     if (!root.isConnected) {
@@ -347,12 +348,20 @@ function bookmarkEditor(options: {
 
 /** A shortcut's icon: the browser's favicon first, then the site's sharp icon once it is known. */
 function shortcutIcon(url: string): HTMLImageElement {
-  const image = h("img", { src: faviconUrl(url), alt: "", width: 28, height: 28, loading: "lazy" });
+  const bundled = bundledIconPath(url);
+  const image = h("img", { src: bundled ? chrome.runtime.getURL(bundled) : faviconUrl(url), alt: "", width: 28, height: 28, loading: "lazy" });
   void siteIcon(url).then((src) => {
     if (src) image.src = src;
   });
   return image;
 }
+
+/** A shortcut's own entries in the page menu (right-click, or long press on touch screens). */
+export interface TileMenu {
+  edit?: { label: string; run: () => void };
+  remove?: { label: string; run: () => void };
+}
+export const tileMenus = new WeakMap<Element, TileMenu>();
 
 // The page menu's "Add shortcut" opens the editor of the shortcuts widget on the page.
 let addShortcut: (() => void) | null = null;
@@ -451,24 +460,20 @@ export function mountBookmarks(root: HTMLElement, context: WidgetContext): void 
   function tile(node: BookmarkNode): HTMLElement {
     const isFolder = !node.url;
     const name = node.title || node.url || t("untitled");
-    const edit = iconButton(
-      "edit",
-      t("editItem", name),
-      () =>
-        bookmarkEditor({
-          title: node.title,
-          url: node.url,
-          isFolder,
-          heading: isFolder ? t("editFolder") : t("editShortcut"),
-          onSave: async (title, url) => {
-            await chrome.bookmarks.update(node.id, isFolder ? { title } : { title, url });
-          },
-          onDelete: async () => {
-            await (isFolder ? chrome.bookmarks.removeTree(node.id) : chrome.bookmarks.remove(node.id));
-          },
-        }),
-      { class: "icon-button edit" },
-    );
+    const openEditor = () =>
+      bookmarkEditor({
+        title: node.title,
+        url: node.url,
+        isFolder,
+        heading: isFolder ? t("editFolder") : t("editShortcut"),
+        onSave: async (title, url) => {
+          await chrome.bookmarks.update(node.id, isFolder ? { title } : { title, url });
+        },
+        onDelete: async () => {
+          await (isFolder ? chrome.bookmarks.removeTree(node.id) : chrome.bookmarks.remove(node.id));
+        },
+      });
+    const edit = iconButton("edit", t("editItem", name), openEditor, { class: "icon-button edit" });
     const iconBox = h("span", { class: "tile-icon" });
     iconBox.append(isFolder ? icon("folder") : shortcutIcon(node.url!));
     const label = h("span", { class: "tile-title", dir: "auto" }, name);
@@ -476,6 +481,13 @@ export function mountBookmarks(root: HTMLElement, context: WidgetContext): void 
       ? h("button", { type: "button", class: "open-folder", onclick: () => openFolder(node.id) }, iconBox, label)
       : h("a", { href: node.url!, title: name, onclick: (event: Event) => openUrl(node.url!, event) }, iconBox, label);
     const item = h("li", { class: "tile", draggable: "true", "data-id": node.id }, open, edit);
+    // A folder is deleted from its editor, not straight from the menu, as it may hold many shortcuts.
+    tileMenus.set(
+      item,
+      isFolder
+        ? { edit: { label: t("editFolder"), run: openEditor } }
+        : { edit: { label: t("editShortcut"), run: openEditor }, remove: { label: t("removeShortcut"), run: () => void chrome.bookmarks.remove(node.id) } },
+    );
 
     item.addEventListener("dragstart", (event) => {
       dragItem = item;
@@ -529,14 +541,12 @@ export function mountBookmarks(root: HTMLElement, context: WidgetContext): void 
     } catch {
       name ||= site.url;
     }
-    const hide = iconButton(
-      "close",
-      t("hideSite", name),
-      () => void context.saveSettings({ hiddenSites: [...context.settings().hiddenSites, site.url] }).then(render),
-      { class: "icon-button edit" },
-    );
+    const hideSite = () => void context.saveSettings({ hiddenSites: [...context.settings().hiddenSites, site.url] }).then(render);
+    const hide = iconButton("close", t("hideSite", name), hideSite, { class: "icon-button edit" });
     const iconBox = h("span", { class: "tile-icon" }, shortcutIcon(site.url));
-    return h("li", { class: "tile" }, h("a", { href: site.url, title: name }, iconBox, h("span", { class: "tile-title", dir: "auto" }, name)), hide);
+    const item = h("li", { class: "tile" }, h("a", { href: site.url, title: name }, iconBox, h("span", { class: "tile-title", dir: "auto" }, name)), hide);
+    tileMenus.set(item, { remove: { label: t("hideSite", name), run: hideSite } });
+    return item;
   }
 
   async function renderFrequent(): Promise<void> {

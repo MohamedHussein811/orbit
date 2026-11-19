@@ -116,9 +116,6 @@
   "statThreats": {
     "message": "تهديدات موقوفة"
   },
-  "countedLocally": {
-    "message": "تُحسب على هذا الجهاز فقط ولا يُرسل منها شيء."
-  },
   "resetCounts": {
     "message": "تصفير العدادات"
   },
@@ -154,6 +151,9 @@
   },
   "editShortcut": {
     "message": "تعديل الاختصار"
+  },
+  "removeShortcut": {
+    "message": "إزالة"
   },
   "backToParent": {
     "message": "العودة إلى المجلد الأعلى"
