@@ -32,7 +32,7 @@ function shot(name) {
   } catch {}
 }
 
-function nodes() {
+function screen() {
   for (let attempt = 0; attempt < 3; attempt++) {
     shell("rm -f /sdcard/ui.xml; uiautomator dump /sdcard/ui.xml > /dev/null 2>&1");
     const xml = shell("cat /sdcard/ui.xml 2> /dev/null");
@@ -59,6 +59,22 @@ function nodes() {
 }
 const label = (n) => n.text || n.desc;
 const texts = (list) => [...new Set(list.map(label).filter(Boolean))];
+
+// Another app's "isn't responding" dialog (the emulator is slow) is closed; Orbit's own crash
+// and ANR dialogs are left for the caller to record.
+function nodes() {
+  for (let i = 0; i < 3; i++) {
+    const list = screen();
+    const other = list.find((n) => /isn.t responding|keeps stopping/i.test(n.text) && !/Orbit/.test(n.text));
+    if (!other) return list;
+    const close = list.find((n) => /^(Close app|Close)$/i.test(n.text));
+    if (!close) return list;
+    console.log(`closing: ${other.text}`);
+    tap(close);
+    execFileSync("sleep", ["2"]);
+  }
+  return screen();
+}
 const tap = (n) => shell(`input tap ${n.x} ${n.y}`);
 
 async function tapLabel(pattern, seconds = 8) {
