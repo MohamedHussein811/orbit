@@ -3,21 +3,27 @@
 // configuration already produced a green build on that platform, compiled entirely with that
 // configuration (from scratch, or resumed only from runs with the same configuration).
 //
-// The configuration is every tools/chromium/args* file, tools/chromium/compile.sh, the stage
-// workflow and the platform's runner label.
+// A platform's configuration is the GN settings args.sh writes on that platform, plus
+// tools/chromium/compile.sh, the stage workflow and the platform's runner label. Using the
+// written settings rather than the script text means a change for one platform does not
+// unprove the others.
 //
 //   node tools/guard/build-gate.mjs check [rev] [linux|windows|mac ...]
 //   node tools/guard/build-gate.mjs fingerprint [rev]
+//   node tools/guard/build-gate.mjs args [rev] linux|windows|mac
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 export const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 export const WORKFLOWS = { linux: "browser-linux.yml", windows: "browser-windows.yml", mac: "browser-mac.yml" };
+const UNAME = { linux: "Linux", windows: "MINGW64_NT-10.0", mac: "Darwin" };
 const STAGE_WORKFLOW = ".github/workflows/chromium-stage.yml";
 const CACHE = path.join(root, ".git", "orbit-build-proofs.json");
+const FINGERPRINT_VERSION = 2;
 const MAX_CHAIN = 25;
 
 const git = (...args) =>
@@ -61,11 +67,46 @@ function gh(...args) {
   return execFileSync("gh", args, { cwd: root, encoding: "utf8", maxBuffer: 64 << 20, stdio: ["ignore", "pipe", "pipe"] });
 }
 
-function configFiles(sha) {
-  const names = git("ls-tree", "--name-only", `${sha}:tools/chromium`)
-    .split("\n")
-    .filter((name) => /^(args[\w.-]*|compile\.sh)$/.test(name));
-  return [...names.map((name) => `tools/chromium/${name}`), STAGE_WORKFLOW].sort();
+let bashPath;
+function bash() {
+  if (bashPath) return bashPath;
+  if (process.platform !== "win32") return (bashPath = "bash");
+  const gitExec = git("--exec-path").trim();
+  for (const relative of ["../../../usr/bin/bash.exe", "../../../bin/bash.exe"]) {
+    const candidate = path.resolve(gitExec, relative);
+    if (existsSync(candidate)) return (bashPath = candidate);
+  }
+  throw new Error("Git Bash not found next to git");
+}
+
+const runBash = (script, args = []) =>
+  execFileSync(bash(), [script, ...args], { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
+
+// The GN settings args.sh writes on `platform` at commit `sha`. Commits with args-for.sh print
+// them with it; older ones are read by running args.sh's settings switch with uname faked.
+export function effectiveArgs(sha, platform) {
+  const dir = mkdtempSync(path.join(os.tmpdir(), "orbit-args-"));
+  const unix = (file) => path.join(dir, file).replace(/\\/g, "/");
+  try {
+    const names = git("ls-tree", "--name-only", `${sha}:tools/chromium`)
+      .split("\n")
+      .filter((name) => /^args[\w.-]*$/.test(name));
+    for (const name of names) writeFileSync(path.join(dir, name), show(sha, `tools/chromium/${name}`) ?? "");
+    if (names.includes("args-for.sh")) return runBash(unix("args-for.sh"), [platform]);
+    if (!names.includes("args.sh")) return "(no args.sh)";
+    const script = readFileSync(path.join(dir, "args.sh"), "utf8");
+    const start = script.indexOf('case "$(uname -s)"');
+    const end = script.indexOf("\nesac", start);
+    if (start < 0 || end < 0) throw new Error(`args.sh at ${sha} has no uname switch`);
+    writeFileSync(
+      path.join(dir, "settings.sh"),
+      `uname() { echo "${UNAME[platform]}"; }\ndest="${unix("out")}"\n${script.slice(start, end + 5)}\n`,
+    );
+    runBash(unix("settings.sh"));
+    return readFileSync(path.join(dir, "out.new"), "utf8");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
 }
 
 function workflowText(sha, platform) {
@@ -79,7 +120,8 @@ function runnerLabels(sha, platform) {
 
 export function fingerprint(sha, platform) {
   const hash = createHash("sha256");
-  for (const file of configFiles(sha)) hash.update(`${file}\0${show(sha, file) ?? ""}\0`);
+  hash.update(`v${FINGERPRINT_VERSION}\0args\0${effectiveArgs(sha, platform)}\0`);
+  for (const file of ["tools/chromium/compile.sh", STAGE_WORKFLOW]) hash.update(`${file}\0${show(sha, file) ?? ""}\0`);
   hash.update(`runner\0${runnerLabels(sha, platform).join(",")}`);
   return hash.digest("hex").slice(0, 16);
 }
@@ -93,10 +135,10 @@ export function resumedFrom(sha, platform) {
 
 function loadCache() {
   try {
-    return JSON.parse(readFileSync(CACHE, "utf8"));
-  } catch {
-    return { runs: {} };
-  }
+    const cache = JSON.parse(readFileSync(CACHE, "utf8"));
+    if (cache.version === FINGERPRINT_VERSION) return cache;
+  } catch {}
+  return { version: FINGERPRINT_VERSION, runs: {} };
 }
 
 function saveCache(cache) {
@@ -118,12 +160,18 @@ function runFacts(cache, runId, platform) {
   }
   if (!info.path?.endsWith(WORKFLOWS[platform])) return null;
   if (!ensureCommit(info.sha)) return null;
+  let config;
+  try {
+    config = fingerprint(info.sha, platform);
+  } catch (error) {
+    config = `unreadable: ${error.message.split("\n")[0]}`;
+  }
   const facts = {
     platform,
     sha: info.sha,
     conclusion: info.conclusion,
     final: info.status === "completed",
-    fingerprint: fingerprint(info.sha, platform),
+    fingerprint: config,
     resumedFrom: resumedFrom(info.sha, platform),
   };
   cache.runs[runId] = facts;
@@ -210,12 +258,17 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
   if (command === "fingerprint") {
     const sha = git("rev-parse", `${rev}^{commit}`).trim();
     for (const platform of Object.keys(WORKFLOWS)) console.log(`${platform} ${fingerprint(sha, platform)}`);
+  } else if (command === "args") {
+    const sha = git("rev-parse", `${rev}^{commit}`).trim();
+    for (const platform of platforms.length ? platforms : Object.keys(WORKFLOWS)) {
+      console.log(`# ${platform}\n${effectiveArgs(sha, platform)}`);
+    }
   } else if (command === "check") {
     const result = check(rev, platforms.length ? platforms : undefined);
     console.log(describe(result));
     process.exit(result.ok ? 0 : 1);
   } else {
-    console.error("usage: build-gate.mjs check|fingerprint [rev] [linux|windows|mac ...]");
+    console.error("usage: build-gate.mjs check|fingerprint|args [rev] [linux|windows|mac ...]");
     process.exit(2);
   }
 }
