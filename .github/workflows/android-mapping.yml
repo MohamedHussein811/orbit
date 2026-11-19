@@ -1,0 +1,45 @@
+name: Android R8 mapping
+
+# Takes the R8 mapping files out of a saved Android build state, to read obfuscated crash stacks.
+
+on:
+  push:
+    branches: [v106]
+    paths:
+      - .github/workflows/android-mapping.yml
+
+permissions:
+  contents: read
+  actions: read
+
+env:
+  STATE_RUN: "44505749920"
+
+jobs:
+  mapping:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Free disk space
+        run: sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc /opt/hostedtoolcache/CodeQL
+
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: android-state-2
+          path: state
+          run-id: ${{ env.STATE_RUN }}
+          github-token: ${{ github.token }}
+
+      - name: Extract the mapping files
+        run: |
+          set -o pipefail
+          mkdir -p mapping
+          zstd -dc state/state.tar.zst | tar -xvf - -C mapping --wildcards '*.mapping' | head -50
+          find mapping -name '*.mapping' -exec ls -la {} \;
+
+      - name: Keep the mapping files
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: android-mapping
+          path: mapping
+          if-no-files-found: error
