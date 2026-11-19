@@ -126,19 +126,29 @@ jobs:
           xcrun simctl status_bar "$device" override --time 9:41 --batteryState charged --batteryLevel 100 --wifiBars 3 --cellularBars 4
           xcrun simctl uninstall "$device" org.novatech.orbit || true
           mkdir -p "$RUNNER_TEMP/walkthrough"
-          xcrun simctl io "$device" recordVideo --codec=h264 --force "$RUNNER_TEMP/walkthrough/orbit-walkthrough.mp4" &
-          recorder=$!
-          sleep 3
-          set -o pipefail
-          xcodebuild test \
+          xcodebuild build-for-testing \
             -project ios/Orbit.xcodeproj \
             -scheme OrbitWalkthrough \
             -destination "id=$device" \
-            -derivedDataPath "$RUNNER_TEMP/derived" \
+            -derivedDataPath "$RUNNER_TEMP/walkthrough-derived" \
+            CODE_SIGNING_ALLOWED=NO | grep -E "error:|\*\* (BUILD|TEST)" || true
+          xcrun simctl spawn "$device" log stream --level debug --predicate 'process == "Orbit" OR process == "com.apple.WebKit.WebContent" OR process == "ReportCrash"' > "$RUNNER_TEMP/walkthrough/simulator.log" 2>&1 &
+          logger=$!
+          xcrun simctl io "$device" recordVideo --codec=h264 --force "$RUNNER_TEMP/walkthrough/orbit-walkthrough.mp4" &
+          recorder=$!
+          sleep 3
+          xcodebuild test-without-building \
+            -project ios/Orbit.xcodeproj \
+            -scheme OrbitWalkthrough \
+            -destination "id=$device" \
+            -derivedDataPath "$RUNNER_TEMP/walkthrough-derived" \
+            -resultBundlePath "$RUNNER_TEMP/walkthrough/walkthrough.xcresult" \
             CODE_SIGNING_ALLOWED=NO | grep -E "error:|Test Case|\*\* TEST" || true
           sleep 2
           kill -INT "$recorder"
           wait "$recorder" || true
+          kill "$logger" || true
+          cp ~/Library/Logs/DiagnosticReports/Orbit* "$RUNNER_TEMP/walkthrough/" 2> /dev/null || true
           ls -la "$RUNNER_TEMP/walkthrough"
 
       - name: Keep the walkthrough video
