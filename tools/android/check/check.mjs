@@ -267,6 +267,7 @@ async function clock() {
     languages: navigator.languages,
     settings: (await chrome.storage.local.get("settings")).settings ?? null,
   }))()`;
+  await newTabFromMenu();
   report.clock.device12h = device();
   report.clock.page12h = await evaluate(ORBIT_PAGE, page);
   shell("settings put system time_12_24 24");
@@ -276,6 +277,12 @@ async function clock() {
   report.clock.page24h = await evaluate(ORBIT_PAGE, page);
   shot("07-clock-device-24h");
   shell("settings put system time_12_24 12");
+  // Orbit's own clock setting (Customize > Clock format).
+  for (const format of ["24", "12", "auto"]) {
+    await evaluate(ORBIT_PAGE, `(async () => { const s = (await chrome.storage.local.get("settings")).settings ?? {}; await chrome.storage.local.set({ settings: { ...s, clockFormat: "${format}" } }); location.reload(); })()`);
+    await sleep(4);
+    report.clock[`orbitSetting_${format}`] = await evaluate(ORBIT_PAGE, `document.getElementById("time")?.innerText ?? null`);
+  }
   console.log(`clock: ${JSON.stringify(report.clock, null, 1)}`);
 }
 
