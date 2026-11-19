@@ -37,6 +37,7 @@ Chromium Authors". That page's logo and tab icon come from `overlay/components/r
 | `orbit-search.patch` | `chrome.search.getDefault()` and `chrome.search.setDefault(keyword)` for Orbit's built-in extension only, so the new tab page's "Search with" choice is also the address bar's search engine. Also `chrome.search.getStartup()` and `chrome.search.setStartup(settings)`, the same choice as Settings > On startup, for the new tab page's Startup section |
 | `orbit-import.patch` | The import dialog (Settings > Import bookmarks and settings) lists browsers built on Chromium, one entry per profile: Chrome, Edge, Brave, Opera, Opera GX, Vivaldi, Chromium and others found in their usual folders. It reads their bookmarks and history files (`overlay/chrome/utility/importer/chromium_importer.cc`); history needs that browser closed. Passwords stay out of reach, since those browsers encrypt them for themselves |
 | `orbit-safety.patch` | Settings > Privacy and security > Security shows a Safe Browsing section that opens Orbit's own Safe Browsing choice on its privacy page (Shields' threat lists), since Google Safe Browsing does not work in Orbit |
+| `orbit-preconnect.patch` | While a search is typed in the address bar, opens a connection to that search engine at most once every eight seconds, so results load sooner after Enter. Nothing typed is sent early; Chromium's search prefetch and prerender stay off |
 
 `ORBIT_RELEASE` holds Orbit's release number, which `apply-fork.py` writes into the version's second part so each release is newer than the last.
 

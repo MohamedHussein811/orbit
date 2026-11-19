@@ -1,8 +1,9 @@
 name: Orbit Android stage
 
 # One slice of the Android build, on the same plan as chromium-stage.yml: each job compiles until
-# its time budget runs out and saves its work for the next one. For now it builds plain Chromium
-# for Android (no Orbit patches yet), with is_desktop_android so the extension system is compiled.
+# its time budget runs out and saves its work for the next one. It builds Chromium for Android with
+# Orbit's patch series, Android's own patches and branding (tools/android/brand.py), and the
+# built-in extension packed into the APK as assets, with is_desktop_android so extensions run.
 
 on:
   workflow_call:
@@ -29,7 +30,7 @@ permissions:
 
 env:
   CHROMIUM_VERSION: "157.0.8103.78"
-  TARGETS: chrome_public_apk
+  TARGETS: ${{ inputs.cpu == 'arm64' && 'chrome_public_apk chrome_public_bundle' || 'chrome_public_apk' }}
   ANDROID_CPU: ${{ inputs.cpu }}
 
 jobs:
@@ -42,9 +43,13 @@ jobs:
       run:
         shell: bash
     steps:
+      - name: Note when the job started
+        run: echo "JOB_START=$(date +%s)" >> "$GITHUB_ENV"
+
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          fetch-depth: 0
 
       - name: Free disk space and add swap
         run: |
@@ -63,7 +68,7 @@ jobs:
       - name: Install build packages
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y -qq ninja-build zstd python3 lld pkg-config > /dev/null
+          sudo apt-get install -y -qq ninja-build zstd python3 lld pkg-config librsvg2-bin > /dev/null
           cd src
           sudo build/install-build-deps.sh --no-prompt --android --no-chromeos-fonts --no-nacl > /dev/null
 
@@ -79,6 +84,23 @@ jobs:
           grep -q '^checkout_android = true$' "$args"
           du -sh src/third_party/android_sdk src/third_party/android_toolchain src/third_party/jdk 2> /dev/null || true
           df -h .
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+
+      - name: Build and sign Orbit's built-in extension
+        env:
+          ORBIT_EXTENSION_KEY: ${{ secrets.ORBIT_EXTENSION_KEY }}
+        run: |
+          node tools/build-extension.mjs "$RUNNER_TEMP/extension"
+          build=$(git rev-list --count HEAD -- extension filters tools/build-extension.mjs tools/chromium/pack-extension.mjs)
+          node tools/chromium/pack-extension.mjs "$RUNNER_TEMP/extension" chromium/overlay/chrome/browser/resources/orbit_extensions "$build"
+
+      - name: Apply Orbit's changes to Chromium
+        run: |
+          python3 -I tools/chromium/apply-fork.py src
+          python3 -I tools/android/brand.py src
 
       - name: Install Go for Dawn
         run: tools/chromium/go.sh
@@ -110,12 +132,22 @@ jobs:
           tools/android/args.sh src/out/Release/args.gn
           df -h .
 
+      - name: Date Orbit's changed files against the restored build
+        run: python3 -I tools/chromium/date-fork.py src
+
       - name: Compile
         id: compile
         env:
           STAGE: ${{ inputs.stage }}
-          COMPILE_SECONDS: ${{ inputs.stage == 1 && inputs.resume_run == '' && '3600' || '18600' }}
+          FRESH: ${{ inputs.stage == 1 && inputs.resume_run == '' && 'yes' || '' }}
+          CHANGED_SOURCE: ${{ inputs.resume_run != '' && 'yes' || '' }}
         run: |
+          # The job stops at 350 minutes; setup time varies (package installs took 9 to 36 minutes),
+          # so the compile gets what is left minus 30 minutes for saving the stage.
+          left=$((350 * 60 - ($(date +%s) - JOB_START) - 1800))
+          if [ -n "$FRESH" ] && [ "$left" -gt 3600 ]; then left=3600; fi
+          export COMPILE_SECONDS=$left
+          echo "compile budget: $((left / 60)) minutes"
           echo "$CHROMIUM_VERSION" > src/out/orbit-chromium-version
           tools/chromium/compile.sh
 
@@ -138,6 +170,16 @@ jobs:
         with:
           name: orbit-android-${{ inputs.cpu }}
           path: src/out/Release/apks/ChromePublic.apk
+          retention-days: 30
+          compression-level: 0
+          if-no-files-found: error
+
+      - name: Keep the Play bundle
+        if: steps.compile.outputs.done == 'true' && inputs.cpu == 'arm64'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: orbit-android-bundle
+          path: src/out/Release/apks/ChromePublic.aab
           retention-days: 30
           compression-level: 0
           if-no-files-found: error

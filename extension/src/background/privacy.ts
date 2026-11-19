@@ -1,6 +1,7 @@
 // Applies the choices on Orbit's privacy page to the browser.
 
 import { excludeMatches, historyCutoff, removalOptions, sanitizePrivacy, type PrivacySettings } from "../shared/privacy.ts";
+import { planScripts, type ScriptSpec } from "../shared/content-scripts.ts";
 
 const SCRIPT_ID = "orbit-fingerprint";
 const COSMETIC_ID = "orbit-cosmetic";
@@ -8,6 +9,8 @@ const YOUTUBE_ID = "orbit-youtube";
 const PROMOS_ID = "orbit-promos";
 const GOOGLE_PROMO_ID = "orbit-google-promo";
 const YOUTUBE_MATCHES = ["*://youtube.com/*", "*://*.youtube.com/*", "*://*.youtube-nocookie.com/*"];
+const SCRIPTLET_PREFIX = "orbit-scriptlets-";
+const SCRIPTS_VERSION_KEY = "scriptsVersion";
 
 export async function readPrivacy(): Promise<PrivacySettings> {
   const { privacy } = await chrome.storage.local.get("privacy");
@@ -26,10 +29,9 @@ export async function applyThreats(settings: PrivacySettings): Promise<void> {
 }
 
 /** Sites in |hostsOff| have Shields off, so they get their real values. */
-export async function applyFingerprinting(settings: PrivacySettings, hostsOff: readonly string[]): Promise<void> {
-  await chrome.scripting.unregisterContentScripts({ ids: [SCRIPT_ID] }).catch(() => {});
-  if (settings.fingerprinting === "off") return;
-  await chrome.scripting.registerContentScripts([
+function fingerprintScripts(settings: PrivacySettings, hostsOff: readonly string[]): ScriptSpec[] {
+  if (settings.fingerprinting === "off") return [];
+  return [
     {
       id: SCRIPT_ID,
       js: [`fingerprint/level-${settings.fingerprinting}.js`, "fingerprint/protect.js"],
@@ -40,13 +42,12 @@ export async function applyFingerprinting(settings: PrivacySettings, hostsOff: r
       runAt: "document_start",
       world: "MAIN",
     },
-  ]);
+  ];
 }
 
 /** Hides common ad elements everywhere except on sites with Shields off. */
-export async function applyGenericHiding(hostsOff: readonly string[]): Promise<void> {
-  await chrome.scripting.unregisterContentScripts({ ids: [COSMETIC_ID] }).catch(() => {});
-  await chrome.scripting.registerContentScripts([
+function genericHidingScripts(hostsOff: readonly string[]): ScriptSpec[] {
+  return [
     {
       id: COSMETIC_ID,
       css: ["rules/cosmetic-generic.css"],
@@ -55,13 +56,12 @@ export async function applyGenericHiding(hostsOff: readonly string[]): Promise<v
       allFrames: true,
       runAt: "document_start",
     },
-  ]);
+  ];
 }
 
 /** YouTube ads and other browsers' promotions, which request blocking cannot reach. */
-export async function applySiteFixes(hostsOff: readonly string[]): Promise<void> {
-  await chrome.scripting.unregisterContentScripts({ ids: [YOUTUBE_ID, PROMOS_ID, GOOGLE_PROMO_ID] }).catch(() => {});
-  await chrome.scripting.registerContentScripts([
+function siteFixScripts(hostsOff: readonly string[]): ScriptSpec[] {
+  return [
     {
       id: YOUTUBE_ID,
       js: ["sites/youtube.js"],
@@ -86,13 +86,20 @@ export async function applySiteFixes(hostsOff: readonly string[]): Promise<void>
       excludeMatches: excludeMatches(hostsOff),
       runAt: "document_start",
     },
-  ]);
+  ];
 }
-
-const SCRIPTLET_PREFIX = "orbit-scriptlets-";
 
 interface ScriptletIndex {
   shards: Array<{ name: string; hosts?: string[]; everywhere?: boolean }>;
+}
+
+let scriptletIndex: Promise<ScriptletIndex | null> | null = null;
+
+function readScriptletIndex(): Promise<ScriptletIndex | null> {
+  scriptletIndex ??= fetch(chrome.runtime.getURL("rules/scriptlets/index.json"))
+    .then((response) => response.json() as Promise<ScriptletIndex>)
+    .catch(() => null);
+  return scriptletIndex;
 }
 
 function hostMatches(host: string): string[] {
@@ -101,34 +108,48 @@ function hostMatches(host: string): string[] {
 }
 
 /** Scriptlets from the filter lists, each shard only on the sites it names. */
-export async function applyScriptlets(hostsOff: readonly string[]): Promise<void> {
-  const registered = await chrome.scripting.getRegisteredContentScripts();
-  const old = registered.map((script) => script.id).filter((id) => id.startsWith(SCRIPTLET_PREFIX));
-  if (old.length) await chrome.scripting.unregisterContentScripts({ ids: old }).catch(() => {});
-  let index: ScriptletIndex;
+async function scriptletScripts(hostsOff: readonly string[]): Promise<ScriptSpec[]> {
+  const index = await readScriptletIndex();
+  if (!index) return [];
+  return index.shards.flatMap((shard) => {
+    const matches = [...new Set(shard.everywhere ? ["http://*/*", "https://*/*"] : (shard.hosts ?? []).flatMap(hostMatches))];
+    if (matches.length === 0) return [];
+    return [
+      {
+        id: `${SCRIPTLET_PREFIX}${shard.name}`,
+        js: [`rules/scriptlets/${shard.name}.js`],
+        matches,
+        excludeMatches: excludeMatches(hostsOff),
+        allFrames: true,
+        matchOriginAsFallback: true,
+        runAt: "document_start",
+        world: "MAIN",
+      },
+    ];
+  });
+}
+
+async function registerScripts(scripts: ScriptSpec[]): Promise<void> {
+  if (scripts.length === 0) return;
+  const register = (batch: ScriptSpec[]) => chrome.scripting.registerContentScripts(batch as chrome.scripting.RegisteredContentScript[]);
   try {
-    index = (await (await fetch(chrome.runtime.getURL("rules/scriptlets/index.json"))).json()) as ScriptletIndex;
+    await register(scripts);
   } catch {
-    return;
+    // One bad script fails the whole batch, so the rest still get registered one by one.
+    for (const script of scripts) await register([script]).catch((error: unknown) => console.warn(`content script ${script.id}:`, error));
   }
-  for (const shard of index.shards) {
-    const matches = shard.everywhere ? ["http://*/*", "https://*/*"] : (shard.hosts ?? []).flatMap(hostMatches);
-    if (matches.length === 0) continue;
-    await chrome.scripting
-      .registerContentScripts([
-        {
-          id: `${SCRIPTLET_PREFIX}${shard.name}`,
-          js: [`rules/scriptlets/${shard.name}.js`],
-          matches,
-          excludeMatches: excludeMatches(hostsOff),
-          allFrames: true,
-          matchOriginAsFallback: true,
-          runAt: "document_start",
-          world: "MAIN",
-        },
-      ])
-      .catch((error: unknown) => console.warn(`scriptlets ${shard.name}:`, error));
-  }
+}
+
+/** Fingerprinting protection, cosmetic filtering, site fixes and scriptlets, registered with the
+ * browser. A new extension version registers everything again, since the files may have changed. */
+export async function applyContentScripts(settings: PrivacySettings, hostsOff: readonly string[]): Promise<void> {
+  const wanted = [...fingerprintScripts(settings, hostsOff), ...genericHidingScripts(hostsOff), ...siteFixScripts(hostsOff), ...(await scriptletScripts(hostsOff))];
+  const version = chrome.runtime.getManifest().version;
+  const [registered, stored] = await Promise.all([chrome.scripting.getRegisteredContentScripts(), chrome.storage.local.get(SCRIPTS_VERSION_KEY)]);
+  const plan = stored[SCRIPTS_VERSION_KEY] === version ? planScripts(registered, wanted, () => true) : { unregister: registered.map((script) => script.id), register: wanted };
+  if (plan.unregister.length) await chrome.scripting.unregisterContentScripts({ ids: plan.unregister }).catch(() => {});
+  await registerScripts(plan.register);
+  if (stored[SCRIPTS_VERSION_KEY] !== version) await chrome.storage.local.set({ [SCRIPTS_VERSION_KEY]: version });
 }
 
 /** Runs once each time Orbit starts. */

@@ -1,7 +1,14 @@
 name: Orbit for iPhone
 
 # Builds the iPhone app (ios/) for the simulator and runs its tests, including WebKit compiling
-# every blocking list that tools/apple-rules.mjs makes from filters/rules. No signing yet.
+# every blocking list that tools/apple-rules.mjs makes from filters/rules.
+#
+# When the repository variable IOS_TESTFLIGHT is "on", a passing build is also signed and uploaded
+# to TestFlight. The archive is unsigned and the App Store export signs it: Xcode creates the
+# distribution certificate and App Store profile (no registered devices needed) with
+# the Admin App Store Connect key in ASC_KEY_ID, ASC_ISSUER_ID and ASC_KEY_P8_BASE64 (the notary
+# key has the Developer role, which cannot create distribution certificates). The team comes from
+# MAC_SIGNING_IDENTITY. The app record (bundle id org.novatech.orbit) exists in App Store Connect.
 
 on:
   push:
@@ -9,6 +16,7 @@ on:
     paths:
       - ios/**
       - tools/apple-rules.mjs
+      - tools/apple-icon.sh
       - filters/rules/**
       - .github/workflows/ios.yml
   workflow_dispatch:
@@ -40,7 +48,8 @@ jobs:
 
       - name: Generate the Xcode project
         run: |
-          brew install --quiet xcodegen
+          brew install --quiet xcodegen librsvg
+          tools/apple-icon.sh ios/Orbit/Assets.xcassets
           xcodegen generate --spec ios/project.yml
           xcodebuild -version
 
@@ -68,8 +77,44 @@ jobs:
             -scheme Orbit \
             -destination "id=${{ steps.simulator.outputs.id }}" \
             -resultBundlePath "$RUNNER_TEMP/Orbit.xcresult" \
+            -derivedDataPath "$RUNNER_TEMP/derived" \
             CODE_SIGNING_ALLOWED=NO | tee "$RUNNER_TEMP/xcodebuild.log" | grep -E "error:|warning: .*Orbit/|Test Case|Executed|\*\* (BUILD|TEST)" || true
           grep -q "\*\* TEST SUCCEEDED \*\*" "$RUNNER_TEMP/xcodebuild.log"
+
+      - name: Take App Store screenshots
+        continue-on-error: true
+        run: |
+          # The sizes App Store Connect asks for: iPhone with Dynamic Island, medium display
+          # (1206 x 2622), and 13-inch iPad (2064 x 2752).
+          app=$(find "$RUNNER_TEMP/derived/Build/Products" -path "*iphonesimulator*" -name Orbit.app -maxdepth 2 | head -1)
+          out="$RUNNER_TEMP/screenshots"
+          mkdir -p "$out"
+          for pair in "iphone:iPhone [0-9]+ Pro \(" "ipad:iPad Pro 13-inch"; do
+            kind=${pair%%:*}
+            device=$(xcrun simctl list devices available | grep -E "${pair#*:}" | tail -1 | sed -E 's/.*\(([0-9A-F-]{36})\).*/\1/')
+            test -n "$device"
+            xcrun simctl boot "$device" || true
+            xcrun simctl bootstatus "$device" -b > /dev/null
+            xcrun simctl install "$device" "$app"
+            xcrun simctl status_bar "$device" override --time 9:41 --batteryState charged --batteryLevel 100 --wifiBars 3 --cellularBars 4
+            shot() {
+              name=$1; wait=$2; shift 2
+              xcrun simctl launch --terminate-running-process "$device" org.novatech.orbit "$@" > /dev/null
+              sleep "$wait"
+              xcrun simctl io "$device" screenshot --type=jpeg "$out/$kind-$name.jpg" > /dev/null
+            }
+            shot 1-new-tab 45
+            shot 2-page 25 -OrbitOpen https://en.wikipedia.org/wiki/Web_browser
+            xcrun simctl shutdown "$device"
+          done
+          sips -g pixelWidth -g pixelHeight "$out"/*.jpg
+
+      - name: Keep the screenshots
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ios-screenshots
+          path: ${{ runner.temp }}/screenshots
+          if-no-files-found: ignore
 
       - name: Keep the test results
         if: always()
@@ -80,3 +125,77 @@ jobs:
             ${{ runner.temp }}/Orbit.xcresult
             ${{ runner.temp }}/xcodebuild.log
           if-no-files-found: ignore
+
+  testflight:
+    needs: test
+    if: vars.IOS_TESTFLIGHT == 'on'
+    runs-on: macos-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+
+      - name: Prepare the project
+        run: |
+          node tools/apple-rules.mjs ios/Orbit/Rules
+          brew install --quiet xcodegen librsvg
+          tools/apple-icon.sh ios/Orbit/Assets.xcassets
+          xcodegen generate --spec ios/project.yml
+
+      - name: Set up the App Store Connect key
+        env:
+          KEY_P8: ${{ secrets.ASC_KEY_P8_BASE64 }}
+          KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          IDENTITY: ${{ secrets.MAC_SIGNING_IDENTITY }}
+        run: |
+          [ -n "$KEY_P8" ] && [ -n "$KEY_ID" ] && [ -n "$ISSUER_ID" ] || { echo "::error::Set the ASC_KEY_ID, ASC_ISSUER_ID and ASC_KEY_P8_BASE64 secrets"; exit 1; }
+          team=$(echo "$IDENTITY" | sed -n 's/.*(\([A-Z0-9]\{10\}\))$/\1/p')
+          [ -n "$team" ] || { echo "::error::No team id in MAC_SIGNING_IDENTITY"; exit 1; }
+          echo "::add-mask::$team"
+          echo "$KEY_P8" | base64 --decode > "$RUNNER_TEMP/AuthKey.p8"
+          {
+            echo "TEAM_ID=$team"
+            echo "AUTH_KEY_ID=$KEY_ID"
+            echo "AUTH_ISSUER_ID=$ISSUER_ID"
+          } >> "$GITHUB_ENV"
+
+      - name: Archive
+        run: |
+          set -o pipefail
+          auth=(-allowProvisioningUpdates -authenticationKeyPath "$RUNNER_TEMP/AuthKey.p8" -authenticationKeyID "$AUTH_KEY_ID" -authenticationKeyIssuerID "$AUTH_ISSUER_ID")
+          xcodebuild archive -project ios/Orbit.xcodeproj -scheme Orbit -destination generic/platform=iOS \
+            -archivePath "$RUNNER_TEMP/Orbit.xcarchive" "${auth[@]}" \
+            DEVELOPMENT_TEAM="$TEAM_ID" CODE_SIGN_STYLE=Automatic CODE_SIGNING_ALLOWED=NO CURRENT_PROJECT_VERSION="${{ github.run_number }}" |
+            grep -E "error:|warning: .*Orbit/|\*\* ARCHIVE" || true
+          test -d "$RUNNER_TEMP/Orbit.xcarchive"
+
+      - name: Upload to TestFlight
+        run: |
+          set -o pipefail
+          cat > "$RUNNER_TEMP/export.plist" <<PLIST
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0"><dict>
+            <key>method</key><string>app-store-connect</string>
+            <key>destination</key><string>upload</string>
+            <key>teamID</key><string>$TEAM_ID</string>
+            <key>signingStyle</key><string>automatic</string>
+            <key>manageAppVersionAndBuildNumber</key><false/>
+          </dict></plist>
+          PLIST
+          auth=(-allowProvisioningUpdates -authenticationKeyPath "$RUNNER_TEMP/AuthKey.p8" -authenticationKeyID "$AUTH_KEY_ID" -authenticationKeyIssuerID "$AUTH_ISSUER_ID")
+          xcodebuild -exportArchive -archivePath "$RUNNER_TEMP/Orbit.xcarchive" \
+            -exportOptionsPlist "$RUNNER_TEMP/export.plist" -exportPath "$RUNNER_TEMP/export" "${auth[@]}" |
+            tee "$RUNNER_TEMP/export.log" | grep -E "error|Upload|EXPORT" || true
+          grep -q "EXPORT SUCCEEDED" "$RUNNER_TEMP/export.log"
+          echo "Build ${{ github.run_number }} uploaded to TestFlight" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Remove the key
+        if: always()
+        run: rm -f "$RUNNER_TEMP/AuthKey.p8"

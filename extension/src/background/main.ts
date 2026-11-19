@@ -6,7 +6,7 @@
 import { addCount, emptyCounts, emptyStats, pruneStats, sanitizeStats, type Category, type Counts } from "../shared/stats.ts";
 import { sanitizePrivacy } from "../shared/privacy.ts";
 import { addBlockedHost, allowRule, blockedList, categoryOfMatch, emptyBlockedHosts, cosmeticCss, cosmeticShard, hostSuffixes, normalizeHosts, siteOf, type BlockedHosts, type Message, type SiteCosmetic, type TabState } from "../shared/shields.ts";
-import { applyFingerprinting, applyGenericHiding, applyScriptlets, applySiteFixes, applyThreats, applyWebRtc, readPrivacy, runStartupCleanup } from "./privacy.ts";
+import { applyContentScripts, applyThreats, applyWebRtc, readPrivacy, runStartupCleanup } from "./privacy.ts";
 import { checkForUpdate, scheduleUpdateCheck, UPDATE_ALARM } from "./updates.ts";
 
 const FLUSH_DELAY_MS = 500;
@@ -284,10 +284,7 @@ async function setShields(host: string, enabled: boolean, incognito: boolean): P
     const sitesOff = change(await hostsOff());
     await chrome.storage.local.set({ sitesOff });
     await applyPersistentRules(sitesOff);
-    await applyFingerprinting(await readPrivacy(), sitesOff);
-    await applyGenericHiding(sitesOff);
-    await applySiteFixes(sitesOff);
-    await applyScriptlets(sitesOff);
+    await applyContentScripts(await readPrivacy(), sitesOff);
   }
 }
 
@@ -335,7 +332,7 @@ async function handle(message: Message): Promise<unknown> {
       if (!privacy.checkUpdates) await chrome.storage.local.remove("update");
       await applyWebRtc(privacy);
       await applyThreats(privacy);
-      await applyFingerprinting(privacy, await hostsOff());
+      await applyContentScripts(privacy, await hostsOff());
       return { ok: true };
     }
     case "reset-stats":
@@ -352,10 +349,7 @@ async function applyAll(): Promise<void> {
   const sitesOff = await hostsOff();
   await applyWebRtc(privacy);
   await applyThreats(privacy);
-  await applyFingerprinting(privacy, sitesOff);
-  await applyGenericHiding(sitesOff);
-  await applySiteFixes(sitesOff);
-  await applyScriptlets(sitesOff);
+  await applyContentScripts(privacy, sitesOff);
 }
 
 /** Tabs opened before this extension finished installing show Chromium's own new tab page.
