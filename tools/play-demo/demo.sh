@@ -34,6 +34,14 @@ server=$!
 trap 'kill "$server" 2> /dev/null || true' EXIT
 adb reverse tcp:8000 tcp:8000
 adb forward tcp:9222 localabstract:chrome_devtools_remote
+adb logcat -c
 
-node "$here/demo.mjs" "$package" "$out"
+status=0
+node "$here/demo.mjs" "$package" "$out" || status=$?
+adb logcat -d -v threadtime > "$out/logcat.txt" 2> /dev/null || true
+adb logcat -d -b crash > "$out/crash.txt" 2> /dev/null || true
+echo "=== crash buffer ==="
+cat "$out/crash.txt" | head -80
+grep -E "ANR in|FATAL EXCEPTION|Fatal signal|am_crash|am_anr" "$out/logcat.txt" | head -20 || true
 ls -la "$out"
+exit $status

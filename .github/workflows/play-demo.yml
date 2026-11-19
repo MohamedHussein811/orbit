@@ -56,6 +56,7 @@ jobs:
 
       - name: Add a caption to each video
         run: |
+          sudo apt-get update -qq > /dev/null
           sudo apt-get install -y -qq ffmpeg > /dev/null
           mkdir -p "$RUNNER_TEMP/videos"
           font=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf
