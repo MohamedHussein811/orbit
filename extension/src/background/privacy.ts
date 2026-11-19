@@ -146,7 +146,19 @@ export async function applyContentScripts(settings: PrivacySettings, hostsOff: r
   const wanted = [...fingerprintScripts(settings, hostsOff), ...genericHidingScripts(hostsOff), ...siteFixScripts(hostsOff), ...(await scriptletScripts(hostsOff))];
   const version = chrome.runtime.getManifest().version;
   const [registered, stored] = await Promise.all([chrome.scripting.getRegisteredContentScripts(), chrome.storage.local.get(SCRIPTS_VERSION_KEY)]);
-  const plan = stored[SCRIPTS_VERSION_KEY] === version ? planScripts(registered, wanted, () => true) : { unregister: registered.map((script) => script.id), register: wanted };
+  const plan =
+    stored[SCRIPTS_VERSION_KEY] === version
+      ? planScripts(registered, wanted, () => true)
+      : { unregister: registered.map((script) => script.id), update: [], register: wanted };
+  if (plan.update.length) {
+    try {
+      await chrome.scripting.updateContentScripts(plan.update as chrome.scripting.RegisteredContentScript[]);
+    } catch {
+      const ids = new Set(plan.update.map((script) => script.id));
+      plan.unregister.push(...ids);
+      plan.register.push(...wanted.filter((script) => ids.has(script.id)));
+    }
+  }
   if (plan.unregister.length) await chrome.scripting.unregisterContentScripts({ ids: plan.unregister }).catch(() => {});
   await registerScripts(plan.register);
   if (stored[SCRIPTS_VERSION_KEY] !== version) await chrome.storage.local.set({ [SCRIPTS_VERSION_KEY]: version });

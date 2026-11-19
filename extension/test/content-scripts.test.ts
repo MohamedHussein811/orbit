@@ -15,7 +15,7 @@ const shard = (id: string, matches: string[], excludeMatches: string[] = []): Sc
 test("unchanged scripts are left registered", () => {
   const wanted = [shard("a", ["*://*.a.com/*", "*://*.b.com/*"]), shard("b", ["*://*.c.com/*"])];
   const registered = [shard("b", ["*://*.c.com/*"]), shard("a", ["*://*.b.com/*", "*://*.a.com/*"])];
-  assert.deepEqual(planScripts(registered, wanted, () => true), { unregister: [], register: [] });
+  assert.deepEqual(planScripts(registered, wanted, () => true), { unregister: [], update: [], register: [] });
 });
 
 test("defaults the browser fills in count as equal", () => {
@@ -24,17 +24,32 @@ test("defaults the browser fills in count as equal", () => {
   assert.equal(sameScript(registered, wanted), true);
 });
 
-test("only changed, new and removed scripts are touched", () => {
+test("only changed, new and removed scripts are touched; site changes update in place", () => {
   const registered = [shard("keep", ["*://*.k.com/*"]), shard("change", ["*://*.c.com/*"]), shard("gone", ["*://*.g.com/*"])];
   const wanted = [shard("keep", ["*://*.k.com/*"]), shard("change", ["*://*.c.com/*"], ["*://off.com/*"]), shard("new", ["*://*.n.com/*"])];
   const plan = planScripts(registered, wanted, () => true);
-  assert.deepEqual(plan.unregister.sort(), ["change", "gone"]);
-  assert.deepEqual(plan.register.map((script) => script.id), ["change", "new"]);
+  assert.deepEqual(plan.unregister, ["gone"]);
+  assert.deepEqual(plan.update, [{ id: "change", matches: ["*://*.c.com/*"], excludeMatches: ["*://off.com/*"] }]);
+  assert.deepEqual(plan.register.map((script) => script.id), ["new"]);
+});
+
+test("a script whose files or options change is registered again", () => {
+  const registered = [shard("a", ["*://*.a.com/*"])];
+  const wanted = [{ ...shard("a", ["*://*.a.com/*"]), js: ["rules/scriptlets/a2.js"] }];
+  const plan = planScripts(registered, wanted, () => true);
+  assert.deepEqual(plan.unregister, ["a"]);
+  assert.deepEqual(plan.update, []);
+  assert.deepEqual(plan.register.map((script) => script.id), ["a"]);
+});
+
+test("turning a site back on clears its exclusion", () => {
+  const plan = planScripts([shard("a", ["*://*.a.com/*"], ["*://off.com/*"])], [shard("a", ["*://*.a.com/*"])], () => true);
+  assert.deepEqual(plan.update, [{ id: "a", matches: ["*://*.a.com/*"], excludeMatches: [] }]);
 });
 
 test("scripts outside the owner are never unregistered", () => {
   const plan = planScripts([shard("other", ["*://*.o.com/*"])], [], (id) => id.startsWith("orbit-"));
-  assert.deepEqual(plan, { unregister: [], register: [] });
+  assert.deepEqual(plan, { unregister: [], update: [], register: [] });
 });
 
 test("file order matters, pattern order does not", () => {
