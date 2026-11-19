@@ -30,22 +30,12 @@ stop_windows_tools() {
   taskkill //F //IM python.exe
 }
 watchdog=""
-jobs=()
 case "$(uname -s)" in
-  MINGW*|MSYS*)
-    { sleep $((COMPILE_SECONDS + 200)); stop_windows_tools; } > /dev/null 2>&1 & watchdog=$!
-    # PGO compiles need more memory each. Past 16 GB the Windows runner grows its page file on C:,
-    # which has little free space and holds the runner itself, so one job per core keeps memory in
-    # RAM, and temporary files go to the larger D: drive.
-    jobs=(-j "${NUMBER_OF_PROCESSORS:-4}")
-    if [ -n "${RUNNER_TEMP:-}" ]; then
-      export TEMP="$RUNNER_TEMP" TMP="$RUNNER_TEMP"
-    fi
-    ;;
+  MINGW*|MSYS*) { sleep $((COMPILE_SECONDS + 200)); stop_windows_tools; } > /dev/null 2>&1 & watchdog=$! ;;
 esac
 
 started=$SECONDS
-timeout --signal=INT --kill-after=180 "$COMPILE_SECONDS" ninja -C out/Release -k 0 ${jobs[@]+"${jobs[@]}"} $TARGETS 2>&1 |
+timeout --signal=INT --kill-after=180 "$COMPILE_SECONDS" ninja -C out/Release -k 0 $TARGETS 2>&1 |
   tee ../ninja.log |
   grep -E --line-buffered "^\[[0-9]+000/|^FAILED|^ninja: " |
   awk '{ print substr($0, 1, 200); fflush() }'
