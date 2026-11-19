@@ -1,22 +1,22 @@
 #!/bin/bash
-# Writes Orbit's build settings (tools/chromium/args.gn) to the given file, leaving it untouched
-# when nothing changed. Windows and macOS build with proprietary codecs: MP4 reading from Chromium's
-# FFmpeg, H.264 and AAC decoding from the operating system (orbit-media.patch). OpenH264 stays out, so
-# no H.264 encoder is compiled in; encoding also goes through the operating system.
+# Writes Orbit's build settings for this platform (args-for.sh) to the given file, leaving it
+# untouched when nothing changed.
 #
-# Official builds optimize with Chromium's published PGO profile for this system. The source
-# archive does not carry it, so it is downloaded into chrome/build/pgo_profiles, where the build
-# looks for the file named in chrome/build/<target>.pgo.txt.
+# Builds with PGO optimize with Chromium's published profile for this system. The source archive
+# does not carry it, so it is downloaded into chrome/build/pgo_profiles, where the build looks for
+# the file named in chrome/build/<target>.pgo.txt.
 set -euo pipefail
 dest=$1
 src=$(cd "$(dirname "$dest")/../.." && pwd)
 case "$(uname -s)" in
-  MINGW*|MSYS*|CYGWIN*) target=win64; sed 's/^proprietary_codecs = false/proprietary_codecs = true/' "$(dirname "$0")/args.gn" > "$dest.new" ;;
-  Darwin) target=mac-arm; sed 's/^proprietary_codecs = false/proprietary_codecs = true/' "$(dirname "$0")/args.gn" > "$dest.new" ;;
-  *) target=linux; cp "$(dirname "$0")/args.gn" "$dest.new" ;;
+  MINGW*|MSYS*|CYGWIN*) platform=windows; target=win64 ;;
+  Darwin) platform=mac; target=mac-arm ;;
+  *) platform=linux; target=linux ;;
 esac
+"$(dirname "$0")/args-for.sh" "$platform" > "$dest.new"
 if cmp -s "$dest.new" "$dest"; then rm "$dest.new"; else mv "$dest.new" "$dest"; fi
 
+grep -qx 'chrome_pgo_phase = 2' "$dest" || exit 0
 profile=$(tr -d '[:space:]' < "$src/chrome/build/$target.pgo.txt")
 case "$profile" in
   chrome-*.profdata) ;;
