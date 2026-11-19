@@ -119,11 +119,29 @@ private struct ClockView: View {
         return formatter
     }()
 
+    /// Hours and minutes in the locale's own style: "8:10" where clocks use 12 hours, "08:10" where
+    /// they use 24.
+    private static let timeFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.locale = .current
+        formatter.setLocalizedDateFormatFromTemplate("jmm")
+        return formatter
+    }()
+
+    private static func digits(_ date: Date) -> String {
+        var text = timeFormatter.string(from: date)
+        let symbols: [String?] = [timeFormatter.amSymbol, timeFormatter.pmSymbol]
+        for case let symbol? in symbols where !symbol.isEmpty {
+            text = text.replacingOccurrences(of: symbol, with: "")
+        }
+        return text.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
     var body: some View {
         TimelineView(.everyMinute) { context in
             VStack(spacing: 4) {
                 HStack(alignment: .lastTextBaseline, spacing: 6) {
-                    Text(context.date, format: .dateTime.hour(.conversationalDefaultDigits(amPM: .omitted)).minute())
+                    Text(Self.digits(context.date))
                         .font(.system(size: 72, weight: .thin))
                         .monospacedDigit()
                     if let period = Self.periodFormatter?.string(from: context.date) {
