@@ -790,8 +790,16 @@ body {
 }
 
 .meter dt {
+  min-width: 0;
+  overflow: hidden;
   color: var(--muted);
   font-size: 0.875rem;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.meter .label-short {
+  display: none;
 }
 
 .meter dd {
@@ -831,10 +839,20 @@ body {
   background: linear-gradient(270deg, color-mix(in oklab, var(--orbit-tertiary) 50%, transparent), var(--orbit-tertiary));
 }
 
-@container card (min-width: 21rem) {
+@container card (min-width: 17rem) and (max-width: 30rem) {
+  .meter .label-long {
+    display: none;
+  }
+
+  .meter .label-short {
+    display: inline;
+  }
+}
+
+@container card (min-width: 17rem) {
   .meters {
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 1.25rem;
+    gap: clamp(0.75rem, 5cqi, 1.25rem);
   }
 
   .meter {
@@ -1486,14 +1504,21 @@ body {
   flex: 1;
 }
 
-/* Smaller windows */
+/* Narrow windows: shortcuts wrap into rows instead of scrolling sideways */
 @media (max-width: 52rem) {
   .top {
-    padding-inline: 2.75rem;
+    padding-inline: 0;
   }
 
   .rail-arrow {
     display: none !important;
+  }
+
+  .tiles {
+    flex-wrap: wrap;
+    row-gap: 0.35rem;
+    overflow: visible;
+    mask-image: none;
   }
 
   .dock > .widget {
@@ -1501,20 +1526,168 @@ body {
   }
 }
 
+/* Touch screens swipe or wrap; the rail's arrows are for mice */
+@media (pointer: coarse) {
+  .rail-arrow {
+    display: none !important;
+  }
+
+  .tiles {
+    flex-wrap: wrap;
+    row-gap: 0.35rem;
+    overflow: visible;
+    mask-image: none;
+  }
+}
+
+/* Phones: one column in reading order, sized for touch */
 @media (max-width: 36rem) {
   .page {
-    grid-template-rows: auto;
-    align-content: start;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
     height: auto;
     min-height: 100dvh;
+    padding: max(1rem, env(safe-area-inset-top)) 1rem max(1rem, env(safe-area-inset-bottom));
+  }
+
+  .center,
+  .top,
+  .bottom {
+    align-self: stretch;
+  }
+
+  .center {
+    order: 1;
+    gap: 1.25rem;
+    padding-top: clamp(2.5rem, 9vh, 4.5rem);
+  }
+
+  .top {
+    order: 2;
+    width: 100%;
+  }
+
+  .bottom {
+    order: 3;
+    gap: 0.75rem;
+  }
+
+  .corner-button {
+    width: 2.25rem;
+    height: 2.25rem;
+    inset-block-start: max(0.75rem, env(safe-area-inset-top));
+    inset-inline-end: 0.75rem;
+  }
+
+  .clock {
+    gap: 0.35rem;
+  }
+
+  .clock .time {
+    font-size: clamp(3.25rem, 18vw, 4.5rem);
+    font-weight: 220;
+    letter-spacing: -0.04em;
+  }
+
+  .clock .date {
+    font-size: 0.875rem;
+  }
+
+  .search-slot {
+    width: 100%;
+  }
+
+  .search-form {
+    gap: 0.65rem;
+    height: 3rem;
+    padding-inline: 1rem 0.85rem;
+  }
+
+  .search-form > svg {
+    width: 1.1rem;
+    height: 1.1rem;
+  }
+
+  .search-form input {
+    font-size: 1rem;
+  }
+
+  .tiles {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.5rem 0;
+    padding: 0.4rem 0 0;
+  }
+
+  .tile {
+    width: auto;
+  }
+
+  .tile > a,
+  .tile > .open-folder,
+  .tile > .add-tile {
+    gap: 0.4rem;
+  }
+
+  .tile-icon {
+    width: 3rem;
+    height: 3rem;
+  }
+
+  .tile-icon::after {
+    inset-block-start: calc(50% - 1.9rem * 0.7071 - 0.21rem);
+    inset-inline-start: calc(50% + 1.9rem * 0.7071 - 0.21rem);
+  }
+
+  .tile-icon img {
+    width: 1.5rem;
+    height: 1.5rem;
+  }
+
+  .tile-title,
+  .add-tile .tile-title {
+    font-size: 0.75rem;
+    white-space: nowrap;
+  }
+
+  .dock {
+    align-content: flex-start;
+    gap: 0.75rem;
+  }
+
+  .dock .notes-widget .notes-list {
+    flex: none;
+    height: auto;
+    min-height: 0;
+    max-height: 15rem;
   }
 
   .dock > .widget {
     flex-basis: 100%;
   }
 
-  .tile {
-    width: 5rem;
+  .dock .pane {
+    padding: 0.85rem 1rem 0.8rem;
+    border-radius: calc(var(--radius-card) * 0.8);
+  }
+
+  .widget-head {
+    min-height: 1.75rem;
+    margin-bottom: 0.65rem;
+  }
+
+  .widget-head h2 {
+    font-size: 0.875rem;
+  }
+
+  .foot {
+    padding-top: 0.65rem;
+    font-size: 0.75rem;
+  }
+
+  .page-foot {
+    justify-content: center;
   }
 }
 

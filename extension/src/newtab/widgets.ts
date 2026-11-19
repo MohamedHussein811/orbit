@@ -48,16 +48,22 @@ export const ENGINE_NAMES: Record<Exclude<SearchEngine, "default">, string> = {
 };
 
 const searchLabel = (engine: SearchEngine) => (engine === "default" ? t("searchPlaceholder") : t("searchWithEngine", ENGINE_NAMES[engine]));
+const narrowScreen = matchMedia("(max-width: 36rem)");
 
 export function mountSearch(root: HTMLElement, context: WidgetContext): void {
-  const label = searchLabel(context.settings().searchEngine);
-  const input = h("input", { type: "search", name: "q", placeholder: label, "aria-label": label, autocomplete: "off", spellcheck: "false", autofocus: true });
+  let engine = context.settings().searchEngine;
+  const input = h("input", { type: "search", name: "q", autocomplete: "off", spellcheck: "false", autofocus: true });
+  const label = () => {
+    input.setAttribute("aria-label", searchLabel(engine));
+    input.placeholder = narrowScreen.matches ? t("searchPlaceholder") : searchLabel(engine);
+  };
+  label();
+  narrowScreen.addEventListener("change", label);
   // The browser's engine may have changed in Settings since the last visit.
   void browserEngine().then((keyword) => {
     if (keyword === null) return;
-    const engine = engineForKeyword(keyword);
-    input.placeholder = searchLabel(engine);
-    input.setAttribute("aria-label", searchLabel(engine));
+    engine = engineForKeyword(keyword);
+    label();
     if (engine !== context.settings().searchEngine) void context.saveSettings({ searchEngine: engine });
   });
   const form = h(
@@ -91,7 +97,7 @@ export function mountStats(root: HTMLElement, context: WidgetContext): void {
     CATEGORIES.map((category) => {
       const value = h("dd", {}, "0");
       const fill = h("span", { class: "fill" });
-      const row = h("div", { class: "meter", "data-category": category }, h("dt", {}, t(CATEGORY_LABEL[category])), value, h("span", { class: "track", "aria-hidden": "true" }, fill));
+      const row = h("div", { class: "meter", "data-category": category }, h("dt", {}, h("span", { class: "label-long" }, t(CATEGORY_LABEL[category])), h("span", { class: "label-short" }, t(category))), value, h("span", { class: "track", "aria-hidden": "true" }, fill));
       return [category, { row, value, fill }];
     }),
   ) as unknown as Record<Category, { row: HTMLElement; value: HTMLElement; fill: HTMLElement }>;
