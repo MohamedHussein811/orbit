@@ -125,6 +125,10 @@ function applyTheme(): void {
   const color = COLORS[settings.color];
   if (settings.background === "color") root.style.setProperty("--backdrop-color", color);
   else root.style.removeProperty("--backdrop-color");
+  // Phones color the browser's bars to match the top of the page.
+  const bar =
+    settings.background === "plain" ? getComputedStyle(root).getPropertyValue("--orbit-surface").trim() : settings.background === "color" ? color : "#08090b";
+  document.querySelector('meta[name="theme-color"]')?.setAttribute("content", bar);
   try {
     localStorage.setItem("orbit-background", settings.background);
     localStorage.setItem("orbit-color", color);

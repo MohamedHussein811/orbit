@@ -10,6 +10,7 @@ rsvg-convert. The changed files are added to orbit-fork-files.json for date-fork
 
 import hashlib
 import json
+import re
 import pathlib
 import subprocess
 import sys
@@ -86,10 +87,63 @@ def apply_patches(src):
     return changed
 
 
+def apply_palette(src):
+    """Orbit's colors (tools/android/orbit-palette.json, written by tools/design/tokens.mjs) in
+    Chromium's Android palette: day values replace color_palette.xml's, night values go to a
+    values-night file of the same colors."""
+    palette = json.loads((ROOT / "tools" / "android" / "orbit-palette.json").read_text())
+    values = src / "ui" / "android" / "java" / "res" / "values" / "color_palette.xml"
+    text = values.read_text(encoding="utf-8")
+    entry = re.compile(r'(<color name="([^"]+)"[^>]*>)([^<]*)(</color>)')
+    alpha = re.compile(r"(.+)_alpha_\d+$")
+
+    # A color, or a translucent copy of one (name_alpha_N keeps its alpha byte), from a palette.
+    def value(name, current, colors):
+        if name in colors:
+            return colors[name]
+        base = alpha.match(name)
+        if base and base.group(1) in colors and re.fullmatch(r"#[0-9A-Fa-f]{8}", current):
+            return current[:3] + colors[base.group(1)][1:]
+        return None
+
+    replaced = 0
+    night_rows = []
+
+    def swap(match):
+        nonlocal replaced
+        name, current = match.group(2), match.group(3).strip()
+        day = value(name, current, palette["light"])
+        dark = value(name, current, palette["dark"])
+        if dark is not None:
+            night_rows.append(f'    <color name="{name}">{dark}</color>')
+        if day is None:
+            return match.group(0)
+        replaced += 1
+        return f"{match.group(1)}{day}{match.group(4)}"
+
+    text = entry.sub(swap, text)
+    if replaced < 50:
+        sys.exit(f"{values}: only {replaced} palette colors replaced")
+    values.write_text(text, encoding="utf-8")
+
+    # Chromium's build only takes resource files its BUILD.gn lists, so the night values join the
+    # folder's existing night colors file.
+    night = values.parent.parent / "values-night" / "colors.xml"
+    text = night.read_text(encoding="utf-8")
+    clash = set(re.findall(r'<color name="([^"]+)"', text)) & {row.split('"')[1] for row in night_rows}
+    if clash or "</resources>" not in text:
+        sys.exit(f"{night}: cannot add the night palette ({sorted(clash)[:5]})")
+    text = text.replace("</resources>", "\n".join(night_rows) + "\n</resources>", 1)
+    night.write_text(text, encoding="utf-8")
+    print(f"palette: {replaced} day colors, {len(night_rows)} night colors")
+    return [values, night]
+
+
 def main():
     src = pathlib.Path(sys.argv[1]).resolve()
     res = src / RES
     changed = apply_patches(src)
+    changed += apply_palette(src)
 
     constants = res / "values" / "channel_constants.xml"
     text = constants.read_text(encoding="utf-8")

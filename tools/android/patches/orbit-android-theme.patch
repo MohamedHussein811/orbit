@@ -1,0 +1,141 @@
+diff --git a/chrome/android/java/src/org/chromium/chrome/browser/ChromeBaseAppCompatActivity.java b/chrome/android/java/src/org/chromium/chrome/browser/ChromeBaseAppCompatActivity.java
+--- a/chrome/android/java/src/org/chromium/chrome/browser/ChromeBaseAppCompatActivity.java
++++ b/chrome/android/java/src/org/chromium/chrome/browser/ChromeBaseAppCompatActivity.java
+@@ -824,9 +824,9 @@
+         AutomotiveBackButtonToolbarCoordinator.hideBackButtonToolbar(this);
+     }
+ 
+-    /** Returns whether dynamic colors should be applied. */
++    /** Returns whether dynamic colors should be applied. Orbit keeps its own palette. */
+     protected boolean shouldApplyDynamicColors() {
+-        return true;
++        return false;
+     }
+ 
+     /**
+diff --git a/chrome/android/java/src/org/chromium/chrome/browser/toolbar/ToolbarManager.java b/chrome/android/java/src/org/chromium/chrome/browser/toolbar/ToolbarManager.java
+--- a/chrome/android/java/src/org/chromium/chrome/browser/toolbar/ToolbarManager.java
++++ b/chrome/android/java/src/org/chromium/chrome/browser/toolbar/ToolbarManager.java
+@@ -2620,7 +2620,7 @@
+                         mBottomControlsStacker::requestLayerUpdate,
+                         assumeNonNull(mActionRegistry),
+                         mCurrentTabSupplier,
+-                        mAppThemeColorProvider,
++                        getAdjustedToolbarThemeColorProvider(),
+                         mHomepageEnabledSupplier,
+                         mProfileSupplier,
+                         mOmniboxFocusStateSupplier,
+@@ -4116,7 +4116,7 @@
+      * non-tablets.
+      */
+     private ThemeColorProvider getBrowsingModeThemeColorProviderWithAdjustableTint() {
+-        return mIsTablet ? mAppThemeColorProvider : getAdjustedToolbarThemeColorProvider();
++        return getAdjustedToolbarThemeColorProvider();
+     }
+ 
+     private @Nullable OnLongClickListener createTabSwitcherLongClickListener(
+diff --git a/chrome/browser/ui/android/bottombar/java/src/org/chromium/chrome/browser/ui/bottombar/BottomBarUtils.java b/chrome/browser/ui/android/bottombar/java/src/org/chromium/chrome/browser/ui/bottombar/BottomBarUtils.java
+--- a/chrome/browser/ui/android/bottombar/java/src/org/chromium/chrome/browser/ui/bottombar/BottomBarUtils.java
++++ b/chrome/browser/ui/android/bottombar/java/src/org/chromium/chrome/browser/ui/bottombar/BottomBarUtils.java
+@@ -38,8 +38,12 @@
+      */
+     public static @ColorInt int getBottomBarBackgroundColor(
+             Context context, @BrandedColorScheme int brandedColorScheme) {
+-        return getBottomBarBackgroundColor(
+-                context, brandedColorScheme == BrandedColorScheme.INCOGNITO);
++        return getBottomBarBackgroundColor(context, isDark(brandedColorScheme));
++    }
++
++    private static boolean isDark(@BrandedColorScheme int brandedColorScheme) {
++        return brandedColorScheme == BrandedColorScheme.INCOGNITO
++                || brandedColorScheme == BrandedColorScheme.DARK_BRANDED_THEME;
+     }
+ 
+     /**
+@@ -112,7 +116,7 @@
+      */
+     public static ColorStateList getIconColorStateList(
+             Context context, @BrandedColorScheme int brandedColorScheme) {
+-        boolean isIncognito = brandedColorScheme == BrandedColorScheme.INCOGNITO;
++        boolean isIncognito = isDark(brandedColorScheme);
+         int onSurface = IncognitoColors.getColorOnSurface(context, isIncognito);
+         return getIconColorStateListFromOnSurface(context, onSurface);
+     }
+@@ -127,7 +131,7 @@
+      */
+     public static @ColorInt int getColorSurfaceBright(
+             Context context, @BrandedColorScheme int brandedColorScheme) {
+-        return getColorSurfaceBright(context, brandedColorScheme == BrandedColorScheme.INCOGNITO);
++        return getColorSurfaceBright(context, isDark(brandedColorScheme));
+     }
+ 
+     /**
+@@ -150,7 +154,7 @@
+      */
+     public static RippleDrawable createHoverableRipple(
+             Context context, @BrandedColorScheme int brandedColorScheme) {
+-        boolean isIncognito = brandedColorScheme == BrandedColorScheme.INCOGNITO;
++        boolean isIncognito = isDark(brandedColorScheme);
+         @DrawableRes
+         int selectorResId =
+                 isIncognito
+@@ -175,8 +179,7 @@
+      */
+     public static @ColorInt int getRippleColorNoBackground(
+             Context context, @BrandedColorScheme int brandedColorScheme) {
+-        return getRippleColorNoBackground(
+-                context, brandedColorScheme == BrandedColorScheme.INCOGNITO);
++        return getRippleColorNoBackground(context, isDark(brandedColorScheme));
+     }
+ 
+     /**
+@@ -200,8 +203,7 @@
+      */
+     public static @ColorInt int getRippleColorBackground(
+             Context context, @BrandedColorScheme int brandedColorScheme) {
+-        return getRippleColorBackground(
+-                context, brandedColorScheme == BrandedColorScheme.INCOGNITO);
++        return getRippleColorBackground(context, isDark(brandedColorScheme));
+     }
+ 
+     /**
+diff --git a/chrome/browser/ui/android/theme/java/src/org/chromium/chrome/browser/theme/TopUiThemeColorProvider.java b/chrome/browser/ui/android/theme/java/src/org/chromium/chrome/browser/theme/TopUiThemeColorProvider.java
+--- a/chrome/browser/ui/android/theme/java/src/org/chromium/chrome/browser/theme/TopUiThemeColorProvider.java
++++ b/chrome/browser/ui/android/theme/java/src/org/chromium/chrome/browser/theme/TopUiThemeColorProvider.java
+@@ -198,6 +198,7 @@
+      * activity).
+      */
+     private boolean isThemingAllowed(Tab tab) {
++        if (isOrbitNewTab(tab)) return true;
+         boolean disallowDueToNightMode =
+                 !mAllowThemingInNightMode && ColorUtils.inNightMode(tab.getContext());
+         final boolean isEligibleFormFactor = mAllowThemingOnTablets || !mIsTablet;
+@@ -209,6 +210,14 @@
+                 && !tab.isIncognito();
+     }
+ 
++    /** Orbit's new tab page, which sets the bars' color to match its own top. */
++    private static boolean isOrbitNewTab(Tab tab) {
++        if (tab.isIncognito() || tab.isNativePage()) return false;
++        String url = tab.getUrl().getSpec();
++        return url.startsWith("chrome://newtab")
++                || url.startsWith("chrome-extension://kceipbaiojomdibnboffoieecidpfdck/newtab/");
++    }
++
+     private @BrandedColorScheme int calculateBrandedColorScheme(
+             boolean isIncognito, boolean isDefaultColor) {
+         if (isIncognito) return BrandedColorScheme.INCOGNITO;
+diff --git a/chrome/browser/ui/android/toolbar/java/src/org/chromium/chrome/browser/toolbar/top/ToolbarPhone.java b/chrome/browser/ui/android/toolbar/java/src/org/chromium/chrome/browser/toolbar/top/ToolbarPhone.java
+--- a/chrome/browser/ui/android/toolbar/java/src/org/chromium/chrome/browser/toolbar/top/ToolbarPhone.java
++++ b/chrome/browser/ui/android/toolbar/java/src/org/chromium/chrome/browser/toolbar/top/ToolbarPhone.java
+@@ -3111,7 +3111,9 @@
+     }
+ 
+     boolean isLocationBarShownInGeneralNtp() {
+-        return !isIncognito() && UrlUtilities.isNtpUrl(getToolbarDataProvider().getCurrentGurl());
++        return !isIncognito()
++                && UrlUtilities.isNtpUrl(getToolbarDataProvider().getCurrentGurl())
++                && !getToolbarDataProvider().isUsingBrandColor();
+     }
+ 
+     private boolean isLocationBarCurrentlyShown() {

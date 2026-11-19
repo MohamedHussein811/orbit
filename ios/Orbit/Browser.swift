@@ -9,6 +9,8 @@ final class Browser {
     var selectedID: UUID?
     private(set) var shieldsReady = false
     private(set) var shieldsError: String?
+    /// Raised by the new tab page's search pill; the address bar takes focus when it changes.
+    var addressFocusRequests = 0
     let library: Library
 
     @ObservationIgnored private var ruleLists: [WKContentRuleList] = []

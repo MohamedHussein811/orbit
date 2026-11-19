@@ -4,14 +4,17 @@
 #
 # Play needs a higher versionCode for every upload. Chromium's own code leaves out the version's
 # second part, which holds Orbit's release number, so the code is set here as
-# {BUILD}{PATCH, 3 digits}{release, 2 digits}: 157.5.8103.78 gives 810307805.
+# {BUILD}{PATCH, 3 digits}{release, 2 digits}: 157.5.8103.78 gives 810307805. EXTRA_UPLOADS counts
+# Android builds sent to Play between desktop releases, so each still gets a higher code; it only
+# ever grows.
+EXTRA_UPLOADS=1
 set -euo pipefail
 dest=$1
 src=$(cd "$(dirname "$dest")/../.." && pwd)
 cpu=${ANDROID_CPU:-arm64}
 version() { sed -n "s/^$1=\([0-9]*\)$/\1/p" "$src/chrome/VERSION"; }
 release=$(version MINOR)
-code=$(( $(version BUILD) * 100000 + $(version PATCH) * 100 + release % 100 ))
+code=$(( $(version BUILD) * 100000 + $(version PATCH) * 100 + (release + EXTRA_UPLOADS) % 100 ))
 {
   sed "s/^target_cpu = .*/target_cpu = \"$cpu\"/" "$(dirname "$0")/args.gn"
   echo "android_override_version_code = \"$code\""
