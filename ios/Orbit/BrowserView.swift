@@ -8,6 +8,7 @@ enum LibrarySheet: String, Identifiable {
 
 struct BrowserView: View {
     @Environment(Browser.self) private var browser
+    @Environment(\.colorScheme) private var colorScheme
     @State private var showingTabs = false
     @State private var sheet: LibrarySheet?
 
@@ -28,11 +29,20 @@ struct BrowserView: View {
                             .frame(height: 2)
                     }
                 }
-                AddressBar(tab: tab)
-                BrowserToolbar(tab: tab, showingTabs: $showingTabs, sheet: $sheet)
+                Group {
+                    AddressBar(tab: tab)
+                    BrowserToolbar(tab: tab, showingTabs: $showingTabs, sheet: $sheet)
+                }
+                .environment(\.colorScheme, tab.showsNewTab ? .dark : colorScheme)
             }
         }
-        .background(Theme.surface.ignoresSafeArea())
+        .background {
+            if browser.selected?.showsNewTab == true {
+                NewTabBackdrop()
+            } else {
+                Theme.surface.ignoresSafeArea()
+            }
+        }
         .sheet(isPresented: $showingTabs) {
             TabsView()
         }
@@ -101,10 +111,17 @@ struct AddressBar: View {
         }
         .padding(.horizontal, 14)
         .frame(height: 44)
-        .background(Theme.addressBar, in: Capsule())
+        .background {
+            if tab.showsNewTab {
+                Capsule().fill(.ultraThinMaterial)
+            } else {
+                Capsule().fill(Theme.addressBar)
+            }
+        }
         .padding(.horizontal, 12)
         .padding(.top, 8)
         .onAppear { text = displayText }
+        .onChange(of: browser.addressFocusRequests) { focused = true }
         .onChange(of: tab.url) { if !focused { text = displayText } }
         .onChange(of: tab.id) { text = displayText }
         .onChange(of: focused) { text = focused ? (tab.url?.absoluteString ?? "") : displayText }
@@ -161,6 +178,7 @@ struct BrowserToolbar: View {
             menu
         }
         .font(.title3)
+        .tint(tab.showsNewTab ? .white : Theme.primary)
         .padding(.horizontal, 24)
         .padding(.vertical, 10)
     }

@@ -1,25 +1,38 @@
 import SwiftUI
+import UIKit
 
+/// The new tab page, as on Orbit's other systems: the space picture under dark glass, the clock,
+/// a search pill, shortcuts and Shields.
 struct NewTabView: View {
     @Environment(Browser.self) private var browser
     let tab: Tab
 
-    private let columns = [GridItem(.adaptive(minimum: 76), spacing: 16)]
+    private let columns = Array(repeating: GridItem(.flexible(), spacing: 8), count: 4)
 
     var body: some View {
         ScrollView {
-            VStack(spacing: 28) {
-                VStack(spacing: 8) {
-                    OrbitMark()
-                        .frame(width: 64, height: 64)
-                    Text("Orbit")
-                        .font(.largeTitle.weight(.semibold))
-                        .foregroundStyle(Theme.text)
+            VStack(spacing: 22) {
+                ClockView()
+                    .padding(.top, 36)
+
+                Button { browser.addressFocusRequests += 1 } label: {
+                    HStack(spacing: 10) {
+                        Image(systemName: "magnifyingglass")
+                        Text("Search or enter address")
+                        Spacer(minLength: 0)
+                    }
+                    .font(.body)
+                    .foregroundStyle(.white.opacity(0.72))
+                    .padding(.horizontal, 18)
+                    .frame(height: 50)
+                    .background(.ultraThinMaterial, in: Capsule())
+                    .overlay(Capsule().stroke(Theme.accent.opacity(0.55), lineWidth: 1))
                 }
-                .padding(.top, 48)
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("newtab-search")
 
                 if tab.isPrivate {
-                    notice(
+                    GlassCard(
                         icon: "eyeglasses",
                         title: "Private tab",
                         text: "Pages you open here leave no history, cookies or site data once you close every private tab."
@@ -27,51 +40,105 @@ struct NewTabView: View {
                 }
 
                 if !browser.library.bookmarks.isEmpty {
-                    LazyVGrid(columns: columns, spacing: 18) {
-                        ForEach(browser.library.bookmarks.prefix(12)) { bookmark in
+                    LazyVGrid(columns: columns, spacing: 14) {
+                        ForEach(browser.library.bookmarks.prefix(8)) { bookmark in
                             Button { tab.load(bookmark.url) } label: {
                                 Shortcut(title: bookmark.title, host: bookmark.url.host() ?? "")
                             }
                             .buttonStyle(.plain)
                         }
                     }
-                    .padding(.horizontal, 20)
                 }
 
-                notice(
+                GlassCard(
                     icon: browser.library.settings.shieldsOn ? "shield.lefthalf.filled" : "shield.slash",
                     title: browser.library.settings.shieldsOn ? "Shields are on" : "Shields are off",
                     text: browser.library.settings.shieldsOn
-                        ? "Ads, trackers and known malicious sites are blocked on every page, using the same lists as Orbit on the desktop."
+                        ? "Ads, trackers and known malicious sites are blocked on every page."
                         : "Turn Shields on in Settings to block ads and trackers."
                 )
-                notice(
-                    icon: "lock",
-                    title: "Stays on this phone",
-                    text: "Orbit has no accounts and sends no telemetry. Bookmarks, history and settings never leave this device."
-                )
+
+                Label("No accounts, no telemetry. Everything stays on this phone.", systemImage: "lock")
+                    .font(.footnote)
+                    .foregroundStyle(.white.opacity(0.6))
+                    .multilineTextAlignment(.center)
             }
-            .padding(.bottom, 32)
+            .frame(maxWidth: 560)
+            .padding(.horizontal, 18)
+            .padding(.bottom, 28)
+            .frame(maxWidth: .infinity)
         }
         .scrollDismissesKeyboard(.immediately)
-        .background(Theme.surface)
+        .environment(\.colorScheme, .dark)
     }
+}
 
-    private func notice(icon: String, title: LocalizedStringKey, text: LocalizedStringKey) -> some View {
+/// The space picture of Orbit's new tab page, darkened at the top and bottom so text and the
+/// bars stay readable.
+struct NewTabBackdrop: View {
+    private static let image = UIImage(named: "NewTabBackdrop.jpg")
+
+    var body: some View {
+        ZStack {
+            Color.black
+            if let image = Self.image {
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFill()
+            }
+            LinearGradient(
+                stops: [
+                    .init(color: .black.opacity(0.55), location: 0),
+                    .init(color: .black.opacity(0), location: 0.3),
+                    .init(color: .black.opacity(0), location: 0.55),
+                    .init(color: .black.opacity(0.75), location: 1),
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+        }
+        .ignoresSafeArea()
+        .accessibilityHidden(true)
+    }
+}
+
+private struct ClockView: View {
+    var body: some View {
+        TimelineView(.everyMinute) { context in
+            VStack(spacing: 4) {
+                Text(context.date, format: .dateTime.hour().minute())
+                    .font(.system(size: 68, weight: .thin))
+                    .monospacedDigit()
+                Text(context.date, format: .dateTime.weekday(.wide).month(.wide).day())
+                    .font(.subheadline)
+                    .foregroundStyle(.white.opacity(0.72))
+            }
+            .foregroundStyle(.white)
+            .shadow(color: .black.opacity(0.45), radius: 8)
+        }
+    }
+}
+
+private struct GlassCard: View {
+    let icon: String
+    let title: LocalizedStringKey
+    let text: LocalizedStringKey
+
+    var body: some View {
         HStack(alignment: .top, spacing: 12) {
             Image(systemName: icon)
                 .font(.title3)
-                .foregroundStyle(Theme.primary)
-                .frame(width: 28)
-            VStack(alignment: .leading, spacing: 4) {
-                Text(title).font(.headline).foregroundStyle(Theme.text)
-                Text(text).font(.subheadline).foregroundStyle(Theme.secondaryText)
+                .foregroundStyle(Theme.accent)
+                .frame(width: 26)
+            VStack(alignment: .leading, spacing: 3) {
+                Text(title).font(.subheadline.weight(.semibold)).foregroundStyle(.white)
+                Text(text).font(.footnote).foregroundStyle(.white.opacity(0.7))
             }
             Spacer(minLength: 0)
         }
-        .padding(16)
-        .background(Theme.card, in: RoundedRectangle(cornerRadius: 16))
-        .padding(.horizontal, 20)
+        .padding(14)
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 18))
+        .overlay(RoundedRectangle(cornerRadius: 18).stroke(.white.opacity(0.1), lineWidth: 1))
     }
 }
 
@@ -82,19 +149,21 @@ private struct Shortcut: View {
     var body: some View {
         VStack(spacing: 6) {
             Text(String(host.replacingOccurrences(of: "www.", with: "").prefix(1)).uppercased())
-                .font(.title2.weight(.semibold))
-                .foregroundStyle(Theme.primary)
-                .frame(width: 56, height: 56)
-                .background(Theme.card, in: RoundedRectangle(cornerRadius: 14))
+                .font(.title3.weight(.semibold))
+                .foregroundStyle(.white)
+                .frame(width: 52, height: 52)
+                .background(.ultraThinMaterial, in: Circle())
+                .overlay(Circle().stroke(.white.opacity(0.12), lineWidth: 1))
             Text(title)
-                .font(.caption)
-                .foregroundStyle(Theme.text)
+                .font(.caption2)
+                .foregroundStyle(.white)
                 .lineLimit(1)
         }
+        .frame(maxWidth: .infinity)
     }
 }
 
-/// Orbit's mark: a planet ring and a satellite in the accent color.
+/// Orbit's mark: an open ring and a satellite in the accent color.
 struct OrbitMark: View {
     var body: some View {
         ZStack {
