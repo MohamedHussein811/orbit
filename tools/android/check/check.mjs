@@ -279,6 +279,30 @@ async function clock() {
   console.log(`clock: ${JSON.stringify(report.clock, null, 1)}`);
 }
 
+// Orbit's page: the default shortcuts, and a long press on one opens Edit and Remove.
+async function shortcuts() {
+  await launch(null);
+  if (!(await newTabFromMenu())) return;
+  const titles = await evaluate(ORBIT_PAGE, `[...document.querySelectorAll(".tile[data-id] .tile-title")].map((e) => e.textContent)`);
+  report.shortcuts = { titles };
+  console.log(`shortcuts: ${JSON.stringify(titles)}`);
+  const tile = nodes().find((n) => n.text === "YouTube" || n.desc === "YouTube");
+  if (!tile) {
+    report.shortcuts.longPress = "YouTube tile not found on screen";
+    return;
+  }
+  shell(`input swipe ${tile.x} ${tile.y} ${tile.x} ${tile.y} 1200`);
+  await sleep(2);
+  shot("08-shortcut-long-press");
+  report.shortcuts.menu = await evaluate(ORBIT_PAGE, `[...document.querySelectorAll(".context-menu .context-item")].map((b) => b.textContent)`);
+  await evaluate(ORBIT_PAGE, `[...document.querySelectorAll(".context-menu .context-item")].find((b) => b.textContent === "Edit shortcut")?.click()`);
+  await sleep(2);
+  shot("09-shortcut-editor");
+  report.shortcuts.editorOpen = await evaluate(ORBIT_PAGE, `Boolean(document.querySelector("dialog.editor[open]"))`);
+  console.log(`long press menu: ${JSON.stringify(report.shortcuts.menu)}, editor open: ${report.shortcuts.editorOpen}`);
+  shell("input keyevent KEYCODE_BACK");
+}
+
 async function crawl(context) {
   const prepare = async () => {
     if (context === "page") await launch(PAGE);
@@ -327,6 +351,8 @@ try {
   await newTabPages();
   save();
   await clock();
+  save();
+  await shortcuts();
   save();
   await crawl("page");
   save();
