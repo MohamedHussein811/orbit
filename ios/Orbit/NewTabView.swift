@@ -86,12 +86,19 @@ struct NewTabBackdrop: View {
                     .resizable()
                     .scaledToFill()
             }
+            Color.black.opacity(0.3)
+            RadialGradient(
+                colors: [.black.opacity(0), .black.opacity(0.55)],
+                center: .center,
+                startRadius: 120,
+                endRadius: 520
+            )
             LinearGradient(
                 stops: [
-                    .init(color: .black.opacity(0.55), location: 0),
-                    .init(color: .black.opacity(0), location: 0.3),
-                    .init(color: .black.opacity(0), location: 0.55),
-                    .init(color: .black.opacity(0.75), location: 1),
+                    .init(color: .black.opacity(0.6), location: 0),
+                    .init(color: .black.opacity(0), location: 0.32),
+                    .init(color: .black.opacity(0), location: 0.5),
+                    .init(color: .black.opacity(0.8), location: 1),
                 ],
                 startPoint: .top,
                 endPoint: .bottom
@@ -103,12 +110,28 @@ struct NewTabBackdrop: View {
 }
 
 private struct ClockView: View {
+    /// The day period ("AM") in a 12-hour locale, drawn small after the digits as on the desktop.
+    private static let periodFormatter: DateFormatter? = {
+        guard DateFormatter.dateFormat(fromTemplate: "j", options: 0, locale: .current)?.contains("a") == true else { return nil }
+        let formatter = DateFormatter()
+        formatter.locale = .current
+        formatter.setLocalizedDateFormatFromTemplate("a")
+        return formatter
+    }()
+
     var body: some View {
         TimelineView(.everyMinute) { context in
             VStack(spacing: 4) {
-                Text(context.date, format: .dateTime.hour().minute())
-                    .font(.system(size: 68, weight: .thin))
-                    .monospacedDigit()
+                HStack(alignment: .lastTextBaseline, spacing: 6) {
+                    Text(context.date, format: .dateTime.hour(.defaultDigits(amPM: .omitted)).minute())
+                        .font(.system(size: 72, weight: .thin))
+                        .monospacedDigit()
+                    if let period = Self.periodFormatter?.string(from: context.date) {
+                        Text(period)
+                            .font(.system(size: 20, weight: .regular))
+                            .foregroundStyle(.white.opacity(0.72))
+                    }
+                }
                 Text(context.date, format: .dateTime.weekday(.wide).month(.wide).day())
                     .font(.subheadline)
                     .foregroundStyle(.white.opacity(0.72))
