@@ -61,10 +61,51 @@ diff --git a/chrome/browser/ui/android/theme/java/src/org/chromium/chrome/browse
      private @BrandedColorScheme int calculateBrandedColorScheme(
              boolean isIncognito, boolean isDefaultColor) {
          if (isIncognito) return BrandedColorScheme.INCOGNITO;
+diff --git a/chrome/browser/ui/android/toolbar/java/src/org/chromium/chrome/browser/toolbar/top/ToolbarLayout.java b/chrome/browser/ui/android/toolbar/java/src/org/chromium/chrome/browser/toolbar/top/ToolbarLayout.java
+--- a/chrome/browser/ui/android/toolbar/java/src/org/chromium/chrome/browser/toolbar/top/ToolbarLayout.java
++++ b/chrome/browser/ui/android/toolbar/java/src/org/chromium/chrome/browser/toolbar/top/ToolbarLayout.java
+@@ -23,6 +23,7 @@
+ import androidx.annotation.VisibleForTesting;
+ import androidx.appcompat.widget.TooltipCompat;
+ 
++import org.chromium.base.Log;
+ import org.chromium.base.TraceEvent;
+ import org.chromium.base.lifetime.DestroyChecker;
+ import org.chromium.base.lifetime.Destroyable;
+@@ -272,6 +273,7 @@
+      */
+     @Initializer
+     void setThemeColorProvider(ThemeColorProvider themeColorProvider) {
++        Log.i("OrbitTheme", "toolbar provider=%s", themeColorProvider.getClass().getName());
+         mThemeColorProvider = themeColorProvider;
+         mThemeColorProvider.addTintObserver(this);
+         mThemeColorProvider.addThemeColorObserver(this);
 diff --git a/chrome/browser/ui/android/toolbar/java/src/org/chromium/chrome/browser/toolbar/top/ToolbarPhone.java b/chrome/browser/ui/android/toolbar/java/src/org/chromium/chrome/browser/toolbar/top/ToolbarPhone.java
 --- a/chrome/browser/ui/android/toolbar/java/src/org/chromium/chrome/browser/toolbar/top/ToolbarPhone.java
 +++ b/chrome/browser/ui/android/toolbar/java/src/org/chromium/chrome/browser/toolbar/top/ToolbarPhone.java
-@@ -964,6 +964,9 @@
+@@ -54,6 +54,7 @@
+ import androidx.core.content.ContextCompat;
+ import androidx.core.widget.ImageViewCompat;
+ 
++import org.chromium.base.Log;
+ import org.chromium.base.MathUtils;
+ import org.chromium.base.TimeUtils;
+ import org.chromium.base.TraceEvent;
+@@ -939,6 +940,13 @@
+     }
+ 
+     private void updateToolbarBackgroundFromState(@VisualState int visualState) {
++        Log.i(
++                "OrbitTheme",
++                "phone state=%d color=%08x brand=%b primary=%08x",
++                visualState,
++                getToolbarColorForVisualState(visualState),
++                getToolbarDataProvider().isUsingBrandColor(),
++                getToolbarDataProvider().getPrimaryColor());
+         updateToolbarBackground(getToolbarColorForVisualState(visualState));
+     }
+ 
+@@ -964,6 +972,9 @@
                  // progress of the toolbar.
                  return ColorUtils.setAlphaComponent(mToolbarBackgroundColorForNtp, alpha);
              case VisualState.NEW_TAB_SEARCH_ENGINE_NO_LOGO:
@@ -93,3 +134,22 @@ diff --git a/chrome/browser/ui/android/toolbar/java/src/org/chromium/chrome/brow
          setBackgroundColor(color);
          mFixedHeightBackground.setBackgroundColor(color);
          mLocationBar.updateVisualsForState();
+diff --git a/chrome/browser/ui/android/toolbar/java/src/org/chromium/chrome/browser/toolbar/top/TopToolbarOverlayMediator.java b/chrome/browser/ui/android/toolbar/java/src/org/chromium/chrome/browser/toolbar/top/TopToolbarOverlayMediator.java
+--- a/chrome/browser/ui/android/toolbar/java/src/org/chromium/chrome/browser/toolbar/top/TopToolbarOverlayMediator.java
++++ b/chrome/browser/ui/android/toolbar/java/src/org/chromium/chrome/browser/toolbar/top/TopToolbarOverlayMediator.java
+@@ -13,6 +13,7 @@
+ import androidx.annotation.ColorInt;
+ 
+ import org.chromium.base.Callback;
++import org.chromium.base.Log;
+ import org.chromium.base.MathUtils;
+ import org.chromium.base.ResettersForTesting;
+ import org.chromium.base.supplier.MonotonicObservableSupplier;
+@@ -482,6 +483,7 @@
+      */
+     private void updateThemeColor(Tab tab) {
+         @ColorInt int color = getToolbarBackgroundColor(tab);
++        Log.i("OrbitTheme", "overlay color=%08x", color);
+         mModel.set(TopToolbarOverlayProperties.TOOLBAR_BACKGROUND_COLOR, color);
+         mModel.set(TopToolbarOverlayProperties.URL_BAR_COLOR, getUrlBarBackgroundColor(tab, color));
+     }
