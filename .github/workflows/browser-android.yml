@@ -47,7 +47,7 @@ jobs:
       stage: 1
       cpu: ${{ inputs.cpu || 'x64' }}
       resume_run: ${{ inputs.resume_run || '44255121247' }}
-      resume_state: ${{ inputs.resume_state || 3 }}
+      resume_state: ${{ fromJSON(format('{0}', inputs.resume_state || 0)) || 3 }}
   stage2:
     needs: stage1
     if: needs.stage1.outputs.done != 'true'
