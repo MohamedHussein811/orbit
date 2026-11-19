@@ -123,7 +123,7 @@ private struct ClockView: View {
         TimelineView(.everyMinute) { context in
             VStack(spacing: 4) {
                 HStack(alignment: .lastTextBaseline, spacing: 6) {
-                    Text(context.date, format: .dateTime.hour(.defaultDigits(amPM: .omitted)).minute())
+                    Text(context.date, format: .dateTime.hour(.conversationalDefaultDigits(amPM: .omitted)).minute())
                         .font(.system(size: 72, weight: .thin))
                         .monospacedDigit()
                     if let period = Self.periodFormatter?.string(from: context.date) {
