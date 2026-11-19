@@ -1,0 +1,57 @@
+diff --git a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstRunFlowSequencer.java b/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstRunFlowSequencer.java
+--- a/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstRunFlowSequencer.java
++++ b/chrome/android/java/src/org/chromium/chrome/browser/firstrun/FirstRunFlowSequencer.java
+@@ -14,9 +14,6 @@
+ 
+ import androidx.annotation.VisibleForTesting;
+ 
+-import org.chromium.base.ApiCompatibilityUtils;
+-import org.chromium.base.CommandLine;
+-import org.chromium.base.DeviceInfo;
+ import org.chromium.base.IntentUtils;
+ import org.chromium.base.Log;
+ import org.chromium.base.ResettersForTesting;
+@@ -31,7 +28,6 @@
+ import org.chromium.chrome.browser.LaunchIntentDispatcher;
+ import org.chromium.chrome.browser.customtabs.AuthTabIntentDataProvider;
+ import org.chromium.chrome.browser.flags.ChromeFeatureList;
+-import org.chromium.chrome.browser.flags.ChromeSwitches;
+ import org.chromium.chrome.browser.locale.LocaleManager;
+ import org.chromium.chrome.browser.partnercustomizations.PartnerBrowserCustomizations;
+ import org.chromium.chrome.browser.profiles.Profile;
+@@ -242,31 +238,11 @@
+      * @return Whether the First Run Experience needs to be launched.
+      */
+     public static boolean checkIfFirstRunIsNecessary(boolean preferLightweightFre, boolean isCct) {
+-        // If FRE is disabled (e.g. in tests), proceed directly to the intent handling.
+-        // Retail demo mode suppresses the FRE, except on desktop devices where the signed-in
+-        // experience needs to be showcased. Account visibility controls whether sign-in is
+-        // actually available on those devices.
+-        if (CommandLine.getInstance().hasSwitch(ChromeSwitches.DISABLE_FIRST_RUN_EXPERIENCE)
+-                || (DeviceInfo.isRetailDemoMode() && !DeviceInfo.isDesktop())
+-                || ApiCompatibilityUtils.isRunningInUserTestHarness()) {
+-            return false;
++        // Orbit has no first run flow: every launch goes straight to the browser.
++        if (!FirstRunStatus.getFirstRunFlowComplete()) {
++            FirstRunStatus.setFirstRunFlowComplete(true);
+         }
+-        if (FirstRunStatus.getFirstRunFlowComplete()) {
+-            // Promo pages are removed, so there is nothing else to show in FRE.
+-            return false;
+-        }
+-        if (FirstRunStatus.isFirstRunSkippedByPolicy() && (isCct || preferLightweightFre)) {
+-            // Domain policies may have caused CCTs to skip the FRE. While this needs to be figured
+-            // out at runtime for each app restart, it should apply to all CCTs for the duration of
+-            // the app's lifetime.
+-            return false;
+-        }
+-        if (preferLightweightFre
+-                && (FirstRunStatus.shouldSkipWelcomePage()
+-                        || FirstRunStatus.getLightweightFirstRunFlowComplete())) {
+-            return false;
+-        }
+-        return true;
++        return false;
+     }
+ 
+     /**

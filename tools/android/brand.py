@@ -9,6 +9,7 @@ rsvg-convert. The changed files are added to orbit-fork-files.json for date-fork
 """
 
 import hashlib
+import importlib.util
 import json
 import re
 import pathlib
@@ -18,6 +19,16 @@ import tempfile
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 RES = "chrome/android/java/res_chromium_base"
+# Folders holding the grd files that make Android string resources, and the grd conditions that
+# are true in Orbit's Android build (is_desktop_android turns on extensions; ARCore is on by default).
+STRING_ROOTS = ("chrome", "components", "ui", "content", "device", "services")
+ENABLED_CONDITIONS = ("enable_extensions_core", "enable_arcore")
+PRIVACY_URL = "https://github.com/MohamedHussein811/orbit/blob/main/PRIVACY.md"
+# Settings > About > Legal information: Orbit's privacy policy instead of Google's.
+LEGAL_MESSAGES = {
+    "IDS_PRIVACY_POLICY_TITLE": ("Google Privacy Policy", "Orbit Privacy Policy"),
+    "IDS_GOOGLE_PRIVACY_POLICY_URL": ("https://policies.google.com/privacy", PRIVACY_URL),
+}
 BACKGROUND = "#0b0b0d"
 GLYPH = (
     '<path d="M385.43 221.32 A134 134 0 1 1 290.68 126.57" fill="none" stroke="{color}" '
@@ -139,11 +150,86 @@ def apply_palette(src):
     return [values, night]
 
 
+def apply_fork():
+    spec = importlib.util.spec_from_file_location("apply_fork", ROOT / "tools" / "chromium" / "apply-fork.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def android_string_files(src, fork):
+    """Translated grd files that produce Android string resources and name the browser."""
+    found = []
+    for root in STRING_ROOTS:
+        for grd in sorted((src / root).rglob("*.grd")):
+            relative = grd.relative_to(src).as_posix()
+            if "/test" in relative or "testdata" in relative:
+                continue
+            text = grd.read_text(encoding="utf-8", errors="replace")
+            if 'type="android"' not in text or not fork.XTB.search(text):
+                continue
+            sources = [grd, *fork.grd_parts(grd)]
+            if any(fork.CHROME.search(path.read_text(encoding="utf-8", errors="replace")) for path in sources):
+                found.append(relative)
+    return found
+
+
+def android_name(fork):
+    """apply-fork.py's browser name pattern, plus "Google Chrome": on Android it always names the
+    app itself (menu descriptions, shortcut help), never another browser to import from."""
+    core = fork.CHROME.pattern.replace("(?<!Google )(?<!Google&nbsp;)", "")
+    if core == fork.CHROME.pattern:
+        sys.exit("apply-fork.py: the CHROME pattern changed; update android_name")
+    return re.compile(r"(?:Google(?: |&nbsp;))?" + core)
+
+
+def legal_messages(text):
+    for name, (old, new) in LEGAL_MESSAGES.items():
+        pattern = re.compile(r'(<message name="' + name + r'"[^>]*>\s*)' + re.escape(old) + r"(\s*</message>)")
+        text, count = pattern.subn(lambda m: m.group(1) + new + m.group(2), text)
+        if count != 1:
+            sys.exit(f"{name}: expected text not found")
+    return text
+
+
+def brand_android_strings(src):
+    """Renames "Chrome" and "Chromium" used as the browser's name in the Android string resources,
+    with the same translation handling as the desktop strings (apply-fork.py)."""
+    fork = apply_fork()
+    sys.path.insert(0, str(src / "tools" / "grit"))
+    changed = fork.rename_messages(
+        src,
+        "chrome/browser/ui/android/strings/android_chrome_strings.grd",
+        legal_messages,
+        lambda text: text.replace("Google", "Orbit"),
+        enabled=ENABLED_CONDITIONS,
+    )
+    files = android_string_files(src, fork)
+    if not files:
+        sys.exit("no Android string files found")
+    name = android_name(fork)
+
+    def rename(text):
+        return name.sub("Orbit", text)
+
+    for relative in files:
+        changed += fork.rename_messages(src, relative, rename, rename, enabled=ENABLED_CONDITIONS)
+    kept = set()
+    for relative in files:
+        for path in [src / relative, *fork.grd_parts(src / relative)]:
+            for body in re.findall(r"<message [^>]*>(.*?)</message>", path.read_text(encoding="utf-8"), re.DOTALL):
+                kept.update(re.findall(r"(?:Google )?Chrom\w*(?: \w+)?", body))
+    print(f"Android strings: {len(files)} grd files, {len(changed)} files changed")
+    print(f"Android strings: names kept (other products): {sorted(kept)}")
+    return changed
+
+
 def main():
     src = pathlib.Path(sys.argv[1]).resolve()
     res = src / RES
     changed = apply_patches(src)
     changed += apply_palette(src)
+    changed += brand_android_strings(src)
 
     constants = res / "values" / "channel_constants.xml"
     text = constants.read_text(encoding="utf-8")

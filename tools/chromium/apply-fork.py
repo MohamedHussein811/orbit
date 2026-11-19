@@ -85,7 +85,7 @@ def apply_patches(src):
     return changed
 
 
-def message_ids(grd):
+def message_ids(grd, enabled=()):
     from grit import grd_reader
     from grit.node import message
 
@@ -93,7 +93,7 @@ def message_ids(grd):
     conditions = " ".join(
         expr for path in sources for expr in re.findall(r'<if expr="([^"]*)"', path.read_text(encoding="utf-8"))
     )
-    defines = {name: False for name in re.findall(r"[A-Za-z_]\w*", conditions)}
+    defines = {name: name in enabled for name in re.findall(r"[A-Za-z_]\w*", conditions)}
     root = grd_reader.Parse(str(grd), dir=str(grd.parent), debug=False, defines=defines)
     return [
         node.GetCliques()[0].GetId()
@@ -170,16 +170,17 @@ def grd_parts(grd):
     return found
 
 
-def rename_messages(src, relative, english, translation):
+def rename_messages(src, relative, english, translation, enabled=()):
     """Edits the messages of a grd and its parts with `english`, then applies `translation` to the
-    translations of exactly the messages whose English text changed, under their new ids."""
+    translations of exactly the messages whose English text changed, under their new ids.
+    `enabled` names the grd conditions that are true in the build."""
     grd = src / relative
     changed = []
-    old_ids = message_ids(grd)
+    old_ids = message_ids(grd, enabled)
     for path in [grd, *grd_parts(grd)]:
         if rewrite(path, english):
             changed.append(path)
-    new_ids = message_ids(grd)
+    new_ids = message_ids(grd, enabled)
     if len(old_ids) != len(new_ids):
         sys.exit(f"{relative}: message count changed from {len(old_ids)} to {len(new_ids)}")
     renamed = {old: new for old, new in zip(old_ids, new_ids) if old != new}
