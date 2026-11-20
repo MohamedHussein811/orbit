@@ -39,7 +39,7 @@ jobs:
     with:
       stage: 1
       cpu: arm64
-      resume_run: ${{ inputs.resume_run || '44550000484' }}
+      resume_run: ${{ inputs.resume_run || '44640384795' }}
       resume_state: ${{ fromJSON(format('{0}', inputs.resume_state || 0)) || 2 }}
   stage2:
     needs: stage1
