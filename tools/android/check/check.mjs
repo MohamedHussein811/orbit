@@ -470,8 +470,76 @@ async function crawl(context) {
   }
 }
 
+// Window, view, layer and thread state of the running app, written to files (splash mode).
+function dumpState(tag) {
+  const commands = {
+    "activity-top": "dumpsys activity top",
+    activities: "dumpsys activity activities",
+    windows: "dumpsys window windows",
+    surfaceflinger: "dumpsys SurfaceFlinger",
+    gfxinfo: `dumpsys gfxinfo ${pkg}`,
+  };
+  for (const [name, cmd] of Object.entries(commands)) fs.writeFileSync(path.join(out, `${tag}-${name}.txt`), shell(cmd));
+  const pid = alive().split(/\s+/)[0];
+  if (pid) fs.writeFileSync(path.join(out, `${tag}-java-stacks.txt`), shell(`debuggerd -j ${pid}`));
+}
+
+// Cold starts from the launcher with different tabs active, recording whether the splash stays
+// over Orbit. Each case is set up after a cold start on a web page.
+async function splashCases() {
+  report.splashCases = {};
+  const openInTab = async (url) => {
+    await evaluate(ORBIT_PAGE, `chrome.tabs.getCurrent().then((t) => chrome.tabs.update(t.id, { url: ${JSON.stringify(url)} }))`);
+    await sleep(5);
+  };
+  const cases = {
+    ntp: async () => newTabFromMenu(),
+    extension: async () => {
+      await newTabFromMenu();
+      const url = await evaluate(ORBIT_PAGE, "chrome.runtime.getURL(chrome.runtime.getManifest().chrome_url_overrides.newtab)");
+      await openInTab(String(url));
+    },
+    version: async () => {
+      await newTabFromMenu();
+      await openInTab("chrome://version/");
+    },
+    web: async () => {},
+  };
+  for (const [name, setUp] of Object.entries(cases)) {
+    await launch(PAGE);
+    await setUp();
+    await step(`splash-${name}-before`);
+    const tabsBefore = report.steps.at(-1).tabs;
+    await launch(null);
+    await step(`splash-${name}-cold-start`);
+    const stuck = report.steps.at(-1).splash;
+    let after = null;
+    if (stuck) {
+      dumpState(`splash-${name}`);
+      await sleep(30);
+      await step(`splash-${name}-after-40s`);
+      after = report.steps.at(-1).splash;
+    }
+    report.splashCases[name] = { tabsBefore, stuck, stillAfter40s: after };
+    console.log(`splash case ${name}: stuck=${stuck} after 40 s=${after}`);
+    save();
+  }
+}
+
 fs.mkdirSync(out, { recursive: true });
 const save = () => fs.writeFileSync(path.join(out, "report.json"), JSON.stringify(report, null, 1));
+if (process.env.CHECK_MODE === "splash") {
+  try {
+    await firstRun();
+    await splashCases();
+  } catch (e) {
+    report.error = String(e?.stack || e);
+    console.log(report.error);
+  }
+  save();
+  console.log(`splash cases: ${JSON.stringify(report.splashCases)}`);
+  process.exit(0);
+}
 try {
   await firstRun();
   save();

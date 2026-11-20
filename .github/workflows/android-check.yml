@@ -12,6 +12,11 @@ on:
         description: run id of the Android x64 build to check
         type: string
         default: ""
+      mode:
+        description: full check, or splash (cold starts with different tabs active)
+        type: choice
+        options: [full, splash]
+        default: full
   push:
     branches: [v107]
     paths:
@@ -70,6 +75,8 @@ jobs:
 
       - name: Check a fresh install on the emulator
         uses: ReactiveCircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
+        env:
+          CHECK_MODE: ${{ inputs.mode || 'full' }}
         with:
           api-level: 34
           target: google_apis
@@ -79,17 +86,22 @@ jobs:
           disable-animations: true
           script: bash tools/android/check/check.sh apk/ChromePublic.apk ${{ runner.temp }}/check
 
-      - name: Read crash stacks with the R8 mapping
+      - name: Read crash and thread stacks with the R8 mapping
         if: always()
         run: |
           out="$RUNNER_TEMP/check"
           map=$(ls mapping/*.mapping 2> /dev/null | head -1)
-          if [ -z "$map" ] || [ ! -s "$out/crash.txt" ]; then echo "no mapping or no crashes"; exit 0; fi
+          stacks=$(ls "$out"/*java-stacks.txt 2> /dev/null || true)
+          if [ -z "$map" ] || { [ ! -s "$out/crash.txt" ] && [ -z "$stacks" ]; }; then echo "no mapping, crashes or stacks"; exit 0; fi
           version=$(curl -fsS https://dl.google.com/android/maven2/com/android/tools/r8/maven-metadata.xml | sed -n 's|.*<release>\(.*\)</release>.*|\1|p')
           curl -fsSL -o "$RUNNER_TEMP/r8.jar" "https://dl.google.com/android/maven2/com/android/tools/r8/$version/r8-$version.jar"
-          java -cp "$RUNNER_TEMP/r8.jar" com.android.tools.r8.retrace.Retrace "$map" "$out/crash.txt" > "$out/crash-retraced.txt" || true
           echo "R8 $version"
-          cat "$out/crash-retraced.txt" | head -300
+          retrace() { java -cp "$RUNNER_TEMP/r8.jar" com.android.tools.r8.retrace.Retrace "$map" "$1" > "${1%.txt}-retraced.txt" || true; }
+          if [ -s "$out/crash.txt" ]; then
+            retrace "$out/crash.txt"
+            head -300 "$out/crash-retraced.txt"
+          fi
+          for f in $stacks; do retrace "$f"; done
 
       - name: Keep the report, screenshots and logs
         if: always()
