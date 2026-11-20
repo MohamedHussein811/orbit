@@ -1,7 +1,25 @@
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/ChromeTabbedActivity.java b/chrome/android/java/src/org/chromium/chrome/browser/ChromeTabbedActivity.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/ChromeTabbedActivity.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/ChromeTabbedActivity.java
-@@ -4731,8 +4731,19 @@
+@@ -2738,12 +2738,13 @@
+                 Tab currentTab = getActivityTab();
+                 boolean isTabNtp = isTabRegularNtp(currentTab);
+                 boolean isTabWebUiNtp = UrlOverrideUtils.isWebUiNtpOverrideEnabled();
++                boolean isNtpOverridden = UrlOverrideUtils.isNtpOverrideEnabled();
+                 assumeNonNull(currentTab);
+-                if (isTabNtp && !currentTab.isNativePage() && !isTabWebUiNtp) {
++                if (isTabNtp && !currentTab.isNativePage() && !isTabWebUiNtp && !isNtpOverridden) {
+                     // This will be a NTP, but the native page hasn't been created yet. Need to wait
+-                    // for this to be created before allowing the toolbar to draw. The WebUI NTP is
+-                    // not a native Tab, so we don't wait for it to be created, otherwise it hangs
+-                    // the rendering thread.
++                    // for this to be created before allowing the toolbar to draw. The WebUI NTP and
++                    // an extension's NTP (an override) are not native Tabs, so we don't wait for
++                    // them to be created, otherwise it hangs the rendering thread.
+                     currentTab.addObserver(
+                             new TabObserver() {
+                                 @Override
+@@ -4731,8 +4732,19 @@
          } else if (id == R.id.extensions_menu_menu_id) {
              ExtensionsToolbarCoordinator coordinator =
                      assumeNonNull(getToolbarManager()).getExtensionsToolbarCoordinator();
