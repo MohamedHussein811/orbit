@@ -333,18 +333,19 @@ async function shortcuts() {
   );
   report.shortcuts = { titles, bookmarks };
   console.log(`shortcuts: ${JSON.stringify(titles)}\nbookmarks: ${JSON.stringify(bookmarks).slice(0, 1500)}`);
-  // Screen position of the YouTube tile: its place in the page, scaled, from the web view's corner.
-  const rect = await evaluate(
-    ORBIT_PAGE,
-    `(() => { const a = [...document.querySelectorAll(".tile[data-id] a")].find((e) => e.textContent.includes("YouTube")); if (!a) return null; a.scrollIntoView({ block: "center" }); const r = a.getBoundingClientRect(); return { x: r.x + r.width / 2, y: r.y + r.height / 2, dpr: devicePixelRatio }; })()`,
-  );
-  const view = nodes().find((n) => n.desc === "Web View" || /WebView/.test(n.cls));
-  if (!rect?.dpr || !view) {
-    report.shortcuts.longPress = `tile ${JSON.stringify(rect)} or web view not found`;
+  // The tile's link as the accessibility tree places it on screen.
+  await evaluate(ORBIT_PAGE, `[...document.querySelectorAll(".tile[data-id] a")].find((e) => e.textContent.includes("YouTube"))?.scrollIntoView({ block: "center" })`);
+  let tile = null;
+  for (let i = 0; i < 5 && !tile; i++) {
+    const n = nodes().find((node) => label(node) === "YouTube" && node.r > node.l && node.b > node.t);
+    if (n) tile = { x: n.x, y: n.y, bounds: [n.l, n.t, n.r, n.b] };
+    else await sleep(2);
+  }
+  report.shortcuts.longPressAt = tile;
+  if (!tile) {
+    report.shortcuts.longPress = "YouTube tile not on screen";
     return;
   }
-  const tile = { x: Math.round(view.l + rect.x * rect.dpr), y: Math.round(view.t + rect.y * rect.dpr) };
-  report.shortcuts.longPressAt = tile;
   shell(`input swipe ${tile.x} ${tile.y} ${tile.x} ${tile.y} 1200`);
   await sleep(2);
   shot("08-shortcut-long-press");
@@ -404,7 +405,8 @@ async function crawl(context) {
     entry.texts = texts(list).slice(0, 20);
     entry.crashDialog = list.some((n) => CRASH_DIALOG.test(label(n)));
     const crash = crashText().slice(before);
-    entry.crashed = entry.crashDialog || crash.includes("FATAL EXCEPTION") || crash.includes("Fatal signal") || !alive();
+    const orbitCrash = crash.includes(pkg) && /FATAL EXCEPTION|Fatal signal/.test(crash);
+    entry.crashed = entry.crashDialog || orbitCrash || !alive();
     entry.crash = crash.split("\n").filter((l) => /FATAL|Exception|Error|at |Caused by|signal/.test(l)).slice(0, 25).map((l) => l.replace(/^.*?(?:AndroidRuntime|DEBUG|libc)\s*:\s?/, ""));
     report.menu.push(entry);
     console.log(`${entry.crashed ? "CRASH" : "ok   "} [${context}] ${name} -> ${entry.activity.replace(/.*\{[^ ]+ [^ ]+ /, "").slice(0, 90)}`);
@@ -438,3 +440,22 @@ const crashes = report.menu.filter((m) => m.crashed);
 console.log(`\n${report.menu.length} menu items tapped, ${crashes.length} crashed: ${crashes.map((m) => `${m.context}:${m.name}`).join(", ") || "none"}`);
 const notOpened = report.menu.filter((m) => !m.opened);
 if (notOpened.length) console.log(`not found when tapping: ${notOpened.map((m) => `${m.context}:${m.name}`).join(", ")}`);
+
+const problems = [];
+if (report.error) problems.push(`check stopped: ${report.error.split("\n")[0]}`);
+for (const s of report.steps) {
+  if (s.nativeNtp) problems.push(`${s.name}: Chromium's new tab page`);
+  const dialog = s.texts.find((t) => CRASH_DIALOG.test(t));
+  if (dialog) problems.push(`${s.name}: ${dialog}`);
+}
+for (const m of crashes) problems.push(`menu ${m.context}: ${m.name} crashed`);
+const sc = report.shortcuts ?? {};
+const missing = ["Google", "YouTube", "Facebook", "Instagram", "X"].filter((t) => !sc.titles?.includes?.(t));
+if (missing.length) problems.push(`default shortcuts missing: ${missing.join(", ")}`);
+if (!Array.isArray(sc.menu) || !sc.menu.includes("Edit shortcut") || !sc.menu.includes("Remove")) problems.push(`long press menu: ${JSON.stringify(sc.menu ?? sc.longPress ?? null)}`);
+if (sc.editorOpen !== true) problems.push("shortcut editor did not open");
+if (report.manyTabs?.notResponding) problems.push("many tabs: not responding");
+report.problems = problems;
+save();
+console.log(problems.length ? `\nPROBLEMS (${problems.length}):\n  ${problems.join("\n  ")}` : "\nno problems found");
+process.exitCode = problems.length ? 1 : 0;

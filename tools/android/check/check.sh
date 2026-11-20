@@ -24,6 +24,14 @@ echo "=== $(wc -l < "$out/chrome-strings.txt") resource strings name Chrome or C
 head -40 "$out/chrome-strings.txt"
 
 adb wait-for-device
+# The launcher stops responding on the slow emulator and covers the screen with its dialog; the
+# check starts Orbit with intents and does not need it. Without its recents service, System UI
+# crashes when the delayed PACKAGE_CHANGED broadcast reaches it, and its restart leaves the app on
+# screen without window focus, so Orbit starts only after that restart.
+systemui=$(adb shell pidof com.android.systemui | tr -d '\r')
+for launcher in com.google.android.apps.nexuslauncher com.android.launcher3; do
+  adb shell pm disable-user --user 0 "$launcher" > /dev/null 2>&1 || true
+done
 # No -g: runtime permissions start ungranted, as after a store install.
 adb install -r "$apk"
 adb root > /dev/null 2>&1 || true
@@ -33,11 +41,19 @@ flags="_ --enable-remote-debugging --remote-debugging-socket-name=chrome_devtool
 adb shell "echo '$flags' > /data/local/tmp/chrome-command-line"
 adb shell "echo '$flags' > /data/local/chrome-command-line" 2> /dev/null || true
 adb shell settings put global package_verifier_enable 0 > /dev/null 2>&1 || true
-# The launcher stops responding on the slow emulator and covers the screen with its dialog; the
-# check starts Orbit with intents and does not need it.
-for launcher in com.google.android.apps.nexuslauncher com.android.launcher3; do
-  adb shell pm disable-user --user 0 "$launcher" > /dev/null 2>&1 || true
+restarted=""
+for _ in $(seq 1 120); do
+  now=$(adb shell pidof com.android.systemui | tr -d '\r')
+  if [ -n "$now" ] && [ "$now" != "$systemui" ]; then
+    restarted=$now
+    break
+  fi
+  sleep 1
 done
+echo "System UI ${systemui:-?} -> ${restarted:-not restarted after 120 s}"
+sleep 15
+adb shell input keyevent KEYCODE_WAKEUP
+adb shell wm dismiss-keyguard > /dev/null 2>&1 || true
 adb forward tcp:9222 localabstract:chrome_devtools_remote
 adb logcat -c
 adb logcat -b crash -c
