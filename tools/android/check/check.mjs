@@ -333,11 +333,18 @@ async function shortcuts() {
   );
   report.shortcuts = { titles, bookmarks };
   console.log(`shortcuts: ${JSON.stringify(titles)}\nbookmarks: ${JSON.stringify(bookmarks).slice(0, 1500)}`);
-  const tile = nodes().find((n) => n.text === "YouTube" || n.desc === "YouTube");
-  if (!tile) {
-    report.shortcuts.longPress = "YouTube tile not found on screen";
+  // Screen position of the YouTube tile: its place in the page, scaled, from the web view's corner.
+  const rect = await evaluate(
+    ORBIT_PAGE,
+    `(() => { const a = [...document.querySelectorAll(".tile[data-id] a")].find((e) => e.textContent.includes("YouTube")); if (!a) return null; a.scrollIntoView({ block: "center" }); const r = a.getBoundingClientRect(); return { x: r.x + r.width / 2, y: r.y + r.height / 2, dpr: devicePixelRatio }; })()`,
+  );
+  const view = nodes().find((n) => n.desc === "Web View" || /WebView/.test(n.cls));
+  if (!rect?.dpr || !view) {
+    report.shortcuts.longPress = `tile ${JSON.stringify(rect)} or web view not found`;
     return;
   }
+  const tile = { x: Math.round(view.l + rect.x * rect.dpr), y: Math.round(view.t + rect.y * rect.dpr) };
+  report.shortcuts.longPressAt = tile;
   shell(`input swipe ${tile.x} ${tile.y} ${tile.x} ${tile.y} 1200`);
   await sleep(2);
   shot("08-shortcut-long-press");
