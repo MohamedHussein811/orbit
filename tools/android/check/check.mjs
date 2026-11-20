@@ -141,11 +141,30 @@ async function runIn(target, expression) {
   return result?.result?.result?.value ?? result;
 }
 
+// Orbit's windows and their draw states, and whether Android's splash (starting window) still covers
+// the app: it stays until the activity's window reports a finished draw.
+function windowState() {
+  const dump = shell("dumpsys window windows");
+  const windows = dump
+    .split(/\n(?=  Window #)/)
+    .filter((b) => b.split("\n")[0].includes(pkg))
+    .map((b) => [b.split("\n")[0].trim().replace(/^Window #\d+ /, ""), ...(b.match(/mDrawState=\S+|mViewVisibility=\S+|mHasSurface=\S+|isReadyForDisplay\(\)=\S+/g) || [])].join(" "));
+  const activities = shell("dumpsys activity activities")
+    .split("\n")
+    .filter((l) => /mStartingWindow|startingData|reportedDrawn|nowVisible|mWindowsDrawn|windowsDrawn|startingMoved/.test(l))
+    .map((l) => l.trim())
+    .slice(0, 12);
+  return { splash: dump.includes(`Splash Screen ${pkg}`), windows, activities };
+}
+
 async function step(name, extra = {}) {
   await sleep(1);
   shot(name);
   const list = nodes();
   const entry = { name, activity: activity(), tabs: await targets(), texts: texts(list).slice(0, 40), ...extra };
+  const state = windowState();
+  entry.splash = state.splash;
+  entry.windowState = state;
   entry.nativeNtp = list.some((n) => /ntp|search_provider_logo|tile_view|mv_tiles/.test(n.id));
   report.steps.push(entry);
   console.log(`[${name}] ${entry.activity}\n  tabs: ${entry.tabs.join(" | ")}\n  native NTP views: ${entry.nativeNtp}\n  text: ${entry.texts.slice(0, 14).join(" / ")}`);
@@ -267,6 +286,10 @@ async function newTabPages() {
   if (await newTabFromMenu()) await step("03-new-tab");
   await launch(null);
   await step("04-relaunch");
+  if (report.steps.at(-1).splash) {
+    await sleep(30);
+    await step("04-relaunch-after-40s");
+  }
   if (await newTabFromMenu()) await step("05-new-tab-after-relaunch");
   const home = nodes().find((n) => /^Home$|Open the home page/.test(n.desc));
   if (home) {
@@ -479,6 +502,7 @@ const problems = [];
 if (report.error) problems.push(`check stopped: ${report.error.split("\n")[0]}`);
 for (const s of report.steps) {
   if (s.nativeNtp) problems.push(`${s.name}: Chromium's new tab page`);
+  if (s.splash) problems.push(`${s.name}: splash screen still covers Orbit`);
   const dialog = s.texts.find((t) => CRASH_DIALOG.test(t));
   if (dialog) problems.push(`${s.name}: ${dialog}`);
 }
