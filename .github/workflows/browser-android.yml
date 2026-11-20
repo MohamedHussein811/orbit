@@ -18,10 +18,10 @@ on:
   workflow_dispatch:
     inputs:
       cpu:
-        description: target_cpu (arm64 for phones, x64 for a native emulator test)
+        description: target_cpu (x64 for the emulator check; Play builds use browser-android-arm64.yml)
         type: choice
         options: [arm64, x64]
-        default: arm64
+        default: x64
       resume_run:
         description: run id to continue from (empty builds from scratch)
         type: string
