@@ -32,7 +32,15 @@ export function bundledIconPath(url: string): string | null {
 
 export const BOOKMARKS_BAR_ID = "1";
 
-/** Adds the default shortcuts once per profile, and only to an empty bookmarks bar. The flag is
+/** The folder shortcuts live in: the bookmarks bar, or on Android, which hides an empty bookmarks
+ * bar from extensions and shows only Mobile bookmarks, the first folder there is. */
+export async function shortcutsRootId(): Promise<string> {
+  const [tree] = await chrome.bookmarks.getTree();
+  const roots = tree?.children ?? [];
+  return (roots.find((node) => node.id === BOOKMARKS_BAR_ID) ?? roots[0])?.id ?? BOOKMARKS_BAR_ID;
+}
+
+/** Adds the default shortcuts once per profile, and only to an empty shortcuts folder. The flag is
  * set first, so the background and the page never both add them; a failed attempt clears it, so a
  * later one tries again. */
 export async function seedDefaultShortcuts(): Promise<boolean> {
@@ -40,10 +48,11 @@ export async function seedDefaultShortcuts(): Promise<boolean> {
   if (shortcutsSeeded) return false;
   await chrome.storage.local.set({ shortcutsSeeded: true });
   try {
-    const existing = await chrome.bookmarks.getChildren(BOOKMARKS_BAR_ID);
+    const parentId = await shortcutsRootId();
+    const existing = await chrome.bookmarks.getChildren(parentId);
     if (existing.length) return false;
     for (const site of DEFAULT_SHORTCUTS) {
-      await chrome.bookmarks.create({ parentId: BOOKMARKS_BAR_ID, title: site.title, url: site.url });
+      await chrome.bookmarks.create({ parentId, title: site.title, url: site.url });
     }
     return true;
   } catch (error) {

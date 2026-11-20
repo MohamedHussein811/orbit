@@ -213,6 +213,7 @@ async function launch(url) {
   const total = (started.match(/TotalTime: (\d+)/) || [])[1];
   if (total) (report.launchMs ??= []).push(Number(total));
   await sleep(10);
+  adb("forward", "tcp:9222", "localabstract:chrome_devtools_remote");
 }
 
 async function home() {

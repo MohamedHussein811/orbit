@@ -570,8 +570,11 @@ export function mountBookmarks(root: HTMLElement, context: WidgetContext): void 
       return;
     }
     const [tree] = await chrome.bookmarks.getTree();
-    const roots = (tree?.children ?? []).filter((node) => node.id === BOOKMARKS_BAR || (node.children?.length ?? 0) > 0);
-    const [folder] = await chrome.bookmarks.getSubTree(current).catch(() => chrome.bookmarks.getSubTree(BOOKMARKS_BAR));
+    // Android hides an empty bookmarks bar from extensions and lists only Mobile bookmarks.
+    const allRoots = tree?.children ?? [];
+    const rootId = (allRoots.find((node) => node.id === BOOKMARKS_BAR) ?? allRoots[0])?.id ?? BOOKMARKS_BAR;
+    const roots = allRoots.filter((node) => node.id === rootId || (node.children?.length ?? 0) > 0);
+    const [folder] = await chrome.bookmarks.getSubTree(current).catch(() => chrome.bookmarks.getSubTree(rootId));
     if (!folder) return;
     current = folder.id;
 
@@ -579,7 +582,7 @@ export function mountBookmarks(root: HTMLElement, context: WidgetContext): void 
     collections.replaceChildren(
       ...roots.map((node) => h("button", { type: "button", role: "tab", "aria-selected": String(node.id === activeRoot), onclick: () => openFolder(node.id) }, node.title)),
     );
-    const crumb = activeRoot ? null : h("div", { class: "crumb" }, iconButton("back", t("backToParent"), () => openFolder(folder.parentId ?? BOOKMARKS_BAR)), h("span", {}, folder.title));
+    const crumb = activeRoot ? null : h("div", { class: "crumb" }, iconButton("back", t("backToParent"), () => openFolder(folder.parentId ?? rootId)), h("span", {}, folder.title));
     const barItems = crumb ? [crumb] : roots.length > 1 ? [collections] : [];
     bar.replaceChildren(...barItems, ...(barItems.length ? [newFolder] : []));
     bar.hidden = !barItems.length;
@@ -596,7 +599,8 @@ export function mountBookmarks(root: HTMLElement, context: WidgetContext): void 
     list.addEventListener("scroll", updateRail, { passive: true });
     railSize.disconnect();
     railSize.observe(list);
-    const hint = children.length
+    // The hint speaks of the bookmarks bar and importing, which Android does not have.
+    const hint = children.length || rootId !== BOOKMARKS_BAR
       ? null
       : h(
           "p",

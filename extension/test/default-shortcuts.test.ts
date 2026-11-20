@@ -9,7 +9,9 @@ interface Created {
   url?: string;
 }
 
-function fakeChrome(barChildren: number, storage: Record<string, unknown> = {}) {
+// Desktop lists the bookmarks bar ("1"), other bookmarks and mobile bookmarks; Android hides an
+// empty bookmarks bar from extensions and lists only mobile bookmarks ("3").
+function fakeChrome(barChildren: number, storage: Record<string, unknown> = {}, roots = ["1", "2", "3"]) {
   const created: Created[] = [];
   (globalThis as unknown as { chrome: unknown }).chrome = {
     storage: {
@@ -19,12 +21,23 @@ function fakeChrome(barChildren: number, storage: Record<string, unknown> = {}) 
       },
     },
     bookmarks: {
-      getChildren: async () => Array.from({ length: barChildren }, (_, i) => ({ id: String(10 + i) })),
+      getTree: async () => [{ id: "0", children: roots.map((id) => ({ id, title: id, children: [] })) }],
+      getChildren: async (id: string) => {
+        if (!roots.includes(id)) throw new Error("Can't find bookmark for id.");
+        return Array.from({ length: barChildren }, (_, i) => ({ id: String(10 + i) }));
+      },
       create: async (bookmark: Created) => created.push(bookmark),
     },
   };
   return { created, storage };
 }
+
+test("on Android the default shortcuts go to mobile bookmarks", async () => {
+  const { created } = fakeChrome(0, {}, ["3"]);
+  assert.equal(await seedDefaultShortcuts(), true);
+  assert.equal(created.length, DEFAULT_SHORTCUTS.length);
+  assert.ok(created.every((item) => item.parentId === "3"));
+});
 
 test("an empty bookmarks bar gets the default shortcuts, in order, once", async () => {
   const { created, storage } = fakeChrome(0);
