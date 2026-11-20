@@ -10,7 +10,7 @@ import path from "node:path";
 const [pkg, out] = process.argv.slice(2);
 const MAIN = `${pkg}/com.google.android.apps.chrome.Main`;
 const PAGE = "https://example.com/";
-const ORBIT_PAGE = "chrome-extension://kceipbaiojomdibnboffoieecidpfdck/newtab/";
+const ORBIT_PAGE = /^(chrome:\/\/newtab\/|chrome-extension:\/\/kceipbaiojomdibnboffoieecidpfdck\/newtab\/)/;
 const MENU_BUTTON = /^(Customize and control .+|More options|Menu)$/;
 const CRASH_DIALOG = /keeps stopping|has stopped|isn.t responding/i;
 const report = { package: pkg, steps: [], clock: {}, menu: [] };
@@ -102,16 +102,31 @@ async function targets() {
   }
 }
 
-async function evaluate(urlPrefix, expression) {
-  let target;
-  for (let i = 0; i < 20 && !target; i++) {
+// Runs an expression in a page target. Orbit's page is listed under its address, chrome://newtab/;
+// with several such tabs, the one on screen is used.
+async function evaluate(pattern, expression) {
+  let candidates = [];
+  for (let i = 0; i < 20 && !candidates.length; i++) {
     try {
       const list = await (await fetch("http://127.0.0.1:9222/json/list")).json();
-      target = list.find((t) => t.type === "page" && t.url.startsWith(urlPrefix));
+      candidates = list.filter((t) => t.type === "page" && pattern.test(t.url));
     } catch {}
-    if (!target) await sleep(1);
+    if (!candidates.length) await sleep(1);
   }
-  if (!target) return { error: `no target ${urlPrefix}` };
+  if (!candidates.length) return { error: `no target ${pattern}` };
+  let target = candidates[0];
+  if (candidates.length > 1) {
+    for (const candidate of candidates) {
+      if ((await runIn(candidate, "document.visibilityState")) === "visible") {
+        target = candidate;
+        break;
+      }
+    }
+  }
+  return runIn(target, expression);
+}
+
+async function runIn(target, expression) {
   const ws = new WebSocket(target.webSocketDebuggerUrl);
   await new Promise((resolve, reject) => {
     ws.onopen = resolve;
@@ -162,7 +177,7 @@ async function menuItems() {
     let added = 0;
     for (const n of inside) {
       const name = n.text || (n.clickable && n.desc) || "";
-      if (name && !found.includes(name) && !/^\d+$/.test(name)) {
+      if (name && !found.includes(name) && !/^\d+%?$/.test(name)) {
         found.push(name);
         added++;
       }
@@ -188,12 +203,24 @@ async function findInMenu(name) {
   return null;
 }
 
+// Pages opened for the same application id reuse one tab, so repeated launches do not pile up tabs.
 async function launch(url) {
   shell(`am force-stop ${pkg}`);
   await sleep(1);
-  if (url) shell(`am start -W -a android.intent.action.VIEW -d '${url}' -n ${MAIN}`);
-  else shell(`am start -W -a android.intent.action.MAIN -c android.intent.category.LAUNCHER -n ${MAIN}`);
+  const started = url
+    ? shell(`am start -W -a android.intent.action.VIEW -d '${url}' --es com.android.browser.application_id orbit.check -n ${MAIN}`)
+    : shell(`am start -W -a android.intent.action.MAIN -c android.intent.category.LAUNCHER -n ${MAIN}`);
+  const total = (started.match(/TotalTime: (\d+)/) || [])[1];
+  if (total) (report.launchMs ??= []).push(Number(total));
   await sleep(10);
+}
+
+async function home() {
+  const button = nodes().find((n) => /^Home$|Open the home page/.test(n.desc));
+  if (!button) return false;
+  tap(button);
+  await sleep(6);
+  return true;
 }
 
 async function dismissCrashDialog() {
@@ -322,13 +349,29 @@ async function shortcuts() {
   shell("input keyevent KEYCODE_BACK");
 }
 
+// Startup with many open tabs: 20 tabs, then a cold start from the launcher.
+async function manyTabs() {
+  for (let i = 0; i < 20; i++) {
+    shell(`am start -a android.intent.action.VIEW -d 'https://example.com/?tab=${i}' -n ${MAIN}`);
+    await sleep(3);
+  }
+  const before = report.launchMs?.length ?? 0;
+  await launch(null);
+  await sleep(20);
+  const list = await step("10-many-tabs-cold-start");
+  report.manyTabs = {
+    tabs: (await targets()).length,
+    launchMs: report.launchMs?.slice(before) ?? [],
+    notResponding: list.some((n) => CRASH_DIALOG.test(label(n))),
+  };
+  console.log(`many tabs: ${JSON.stringify(report.manyTabs)}`);
+  await dismissCrashDialog();
+}
+
 async function crawl(context) {
   const prepare = async () => {
-    if (context === "page") await launch(PAGE);
-    else {
-      await launch(null);
-      await newTabFromMenu();
-    }
+    await launch(PAGE);
+    if (context === "ntp" && !(await home())) await newTabFromMenu();
   };
   await prepare();
   const items = await menuItems();
@@ -376,6 +419,8 @@ try {
   await crawl("page");
   save();
   await crawl("ntp");
+  save();
+  await manyTabs();
 } catch (e) {
   report.error = String(e?.stack || e);
   console.log(report.error);

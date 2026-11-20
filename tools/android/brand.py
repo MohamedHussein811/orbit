@@ -158,7 +158,9 @@ def apply_fork():
 
 
 def android_string_files(src, fork):
-    """Translated grd files that produce Android string resources and name the browser."""
+    """Translated grd files that produce Android string resources and name the browser, with or
+    without "Google" in front (apply-fork.py leaves "Google Chrome" in the shared strings)."""
+    name = android_name(fork)
     found = []
     for root in STRING_ROOTS:
         for grd in sorted((src / root).rglob("*.grd")):
@@ -169,9 +171,30 @@ def android_string_files(src, fork):
             if 'type="android"' not in text or not fork.XTB.search(text):
                 continue
             sources = [grd, *fork.grd_parts(grd)]
-            if any(fork.CHROME.search(path.read_text(encoding="utf-8", errors="replace")) for path in sources):
+            if any(name.search(path.read_text(encoding="utf-8", errors="replace")) for path in sources):
                 found.append(relative)
     return found
+
+
+GOOGLE_CHROME = re.compile(r"Google(?: |&nbsp;| )Chrome")
+
+
+def google_chrome_in_translations(src, relative, fork):
+    """"Google Chrome" in any translation of the grd: some translators name the product where the
+    English text does not. The phrase is never another product, unlike a bare "Chrome"."""
+    grd = src / relative
+    changed = []
+
+    def edit(text):
+        return fork.TRANSLATION.sub(
+            lambda m: m.group(1) + m.group(2) + m.group(3) + GOOGLE_CHROME.sub("Orbit", m.group(4)) + m.group(5), text
+        )
+
+    for xtb in fork.XTB.findall(grd.read_text(encoding="utf-8")):
+        path = grd.parent / xtb
+        if fork.rewrite(path, edit):
+            changed.append(path)
+    return changed
 
 
 def android_name(fork):
@@ -214,6 +237,7 @@ def brand_android_strings(src):
 
     for relative in files:
         changed += fork.rename_messages(src, relative, rename, rename, enabled=ENABLED_CONDITIONS)
+        changed += google_chrome_in_translations(src, relative, fork)
     kept = set()
     for relative in files:
         for path in [src / relative, *fork.grd_parts(src / relative)]:
