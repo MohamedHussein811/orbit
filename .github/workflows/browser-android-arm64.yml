@@ -133,6 +133,21 @@ jobs:
           name: orbit-android-bundle
           path: android
 
+      - name: Check the bundle's merged manifest
+        run: |
+          curl -fsSL -o "$RUNNER_TEMP/bundletool.jar" https://github.com/google/bundletool/releases/download/1.18.1/bundletool-all-1.18.1.jar
+          dump() { java -jar "$RUNNER_TEMP/bundletool.jar" dump manifest --bundle android/ChromePublic.aab "$@"; }
+          echo "versionCode $(dump --xpath /manifest/@android:versionCode)"
+          # Play must not require Wi-Fi, Bluetooth or location hardware.
+          for feature in wifi bluetooth location; do
+            required=$(dump --xpath "/manifest/uses-feature[@android:name='android.hardware.$feature']/@android:required")
+            echo "android.hardware.$feature required=$required"
+            if [ "$required" != "false" ]; then
+              echo "::error::android.hardware.$feature is not declared optional in the bundle"
+              exit 1
+            fi
+          done
+
       - name: Sign with the upload key
         id: sign
         env:
