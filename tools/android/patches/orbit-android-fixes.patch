@@ -37,7 +37,17 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/ChromeTabbedAct
                      currentTab.addObserver(
                              new TabObserver() {
                                  @Override
-@@ -4731,8 +4736,19 @@
+@@ -3930,7 +3935,8 @@
+                 (mSupportedProfileType == SupportedProfileType.OFF_THE_RECORD)
+                         || (mSupportedProfileType == SupportedProfileType.MIXED
+                                 && (isIncognitoSelectedInSavedState
+-                                        || isIncognitoSelectedInPersistentState));
++                                        || isIncognitoSelectedInPersistentState
++                                        || isPendingIncognitoBrowserWindow()));
+ 
+         mNextTabPolicySupplier = new ChromeNextTabPolicySupplier(mLayoutStateProviderSupplier);
+ 
+@@ -4731,8 +4737,19 @@
          } else if (id == R.id.extensions_menu_menu_id) {
              ExtensionsToolbarCoordinator coordinator =
                      assumeNonNull(getToolbarManager()).getExtensionsToolbarCoordinator();
@@ -59,7 +69,7 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/ChromeTabbedAct
              RecordUserAction.record("MobileMenuExtensionsMenu");
          } else if (id == R.id.manage_extensions_menu_id) {
              LoadUrlParams params =
-@@ -5067,6 +5083,17 @@
+@@ -5067,6 +5084,25 @@
          return tab != null && UrlUtilities.isNtpUrl(tab.getUrl());
      }
  
@@ -72,6 +82,14 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/ChromeTabbedAct
 +            }
 +        }
 +        return false;
++    }
++
++    private boolean isPendingIncognitoBrowserWindow() {
++        Intent intent = getIntent();
++        return IntentUtils.safeHasExtra(
++                        intent, ChromeAndroidTaskTracker.EXTRA_PENDING_BROWSER_WINDOW_TASK_ID)
++                && IntentUtils.safeGetBooleanExtra(
++                        intent, IntentHandler.EXTRA_OPEN_NEW_INCOGNITO_WINDOW, false);
 +    }
 +
      @Contract("null -> false")
