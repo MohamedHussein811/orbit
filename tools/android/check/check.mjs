@@ -581,6 +581,14 @@ if (missing.length) problems.push(`default shortcuts missing: ${missing.join(", 
 if (!Array.isArray(sc.menu) || !sc.menu.includes("Edit shortcut") || !sc.menu.includes("Remove")) problems.push(`long press menu: ${JSON.stringify(sc.menu ?? sc.longPress ?? null)}`);
 if (sc.editorOpen !== true) problems.push("shortcut editor did not open");
 if (report.manyTabs?.notResponding) problems.push("many tabs: not responding");
+// Android writes one trace per "isn't responding" moment; the first process in it is the one that hung.
+const anrs = shell(`for f in /data/anr/anr_*; do [ -f "$f" ] && echo "$f|$(grep -m1 '^Subject:' "$f")|$(grep -m1 '^Cmd line:' "$f")"; done`)
+  .split("\n")
+  .map((line) => line.trim().split("|"))
+  .filter(([file, , cmd]) => file && cmd?.replace("Cmd line: ", "").split(":")[0] === pkg)
+  .map(([file, subject]) => ({ file: path.basename(file), subject: subject.replace("Subject: ", "") }));
+report.anrs = anrs;
+for (const a of anrs) problems.push(`not responding (${a.file}): ${a.subject.slice(0, 160)}`);
 for (const [key, w] of Object.entries(report.windows ?? {})) {
   if (w?.error || !w?.created) problems.push(`${key} window: ${w?.error ?? JSON.stringify(w)}`);
   else if (!w.targets && !w.after?.some?.((x) => x.tabs.length)) problems.push(`${key} window: page not opened`);
