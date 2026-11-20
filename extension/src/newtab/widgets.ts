@@ -21,7 +21,7 @@ import {
 import { createNote, dropEmptyNotes, MAX_NOTE_LENGTH, NOTE_COLORS, noteSummary, patchNote, sanitizeNotes, sortNotes, upsertNote, type Note, type NoteColor } from "../shared/notes.ts";
 import { debounce, h, icon, iconButton } from "./dom.ts";
 import { hasCustomIcon, resetIcon, setCustomIcon, siteIcon } from "./site-icons.ts";
-import { bundledIconPath } from "../shared/default-shortcuts.ts";
+import { bundledIconPath, seedDefaultShortcuts } from "../shared/default-shortcuts.ts";
 
 export interface WidgetContext {
   settings: () => Settings;
@@ -631,7 +631,10 @@ export function mountBookmarks(root: HTMLElement, context: WidgetContext): void 
     void render();
   };
   for (const event of events) event.addListener(changed);
-  void render();
+  // Normally done at install; a first page opened before that adds them here, once.
+  void seedDefaultShortcuts()
+    .catch((error) => console.error("default shortcuts", error))
+    .finally(() => void render());
 }
 
 // Weather

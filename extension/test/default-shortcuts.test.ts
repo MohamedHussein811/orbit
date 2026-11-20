@@ -46,6 +46,16 @@ test("a bookmarks bar with the person's own bookmarks is left alone", async () =
   assert.equal(storage.shortcutsSeeded, true);
 });
 
+test("a failed attempt can be tried again", async () => {
+  const { storage } = fakeChrome(0);
+  const chrome = (globalThis as unknown as { chrome: { bookmarks: { create: () => Promise<never> } } }).chrome;
+  chrome.bookmarks.create = async () => {
+    throw new Error("model not ready");
+  };
+  await assert.rejects(seedDefaultShortcuts());
+  assert.equal(storage.shortcutsSeeded, false);
+});
+
 test("every default shortcut has a bundled icon file", () => {
   for (const site of DEFAULT_SHORTCUTS) {
     const icon = bundledIconPath(site.url);
