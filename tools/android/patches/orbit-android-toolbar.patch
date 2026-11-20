@@ -48,3 +48,23 @@ diff --git a/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/f
      public static final CachedFlag sAndroidDesktopWebUiHistory =
              newCachedFlag(
                      ANDROID_DESKTOP_WEB_UI_HISTORY,
+diff --git a/chrome/browser/ui/android/toolbar/java/src/org/chromium/chrome/browser/toolbar/signin_button/SigninButtonCoordinator.java b/chrome/browser/ui/android/toolbar/java/src/org/chromium/chrome/browser/toolbar/signin_button/SigninButtonCoordinator.java
+--- a/chrome/browser/ui/android/toolbar/java/src/org/chromium/chrome/browser/toolbar/signin_button/SigninButtonCoordinator.java
++++ b/chrome/browser/ui/android/toolbar/java/src/org/chromium/chrome/browser/toolbar/signin_button/SigninButtonCoordinator.java
+@@ -176,14 +176,8 @@
+      * incognito) and inflates SigninButton view if needed.
+      */
+     public void updateButtonVisibility() {
+-        Tab tab = mTabSupplier.get();
+-        boolean shouldHideButtonForUrlFocus =
+-                !DeviceFormFactor.isNonMultiDisplayContextOnTablet(mContext) && mUrlHasFocus;
+-        boolean showSigninButton =
+-                tab != null
+-                        && !tab.isOffTheRecord()
+-                        && !shouldHideButtonForUrlFocus
+-                        && (mShowOnAllPages || isNtp(tab));
++        // Orbit has no accounts, so the toolbar has no sign-in button.
++        boolean showSigninButton = false;
+ 
+         // Only update signin button if it does not match the intended state.
+         if (showSigninButton != isShown()) {
