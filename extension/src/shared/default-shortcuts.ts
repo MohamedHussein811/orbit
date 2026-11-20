@@ -1,6 +1,6 @@
-// The shortcuts a new profile starts with. They are ordinary bookmarks in the bookmarks bar, so
-// people edit, move and remove them like their own. Their icons ship with Orbit, so showing them
-// contacts none of these sites.
+// The shortcuts a new profile starts with. They are ordinary bookmarks in the shortcuts folder
+// (the bookmarks bar, Mobile bookmarks on Android), so people edit, move and remove them like their
+// own. Their icons ship with Orbit, so showing them contacts none of these sites.
 
 export interface DefaultShortcut {
   title: string;
