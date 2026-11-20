@@ -13,9 +13,9 @@ on:
         type: string
         default: ""
       mode:
-        description: full check, or splash (cold starts with different tabs active)
+        description: full check, splash (cold starts with different tabs active) or windows (first launch and the new and private window step only)
         type: choice
-        options: [full, splash]
+        options: [full, splash, windows]
         default: full
   push:
     branches: [v107]

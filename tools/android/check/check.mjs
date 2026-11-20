@@ -540,13 +540,15 @@ if (process.env.CHECK_MODE === "splash") {
   console.log(`splash cases: ${JSON.stringify(report.splashCases)}`);
   process.exit(0);
 }
+const windowsOnly = process.env.CHECK_MODE === "windows";
 try {
   await firstRun();
   save();
-  await shortcuts();
+  if (!windowsOnly) await shortcuts();
   save();
   await windows();
   save();
+  if (windowsOnly) throw "windows only";
   await clock();
   save();
   await newTabPages();
@@ -557,8 +559,10 @@ try {
   save();
   await manyTabs();
 } catch (e) {
-  report.error = String(e?.stack || e);
-  console.log(report.error);
+  if (e !== "windows only") {
+    report.error = String(e?.stack || e);
+    console.log(report.error);
+  }
 }
 save();
 const crashes = report.menu.filter((m) => m.crashed);
@@ -576,10 +580,12 @@ for (const s of report.steps) {
 }
 for (const m of crashes) problems.push(`menu ${m.context}: ${m.name} crashed`);
 const sc = report.shortcuts ?? {};
-const missing = ["Google", "YouTube", "Facebook", "Instagram", "X"].filter((t) => !sc.titles?.includes?.(t));
-if (missing.length) problems.push(`default shortcuts missing: ${missing.join(", ")}`);
-if (!Array.isArray(sc.menu) || !sc.menu.includes("Edit shortcut") || !sc.menu.includes("Remove")) problems.push(`long press menu: ${JSON.stringify(sc.menu ?? sc.longPress ?? null)}`);
-if (sc.editorOpen !== true) problems.push("shortcut editor did not open");
+if (!windowsOnly) {
+  const missing = ["Google", "YouTube", "Facebook", "Instagram", "X"].filter((t) => !sc.titles?.includes?.(t));
+  if (missing.length) problems.push(`default shortcuts missing: ${missing.join(", ")}`);
+  if (!Array.isArray(sc.menu) || !sc.menu.includes("Edit shortcut") || !sc.menu.includes("Remove")) problems.push(`long press menu: ${JSON.stringify(sc.menu ?? sc.longPress ?? null)}`);
+  if (sc.editorOpen !== true) problems.push("shortcut editor did not open");
+}
 if (report.manyTabs?.notResponding) problems.push("many tabs: not responding");
 // Android writes one trace per "isn't responding" moment; the first process in it is the one that hung.
 const anrs = shell(`for f in /data/anr/anr_*; do [ -f "$f" ] && echo "$f|$(grep -m1 '^Subject:' "$f")|$(grep -m1 '^Cmd line:' "$f")"; done`)
