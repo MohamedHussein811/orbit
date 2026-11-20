@@ -358,6 +358,38 @@ async function shortcuts() {
   shell("input keyevent KEYCODE_BACK");
 }
 
+// The shortcut menu's "Open in new window" and "Open in private window": chrome.windows.create from
+// Orbit's page, then the created window is closed again.
+async function windows() {
+  report.windows = {};
+  for (const incognito of [false, true]) {
+    const key = incognito ? "private" : "new";
+    const result = await evaluate(
+      ORBIT_PAGE,
+      `(async () => {
+        const before = (await chrome.windows.getAll()).map((w) => ({ id: w.id, incognito: w.incognito }));
+        try {
+          const w = await chrome.windows.create({ url: "https://example.com/?window=${key}", incognito: ${incognito} });
+          return { before, created: { id: w?.id ?? null, incognito: w?.incognito ?? null, type: w?.type ?? null, tabs: (w?.tabs ?? []).map((t) => t.pendingUrl || t.url) } };
+        } catch (e) {
+          return { before, error: String(e?.message || e) };
+        }
+      })()`,
+    );
+    await sleep(6);
+    shot(`11-window-${key}`);
+    const list = nodes();
+    result.activity = activity();
+    result.texts = texts(list).slice(0, 12);
+    result.targets = (await targets()).filter((u) => u.includes(`window=${key}`)).length;
+    result.after = await evaluate(ORBIT_PAGE, `chrome.windows.getAll({ populate: true }).then((all) => all.map((w) => ({ id: w.id, incognito: w.incognito, tabs: w.tabs.map((t) => t.pendingUrl || t.url).filter((u) => u.includes("window=${key}")) })))`);
+    if (result.created?.id != null) result.removed = await evaluate(ORBIT_PAGE, `chrome.windows.remove(${result.created.id}).then(() => true, (e) => String(e?.message || e))`);
+    report.windows[key] = result;
+    console.log(`window ${key}: ${JSON.stringify(result).slice(0, 1200)}`);
+    await sleep(3);
+  }
+}
+
 // Startup with many open tabs: 20 tabs, then a cold start from the launcher.
 async function manyTabs() {
   for (let i = 0; i < 20; i++) {
@@ -422,6 +454,8 @@ try {
   save();
   await shortcuts();
   save();
+  await windows();
+  save();
   await clock();
   save();
   await newTabPages();
@@ -455,6 +489,10 @@ if (missing.length) problems.push(`default shortcuts missing: ${missing.join(", 
 if (!Array.isArray(sc.menu) || !sc.menu.includes("Edit shortcut") || !sc.menu.includes("Remove")) problems.push(`long press menu: ${JSON.stringify(sc.menu ?? sc.longPress ?? null)}`);
 if (sc.editorOpen !== true) problems.push("shortcut editor did not open");
 if (report.manyTabs?.notResponding) problems.push("many tabs: not responding");
+for (const [key, w] of Object.entries(report.windows ?? {})) {
+  if (w?.error || !w?.created) problems.push(`${key} window: ${w?.error ?? JSON.stringify(w)}`);
+  else if (!w.targets && !w.after?.some?.((x) => x.tabs.length)) problems.push(`${key} window: page not opened`);
+}
 report.problems = problems;
 save();
 console.log(problems.length ? `\nPROBLEMS (${problems.length}):\n  ${problems.join("\n  ")}` : "\nno problems found");
