@@ -315,8 +315,8 @@ async function clock() {
 }
 
 // Orbit's page: the default shortcuts, and a long press on one opens Edit and Remove.
+// Runs before any relaunch: after one, the phone emulator lists no page targets over DevTools.
 async function shortcuts() {
-  await launch(null);
   if (!(await newTabFromMenu())) return;
   const titles = await evaluate(ORBIT_PAGE, `[...document.querySelectorAll(".tile[data-id] .tile-title")].map((e) => e.textContent)`);
   const bookmarks = await evaluate(
@@ -411,11 +411,11 @@ const save = () => fs.writeFileSync(path.join(out, "report.json"), JSON.stringif
 try {
   await firstRun();
   save();
-  await newTabPages();
+  await shortcuts();
   save();
   await clock();
   save();
-  await shortcuts();
+  await newTabPages();
   save();
   await crawl("page");
   save();
