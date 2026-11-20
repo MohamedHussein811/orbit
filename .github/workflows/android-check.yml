@@ -23,7 +23,7 @@ permissions:
   actions: read
 
 env:
-  APK_RUN: "44550000508"
+  APK_RUN: "44635748320"
 
 jobs:
   check:

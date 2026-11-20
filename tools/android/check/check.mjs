@@ -291,8 +291,20 @@ async function shortcuts() {
   await launch(null);
   if (!(await newTabFromMenu())) return;
   const titles = await evaluate(ORBIT_PAGE, `[...document.querySelectorAll(".tile[data-id] .tile-title")].map((e) => e.textContent)`);
-  report.shortcuts = { titles };
-  console.log(`shortcuts: ${JSON.stringify(titles)}`);
+  const bookmarks = await evaluate(
+    ORBIT_PAGE,
+    `(async () => {
+      const out = { api: typeof chrome.bookmarks, topSites: typeof chrome.topSites };
+      try { const [tree] = await chrome.bookmarks.getTree(); out.roots = (tree.children || []).map((c) => c.id + ":" + c.title + ":" + (c.children || []).length); } catch (e) { out.treeError = String(e); }
+      try { out.bar = (await chrome.bookmarks.getChildren("1")).map((b) => b.title); } catch (e) { out.barError = String(e); }
+      try { out.subTree = (await chrome.bookmarks.getSubTree("1")).length; } catch (e) { out.subTreeError = String(e); }
+      out.storage = await chrome.storage.local.get(["shortcutsSeeded", "settings", "layout"]);
+      out.shortcutsHtml = document.querySelector(".shortcuts")?.outerHTML.slice(0, 400) ?? null;
+      return out;
+    })()`,
+  );
+  report.shortcuts = { titles, bookmarks };
+  console.log(`shortcuts: ${JSON.stringify(titles)}\nbookmarks: ${JSON.stringify(bookmarks).slice(0, 1500)}`);
   const tile = nodes().find((n) => n.text === "YouTube" || n.desc === "YouTube");
   if (!tile) {
     report.shortcuts.longPress = "YouTube tile not found on screen";
