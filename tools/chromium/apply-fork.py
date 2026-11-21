@@ -40,6 +40,80 @@ ABOUT_VERSION = re.compile(
     r'(<message name="IDS_ABOUT_VERSION_(?:COMPANY_NAME|COPYRIGHT)"[^>]*>)(.*?)(</message>)', re.DOTALL
 )
 YOU_AND_GOOGLE = re.compile(r"(>\s*)You and Google(\s*</message>)")
+# Orbit says private, not Incognito. Grds with Incognito in user-visible messages.
+INCOGNITO_STRING_FILES = [
+    "chrome/app/generated_resources.grd",
+    "components/components_strings.grd",
+    "chrome/app/chromium_strings.grd",
+]
+MESSAGE_BODY = re.compile(r"(<message\b[^>]*>)(.*?)(</message>)", re.DOTALL)
+MARKUP = re.compile(r"(<ph\b.*?</ph>|<[^>]+>)", re.DOTALL)
+# Words that make "Incognito" an adjective ("Incognito window"); otherwise it names the mode
+# ("Allow in Incognito") and becomes "private browsing".
+INCOGNITO_NOUNS = (
+    r"windows?|tabs?|mode|sessions?|profile|browsing|extension|app|subframe|portal|back/forward|pdf"
+    r"|chrome|chromium|orbit|indicator|history|pages?|and"
+)
+INCOGNITO_PHRASES = [
+    (re.compile(r"You([’'])(?:ve gone|re) Incognito"), r"You\1re browsing privately"),
+    (re.compile(r"\bGoing Incognito\b"), "Browsing privately"),
+    (re.compile(r"\bbrowsing in Incognito\b(?!\s+(?:mode|windows?|tabs?)\b)"), "browsing privately"),
+    (re.compile(r"\b([Aa])n (&amp;)?(?=[Ii]ncognito\b)"), lambda m: ("A" if m.group(1) == "A" else "a") + " " + (m.group(2) or "")),
+]
+# Also with the menu mnemonic inside the word ("inco&gnito").
+INCOGNITO_WORD = re.compile(r"(&amp;)?\b([Ii]nco(?:&amp;)?gnito|INCOGNITO)\b(?=(\s+(\S+))?)")
+
+
+def private_word(text, match, first):
+    """The replacement for one Incognito in `text`, a run of message text (`first` when nothing
+    comes before it in the message): "Private" as a label, "private" before a noun, "private
+    browsing" for the mode, capitalized at the start of a sentence or in Title Case."""
+    mnemonic, word, following = match.group(1) or "", match.group(2), match.group(4)
+    inner = "&amp;" in word
+    word = word.replace("&amp;", "")
+    if word == "INCOGNITO":
+        return mnemonic + "PRIVATE"
+    before = text[: match.start()].rstrip()
+    after = text[match.end() :]
+    if (before == "" and first or before.endswith(("{", "("))) and re.match(r"\s*(\(#\))?\s*([})]|$)", after):
+        return mnemonic + "Private"
+    nxt = re.sub(r"^[^\w/]+|[^\w/]+$", "", (following or "").replace("&amp;", ""))
+    adjective = bool(nxt) and re.fullmatch(INCOGNITO_NOUNS, nxt, re.IGNORECASE) is not None
+    starts = (before == "" and first) or before.endswith((".", "!", "?", ":", "{"))
+    phrase = "private" if adjective else "private browsing"
+    proper = nxt.lower() in ("chrome", "chromium", "orbit")
+    if starts or (adjective and not proper and nxt[0].isupper() and word == "Incognito"):
+        phrase = phrase[0].upper() + phrase[1:]
+    if inner:
+        phrase = phrase[0] + "&amp;" + phrase[1:]
+    return mnemonic + phrase
+
+
+def incognito_english(text):
+    def body(m):
+        parts = MARKUP.split(m.group(2))
+        for i in range(0, len(parts), 2):
+            segment = parts[i]
+            for pattern, replacement in INCOGNITO_PHRASES:
+                segment = pattern.sub(replacement, segment)
+            segment = INCOGNITO_WORD.sub(lambda w: private_word(segment, w, i == 0), segment)
+            parts[i] = segment
+        return m.group(1) + "".join(parts) + m.group(3)
+
+    return MESSAGE_BODY.sub(body, text)
+
+
+def incognito_translation(text):
+    """Arabic says خاص (private) for المتخفي (incognito); other languages keep their word."""
+    return text.replace("المتخفي", "الخاص").replace("متخفٍ", "خاص")
+
+
+def rename_incognito(src, files, enabled=()):
+    sys.path.insert(0, str(src / "tools" / "grit"))
+    changed = []
+    for relative in files:
+        changed += rename_messages(src, relative, incognito_english, incognito_translation, enabled)
+    return changed
 
 
 def copy_overlay(src):
@@ -293,6 +367,7 @@ def mac_icons(src):
 def main():
     src = pathlib.Path(sys.argv[1]).resolve()
     changed = copy_overlay(src) + orbit_version(src) + apply_patches(src) + brand_strings(src) + about_version_names(src) + rename_chrome(src)
+    changed += rename_incognito(src, INCOGNITO_STRING_FILES)
     if sys.platform == "darwin":
         changed += mac_icons(src)
     hashes = {

@@ -23,6 +23,12 @@ RES = "chrome/android/java/res_chromium_base"
 # are true in Orbit's Android build (is_desktop_android turns on extensions; ARCore is on by default).
 STRING_ROOTS = ("chrome", "components", "ui", "content", "device", "services")
 ENABLED_CONDITIONS = ("enable_extensions_core", "enable_arcore")
+# Android string files that say Incognito; Orbit says private (apply-fork.py rename_incognito).
+INCOGNITO_STRING_FILES = (
+    "chrome/browser/ui/android/strings/android_chrome_strings.grd",
+    "chrome/android/features/tab_ui/java/strings/android_chrome_tab_ui_strings.grd",
+    "components/browser_ui/strings/android/browser_ui_strings.grd",
+)
 PRIVACY_URL = "https://github.com/MohamedHussein811/orbit/blob/main/PRIVACY.md"
 # Settings > About > Legal information: Orbit's privacy policy instead of Google's.
 LEGAL_MESSAGES = {
@@ -317,6 +323,7 @@ def brand_android_strings(src):
     for relative in files:
         changed += fork.rename_messages(src, relative, rename, rename, enabled=ENABLED_CONDITIONS)
         changed += google_chrome_in_translations(src, relative, fork)
+    changed += fork.rename_incognito(src, INCOGNITO_STRING_FILES, ENABLED_CONDITIONS)
     kept = set()
     for relative in files:
         for path in [src / relative, *fork.grd_parts(src / relative)]:
