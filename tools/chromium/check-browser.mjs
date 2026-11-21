@@ -1,5 +1,6 @@
 // Checks a built Orbit browser through the DevTools protocol: privacy defaults, Settings data, the
-// built-in extension and its new tab page. Uses a new profile in a temporary folder.
+// built-in extension and its new tab page, and Chrome or Google names left on internal pages.
+// Uses a new profile in a temporary folder.
 //   node tools/chromium/check-browser.mjs <browser> <extension id> [extra browser flags...]
 import { spawn } from "node:child_process";
 import fs from "node:fs";
@@ -7,6 +8,7 @@ import http from "node:http";
 import os from "node:os";
 import path from "node:path";
 import { Cdp } from "./lib/cdp.mjs";
+import { crawlLeftovers, printLeftovers } from "./lib/leftovers.mjs";
 
 const [browser, extensionId, ...extraFlags] = process.argv.slice(2);
 if (!browser || !extensionId) {
@@ -182,6 +184,13 @@ try {
   );
   expect("no extensions from other programs", listed, []);
   expect("blocks extensions registered for other browsers", value(prefs.extensions?.block_external_extensions), true);
+
+  // Reported, not failed, until the known leftovers are fixed or listed in docs/KNOWN_LIMITS.md.
+  try {
+    printLeftovers(await crawlLeftovers(cdp));
+  } catch (error) {
+    console.log(`note leftover crawl stopped: ${error.message}`);
+  }
 } catch (error) {
   console.log(`FAIL ${error.message}`);
   failures.push(error.message);

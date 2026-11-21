@@ -34,6 +34,10 @@ PRIVACY_URL = "https://github.com/MohamedHussein811/orbit/blob/main/PRIVACY.md"
 LEGAL_MESSAGES = {
     "IDS_PRIVACY_POLICY_TITLE": ("Google Privacy Policy", "Orbit Privacy Policy"),
     "IDS_GOOGLE_PRIVACY_POLICY_URL": ("https://policies.google.com/privacy", PRIVACY_URL),
+    "IDS_LEGAL_INFORMATION_SUMMARY": (
+        'Copyright <ph name="year">%1$d<ex>2014</ex></ph> Google LLC. All rights reserved.',
+        'Copyright <ph name="year">%1$d<ex>2014</ex></ph> NovaTech and The Chromium Authors. All rights reserved.',
+    ),
 }
 # Orbit's own Android strings (orbit-android-settings.patch uses them): name, description, English,
 # Arabic. Added after ORBIT_MESSAGES_AFTER in ORBIT_STRINGS.
@@ -390,7 +394,7 @@ def brand_android_strings(src):
         src,
         "chrome/browser/ui/android/strings/android_chrome_strings.grd",
         legal_messages,
-        lambda text: text.replace("Google", "Orbit"),
+        lambda text: text.replace("Google LLC", "NovaTech and The Chromium Authors").replace("Google", "Orbit"),
         enabled=ENABLED_CONDITIONS,
     )
     files = android_string_files(src, fork)
