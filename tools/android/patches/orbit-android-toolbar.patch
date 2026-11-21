@@ -376,7 +376,7 @@ diff --git a/chrome/browser/ui/android/toolbar/java/src/org/chromium/chrome/brow
 diff --git a/chrome/browser/ui/android/toolbar/java/src/org/chromium/chrome/browser/toolbar/extensions/OrbitShieldsButtonImpl.java b/chrome/browser/ui/android/toolbar/java/src/org/chromium/chrome/browser/toolbar/extensions/OrbitShieldsButtonImpl.java
 --- a/chrome/browser/ui/android/toolbar/java/src/org/chromium/chrome/browser/toolbar/extensions/OrbitShieldsButtonImpl.java
 +++ b/chrome/browser/ui/android/toolbar/java/src/org/chromium/chrome/browser/toolbar/extensions/OrbitShieldsButtonImpl.java
-@@ -0,0 +1,307 @@
+@@ -0,0 +1,308 @@
 +// Copyright 2026 NovaTech. All rights reserved.
 +
 +package org.chromium.chrome.browser.toolbar.extensions;
@@ -424,11 +424,7 @@ diff --git a/chrome/browser/ui/android/toolbar/java/src/org/chromium/chrome/brow
 +    private static final String ACTION_ID = "kceipbaiojomdibnboffoieecidpfdck";
 +
 +    private final ObserverList<ButtonDataObserver> mObservers = new ObserverList<>();
-+    private final Callback<@Nullable Tab> mTabObserver =
-+            tab -> {
-+                if (mBridge == null) maybeCreateBridge();
-+                refresh();
-+            };
++    private final Callback<@Nullable Tab> mTabObserver = tab -> onCurrentTabChanged();
 +
 +    private final ExtensionsToolbarBridge.Observer mBridgeObserver =
 +            new ExtensionsToolbarBridge.Observer() {
@@ -558,6 +554,11 @@ diff --git a/chrome/browser/ui/android/toolbar/java/src/org/chromium/chrome/brow
 +    @Override
 +    public void onFeatureRemoved() {
 +        destroyBridge();
++    }
++
++    private void onCurrentTabChanged() {
++        if (mBridge == null) maybeCreateBridge();
++        refresh();
 +    }
 +
 +    private void maybeCreateBridge() {
