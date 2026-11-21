@@ -36,10 +36,11 @@ These also apply to unbranded Chromium builds.
 - **Fingerprinting protection** runs in the page. It covers canvas, audio and graphics readings, not fonts or every other signal, and not canvases in web workers.
 - **Protection counts** show ads, trackers and threats only. Tracking cookies blocked and bandwidth saved are not shown, because the browser reports no reliable number for them.
 - **Settings pages:** rows for Google Safe Browsing, Safety Check, the Privacy Guide, sync and Google services are removed at build time. Those pages can still be reached by typing their address, and some Settings text elsewhere still mentions Google.
-- **Default browser:** the Windows installer registers Orbit so Windows can offer it in Default apps. Settings has a "Make default" button whose effect has not been tested, and it may not detect that Orbit is the default.
+- **Default browser:** the Windows installer registers Orbit so Windows can offer it in Default apps. Settings > Get Started has a "Make default" button whose effect has not been tested, and it may not detect that Orbit is the default. The Pin to taskbar row appears only when Windows lets Orbit ask to be pinned; whether Windows allows that for Orbit is not known.
 - **Sign-in to the browser** is off. Google sites can still be used normally in a tab, though real Google login has not been tested.
 - **macOS and Linux** have only run on CI machines, not on physical computers.
-- **Android:** Settings still has a "Google services" section (Chromium's own settings for Google features). Strings meant for device administrators (managed configuration of the app) still say Chrome, and in some languages a translation names Chrome where the English text does not. The app is tested on phone and tablet emulators and by the owner on one phone.
+- **Android:** if Orbit's built-in extension is turned off, new tabs show an empty page in the colour of Orbit's page instead of Chromium's. Strings meant for device administrators (managed configuration of the app) still say Chrome, and in some languages a translation names Chrome where the English text does not. The app is tested on phone and tablet emulators and by the owner on one phone.
+- **iPhone:** Shields cannot show how many items it blocked, because Safari's content blocking does not report them. Generic hiding exceptions and scriptlets from the filter lists are not used on iPhone yet.
 - **macOS full screen** shows the tabs in macOS's full screen title bar above the toolbar, as Chrome does, and hides Orbit's rail.
 
 ## Not measured yet
