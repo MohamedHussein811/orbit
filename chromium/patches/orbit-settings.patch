@@ -68,6 +68,21 @@ diff --git a/chrome/browser/resources/settings/default_browser_page/default_brow
    // SettingsPlugin implementation
    async searchContents(query: string) {
      const searchRequest = await getSearchManager().search(query, this);
+diff --git a/chrome/browser/resources/settings/on_startup_page/on_startup_page.ts b/chrome/browser/resources/settings/on_startup_page/on_startup_page.ts
+--- a/chrome/browser/resources/settings/on_startup_page/on_startup_page.ts
++++ b/chrome/browser/resources/settings/on_startup_page/on_startup_page.ts
+@@ -86,7 +86,10 @@
+ 
+     const updateNtpExtension = (ntpExtension: NtpExtension|null) => {
+       // Note that |ntpExtension| is empty if there is no NTP extension.
+-      this.ntpExtension_ = ntpExtension;
++      this.ntpExtension_ =
++          ntpExtension?.id === 'kceipbaiojomdibnboffoieecidpfdck' ?
++          null :
++          ntpExtension;
+     };
+     OnStartupBrowserProxyImpl.getInstance().getNtpExtension().then(
+         updateNtpExtension);
 diff --git a/chrome/browser/resources/settings/page_visibility.ts b/chrome/browser/resources/settings/page_visibility.ts
 --- a/chrome/browser/resources/settings/page_visibility.ts
 +++ b/chrome/browser/resources/settings/page_visibility.ts
@@ -125,6 +140,45 @@ diff --git a/chrome/browser/resources/settings/people_page/people_page.html.ts b
          </cr-link-row>
  
  <if expr="not is_chromeos">
+@@ -138,6 +138,11 @@
+     </settings-section>
+ 
+ <if expr="not is_chromeos">
++    <settings-default-browser-page></settings-default-browser-page>
++</if>
++    <settings-on-startup-page></settings-on-startup-page>
++
++<if expr="not is_chromeos">
+     ${this.showSignoutDialog_ ? html`
+       <settings-signout-dialog .syncStatus="${this.syncStatus}"
+           @close="${this.onDisconnectDialogClose_}">
+diff --git a/chrome/browser/resources/settings/people_page/people_page.ts b/chrome/browser/resources/settings/people_page/people_page.ts
+--- a/chrome/browser/resources/settings/people_page/people_page.ts
++++ b/chrome/browser/resources/settings/people_page/people_page.ts
+@@ -18,7 +18,11 @@
+ import './sync_account_control.js';
+ // </if>
+ import '../icons.html.js';
++import '../on_startup_page/on_startup_page.js';
+ import '../settings_page/settings_section.js';
++// <if expr="not is_chromeos">
++import '../default_browser_page/default_browser_page.js';
++// </if>
+ 
+ import type {ProfileInfo} from '/shared/settings/people_page/profile_info_browser_proxy.js';
+ import {ProfileInfoBrowserProxyImpl} from '/shared/settings/people_page/profile_info_browser_proxy.js';
+diff --git a/chrome/browser/resources/settings/people_page/people_page_index.ts b/chrome/browser/resources/settings/people_page/people_page_index.ts
+--- a/chrome/browser/resources/settings/people_page/people_page_index.ts
++++ b/chrome/browser/resources/settings/people_page/people_page_index.ts
+@@ -62,6 +62,8 @@
+     queueMicrotask(() => {
+       switch (newRoute) {
+         case routes.PEOPLE:
++        case routes.DEFAULT_BROWSER:
++        case routes.ON_STARTUP:
+           this.$.viewManager.switchView(
+               'parent', 'no-animation', 'no-animation');
+           break;
 diff --git a/chrome/browser/resources/settings/privacy_page/security/security_page.html b/chrome/browser/resources/settings/privacy_page/security/security_page.html
 --- a/chrome/browser/resources/settings/privacy_page/security/security_page.html
 +++ b/chrome/browser/resources/settings/privacy_page/security/security_page.html
@@ -169,7 +223,7 @@ diff --git a/chrome/browser/resources/settings/route.ts b/chrome/browser/resourc
 diff --git a/chrome/browser/resources/settings/settings_main/settings_main.html b/chrome/browser/resources/settings/settings_main/settings_main.html
 --- a/chrome/browser/resources/settings/settings_main/settings_main.html
 +++ b/chrome/browser/resources/settings/settings_main/settings_main.html
-@@ -52,11 +52,25 @@
+@@ -52,8 +52,8 @@
      show-all$="[[shouldShowAll_(inSearchMode_, lastRoute_)]]">
    <template is="dom-if" if="[[showPage_(pageVisibility_.people)]]">
      <div slot="view" id="people">
@@ -180,24 +234,7 @@ diff --git a/chrome/browser/resources/settings/settings_main/settings_main.html 
          <settings-people-page-index in-search-mode="[[inSearchMode_]]">
          </settings-people-page-index>
        </template>
-+<if expr="not is_chromeos">
-+      <template is="dom-if" if="[[showPage_(pageVisibility_.defaultBrowser)]]">
-+        <template is="dom-if" if="[[renderGetStarted_(
-+            lastRoute_, inSearchMode_)]]">
-+          <settings-default-browser-page></settings-default-browser-page>
-+        </template>
-+      </template>
-+</if>
-+      <template is="dom-if" if="[[showPage_(pageVisibility_.onStartup)]]">
-+        <template is="dom-if" if="[[renderGetStarted_(
-+            lastRoute_, inSearchMode_)]]" update-when-false>
-+          <settings-on-startup-page></settings-on-startup-page>
-+        </template>
-+      </template>
-     </div>
-   </template>
- 
-@@ -119,26 +133,6 @@
+@@ -119,26 +119,6 @@
      </template>
    </div>
  
@@ -227,7 +264,7 @@ diff --git a/chrome/browser/resources/settings/settings_main/settings_main.html 
 diff --git a/chrome/browser/resources/settings/settings_main/settings_main.ts b/chrome/browser/resources/settings/settings_main/settings_main.ts
 --- a/chrome/browser/resources/settings/settings_main/settings_main.ts
 +++ b/chrome/browser/resources/settings/settings_main/settings_main.ts
-@@ -192,6 +192,15 @@
+@@ -192,6 +192,18 @@
      assert(sectionElement);
      await this.$.switcher.switchView(
          sectionElement.id, 'no-animation', 'no-animation');
@@ -238,12 +275,15 @@ diff --git a/chrome/browser/resources/settings/settings_main/settings_main.ts b/
 +        null;
 +    if (card) {
 +      await this.beforeNextRenderPromise_();
-+      sectionElement.querySelector(card)?.scrollIntoView();
++      const peoplePage =
++          sectionElement.querySelector('settings-people-page-index')
++              ?.shadowRoot?.querySelector('settings-people-page');
++      peoplePage?.shadowRoot?.querySelector(card)?.scrollIntoView();
 +    }
      this.pendingViewSwitching_.resolve();
    }
  
-@@ -307,6 +316,13 @@
+@@ -307,6 +319,13 @@
          (!!this.lastRoute_ && route.contains(this.lastRoute_));
    }
  
