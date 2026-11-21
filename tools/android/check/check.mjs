@@ -1,7 +1,8 @@
 // Checks a fresh Orbit install on the running emulator and writes report.json plus a screenshot per
 // step: the first launch as a user gets it, the start tab and new tabs (Orbit's page or Chromium's
 // native one), the clock against the device's time settings, and a crawl that opens the app menu
-// and taps every item, on a web page and on the new tab page, recording crashes.
+// and taps every item, on a web page and on the new tab page, recording crashes. v108() covers the
+// phone toolbar (Bookmark, Orbit Shields), Settings, Recent tabs, startup pages and a background kill.
 // Usage: node check.mjs <package> <out dir>
 import { execFileSync } from "node:child_process";
 import fs from "node:fs";
@@ -413,6 +414,121 @@ async function windows() {
   }
 }
 
+async function allTargets() {
+  try {
+    return (await (await fetch("http://127.0.0.1:9222/json/list")).json()).map((t) => t.url);
+  } catch {
+    return [];
+  }
+}
+
+// Smallest width in dp: phones are under 600.
+function smallestWidthDp() {
+  const size = (shell("wm size").match(/(\d+)x(\d+)\s*$/m) || []).slice(1).map(Number);
+  const density = Number((shell("wm density").match(/(\d+)\s*$/m) || [])[1]);
+  return size.length && density ? Math.round((Math.min(...size) * 160) / density) : 0;
+}
+
+async function scrollTexts(times = 3) {
+  const seen = new Set(texts(nodes()));
+  for (let i = 0; i < times; i++) {
+    const list = nodes();
+    const bottom = Math.max(...list.map((n) => n.b));
+    shell(`input swipe 300 ${Math.round(bottom * 0.8)} 300 ${Math.round(bottom * 0.3)} 400`);
+    await sleep(1.5);
+    for (const t of texts(nodes())) seen.add(t);
+  }
+  return [...seen];
+}
+
+// v1.0.8: the bottom bar (Bookmark, no Gemini), Orbit Shields next to the address bar, Settings
+// (Get Started, no You and Google), orbit:// in Recent tabs, startup pages, and Orbit's page after
+// Android stops the app in the background.
+async function v108() {
+  const r = (report.v108 = { smallestWidthDp: smallestWidthDp() });
+  r.phone = r.smallestWidthDp > 0 && r.smallestWidthDp < 600;
+
+  await launch(PAGE);
+  await sleep(4);
+  let list = await step("20-web-page-toolbar");
+  r.toolbar = list.map((n) => n.desc).filter(Boolean);
+  r.gemini = texts(list).filter((t) => /Gemini/i.test(t));
+  const star = list.find((n) => n.desc === "Bookmark this page");
+  r.bookmarkButton = !!star;
+  if (star) {
+    tap(star);
+    await sleep(4);
+    list = await step("21-after-bookmark-tap");
+    r.bookmarked = list.some((n) => n.desc === "Edit bookmark");
+  }
+  const shields = nodes().find((n) => /Shields/.test(n.desc));
+  r.shieldsButton = shields?.desc ?? null;
+  if (shields) {
+    tap(shields);
+    await sleep(5);
+    shot("22-shields-popup");
+    r.shieldsPopup = (await allTargets()).some((u) => u.includes("/popup/popup.html"));
+    shell("input keyevent KEYCODE_BACK");
+    await sleep(2);
+  }
+
+  if (await openMenu()) {
+    const settings = await findInMenu("Settings");
+    if (settings) {
+      tap(settings);
+      await sleep(5);
+      shot("23-settings");
+      r.settings = await scrollTexts(3);
+      shot("24-settings-end");
+      shell("input keyevent KEYCODE_BACK");
+      await sleep(2);
+    }
+  }
+
+  // A closed internal page in Recent tabs reads orbit://.
+  await newTabFromMenu();
+  await evaluate(ORBIT_PAGE, `chrome.tabs.create({ url: "chrome://extensions/" }).then((t) => new Promise((done) => setTimeout(() => chrome.tabs.remove(t.id).then(done, done), 4000)))`);
+  await sleep(3);
+  if (await openMenu()) {
+    const recent = await findInMenu("Recent tabs");
+    if (recent) {
+      tap(recent);
+      await sleep(4);
+      shot("25-recent-tabs");
+      r.recentTabs = texts(nodes());
+      shell("input keyevent KEYCODE_BACK");
+      await sleep(2);
+    }
+  }
+
+  // Settings > On startup > Open specific pages: each page once per cold start.
+  const pages = ["https://example.com/?startup=1", "https://example.org/?startup=2"];
+  r.startupSet = await evaluate(ORBIT_PAGE, `new Promise((done) => chrome.search.setStartup({ mode: "pages", urls: ${JSON.stringify(pages)} }, () => done(!chrome.runtime.lastError)))`);
+  r.startup = [];
+  for (let i = 0; i < 2; i++) {
+    await launch(null);
+    await sleep(20);
+    await step(`26-startup-pages-${i + 1}`);
+    const urls = await targets();
+    r.startup.push(pages.map((p) => urls.filter((u) => u === p).length));
+  }
+  await evaluate(ORBIT_PAGE, `new Promise((done) => chrome.search.setStartup({ mode: "restore", urls: [] }, done))`);
+
+  // Android stops the app in the background; coming back shows Orbit's page, not Chromium's.
+  await newTabFromMenu();
+  shell("input keyevent KEYCODE_HOME");
+  await sleep(3);
+  shell(`am kill ${pkg}`);
+  await sleep(3);
+  r.killed = !alive();
+  shell(`am start -W -a android.intent.action.MAIN -c android.intent.category.LAUNCHER -n ${MAIN}`);
+  await sleep(15);
+  adb("forward", "tcp:9222", "localabstract:chrome_devtools_remote");
+  await step("27-back-after-background-kill");
+  if (await newTabFromMenu()) await step("28-new-tab-after-background-kill");
+  console.log(`v108: ${JSON.stringify(r).slice(0, 3000)}`);
+}
+
 // Startup with many open tabs: 20 tabs, then a cold start from the launcher.
 async function manyTabs() {
   for (let i = 0; i < 20; i++) {
@@ -553,6 +669,8 @@ try {
   save();
   await newTabPages();
   save();
+  await v108();
+  save();
   await crawl("page");
   save();
   await crawl("ntp");
@@ -587,6 +705,26 @@ if (!windowsOnly) {
   if (sc.editorOpen !== true) problems.push("shortcut editor did not open");
 }
 if (report.manyTabs?.notResponding) problems.push("many tabs: not responding");
+const v = report.v108;
+if (v) {
+  if (v.gemini?.length) problems.push(`Gemini shown: ${v.gemini.join(", ")}`);
+  if (v.phone) {
+    if (!v.bookmarkButton) problems.push("bottom bar: no Bookmark button");
+    else if (!v.bookmarked) problems.push("bottom bar: Bookmark did not add the page");
+    if (!v.shieldsButton) problems.push("toolbar: no Orbit Shields button");
+    else if (!v.shieldsPopup) problems.push("toolbar: the Shields popup did not open");
+  }
+  const settings = v.settings ?? [];
+  const missing = ["Get Started", "Default browser", "On startup", "Extensions"].filter((t) => !settings.includes(t));
+  if (missing.length) problems.push(`Settings missing: ${missing.join(", ")}`);
+  const unwanted = settings.filter((t) => /You and Google|Google services|Safety check|Gemini|Incognito/.test(t));
+  if (unwanted.length) problems.push(`Settings shows: ${unwanted.join(", ")}`);
+  if (v.recentTabs && v.recentTabs.some((t) => t.includes("chrome://"))) problems.push(`Recent tabs shows chrome://: ${v.recentTabs.filter((t) => t.includes("chrome://")).join(", ")}`);
+  if (v.startupSet !== true) problems.push(`startup pages not set: ${JSON.stringify(v.startupSet)}`);
+  else v.startup?.forEach((counts, i) => counts.some((c) => c !== 1) && problems.push(`startup pages after cold start ${i + 1}: ${JSON.stringify(counts)} (each should open once)`));
+}
+const wording = report.menu.filter((m) => /Incognito|Gemini/.test(m.name));
+if (wording.length) problems.push(`menu: ${wording.map((m) => m.name).join(", ")}`);
 // Android writes one trace per "isn't responding" moment; the first process in it is the one that hung.
 const anrs = shell(`for f in /data/anr/anr_*; do [ -f "$f" ] && echo "$f|$(grep -m1 '^Subject:' "$f")|$(grep -m1 '^Cmd line:' "$f")"; done`)
   .split("\n")
