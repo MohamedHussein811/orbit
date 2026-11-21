@@ -29,6 +29,24 @@ LEGAL_MESSAGES = {
     "IDS_PRIVACY_POLICY_TITLE": ("Google Privacy Policy", "Orbit Privacy Policy"),
     "IDS_GOOGLE_PRIVACY_POLICY_URL": ("https://policies.google.com/privacy", PRIVACY_URL),
 }
+# Orbit's own Android strings (orbit-android-settings.patch uses them): name, description, English,
+# Arabic. Added after ORBIT_MESSAGES_AFTER in ORBIT_STRINGS.
+ORBIT_STRINGS = "chrome/browser/ui/android/strings/android_chrome_strings.grd"
+ORBIT_MESSAGES_AFTER = "IDS_PREFS_SECTION_ADVANCED"
+ORBIT_MESSAGES = (
+    (
+        "IDS_ORBIT_SETTINGS_GET_STARTED",
+        "Title of the first section of Settings, with the default browser and the pages opened at startup. [CHAR_LIMIT=32]",
+        "Get Started",
+        "البدء",
+    ),
+    (
+        "IDS_ORBIT_SETTINGS_ON_STARTUP",
+        "Settings row that opens the choice of pages the browser opens when it starts. [CHAR_LIMIT=32]",
+        "On startup",
+        "عند بدء التشغيل",
+    ),
+)
 BACKGROUND = "#0b0b0d"
 GLYPH = (
     '<path d="M385.43 221.32 A134 134 0 1 1 290.68 126.57" fill="none" stroke="{color}" '
@@ -244,6 +262,38 @@ def legal_messages(text):
     return text
 
 
+def add_orbit_messages(src):
+    """Adds Orbit's own Android strings (ORBIT_MESSAGES) to the Chrome strings, with their Arabic
+    translations; other languages show the English text."""
+    fork = apply_fork()
+    sys.path.insert(0, str(src / "tools" / "grit"))
+    grd = src / ORBIT_STRINGS
+    text = grd.read_text(encoding="utf-8")
+    anchor = re.search(r'<message name="' + ORBIT_MESSAGES_AFTER + r'"[^>]*>.*?</message>\n', text, re.DOTALL)
+    if not anchor:
+        sys.exit(f"{grd}: {ORBIT_MESSAGES_AFTER} not found")
+    old_ids = set(fork.message_ids(grd, ENABLED_CONDITIONS))
+    block = "".join(
+        f'      <message name="{name}" desc="{desc}">\n        {english}\n      </message>\n'
+        for name, desc, english, _ in ORBIT_MESSAGES
+    )
+    grd.write_text(text[: anchor.end()] + block + text[anchor.end() :], encoding="utf-8")
+    added = [i for i in fork.message_ids(grd, ENABLED_CONDITIONS) if i not in old_ids]
+    if len(added) != len(ORBIT_MESSAGES):
+        sys.exit(f"{grd}: {len(added)} new message ids for {len(ORBIT_MESSAGES)} messages")
+    arabic = re.search(r'<file path="([^"]+)" lang="ar"', text)
+    if not arabic:
+        sys.exit(f"{grd}: no Arabic translation file")
+    xtb = grd.parent / arabic.group(1)
+    rows = "".join(f'<translation id="{i}">{m[3]}</translation>\n' for i, m in zip(added, ORBIT_MESSAGES))
+    xtb_text = xtb.read_text(encoding="utf-8")
+    if "</translationbundle>" not in xtb_text:
+        sys.exit(f"{xtb}: no translation bundle end")
+    xtb.write_text(xtb_text.replace("</translationbundle>", rows + "</translationbundle>", 1), encoding="utf-8")
+    print(f"Orbit strings: {len(added)} added")
+    return [grd, xtb]
+
+
 def brand_android_strings(src):
     """Renames "Chrome" and "Chromium" used as the browser's name in the Android string resources,
     with the same translation handling as the desktop strings (apply-fork.py)."""
@@ -283,6 +333,7 @@ def main():
     changed = apply_patches(src)
     changed += apply_palette(src)
     changed += brand_android_strings(src)
+    changed += add_orbit_messages(src)
 
     constants = res / "values" / "channel_constants.xml"
     text = constants.read_text(encoding="utf-8")
