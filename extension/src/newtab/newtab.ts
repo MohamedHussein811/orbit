@@ -8,6 +8,7 @@ import {
   COLORS,
   ENGINE_KEYWORDS,
   engineForKeyword,
+  defaultSettings,
   resolveTheme,
   sanitizeSettings,
   SEARCH_ENGINE_IDS,
@@ -103,10 +104,12 @@ let startup: StartupSettings | null = null;
 let startupNotice = "";
 let colorsOpen = false;
 let section: Section = "background";
+let phone = false;
 
 const root = document.documentElement;
 const top = document.getElementById("top")!;
 const searchSlot = document.getElementById("search")!;
+const center = document.querySelector<HTMLElement>(".center")!;
 const dock = document.getElementById("dock")!;
 const credit = document.getElementById("credit")!;
 const motion = document.getElementById("motion") as HTMLButtonElement;
@@ -367,6 +370,14 @@ function drawBoard(): void {
     }
   }
   dock.hidden = ![...dock.children].some((child) => !(child as HTMLElement).hidden);
+  top.hidden = !isVisible("bookmarks");
+  searchSlot.hidden = !isVisible("search");
+  syncCenter();
+}
+
+/** The middle block (clock, date, search) leaves no gap when everything in it is off. */
+function syncCenter(): void {
+  center.hidden = timeElement.hidden && searchSlot.hidden;
 }
 
 async function setLayout(next: Layout): Promise<void> {
@@ -374,6 +385,15 @@ async function setLayout(next: Layout): Promise<void> {
   await chrome.storage.local.set({ layout });
   drawBoard();
   if (customize.open) drawCustomize();
+}
+
+/** Widgets, clock and date as on a new install. */
+async function restoreLayout(): Promise<void> {
+  const defaults = defaultSettings();
+  await saveSettings({ showClock: defaults.showClock, showDate: defaults.showDate });
+  applyClock();
+  tick();
+  await setLayout(defaultLayout(phone));
 }
 
 async function setBoardSetting(patch: Partial<Settings>): Promise<void> {
@@ -731,7 +751,7 @@ function layoutSection(): HTMLElement[] {
   if (hidden > 0 && settings.topSitesMode === "frequent") {
     parts.push(h("button", { type: "button", class: "button quiet", "data-focus-key": "unhide", onclick: () => void setBoardSetting({ hiddenSites: [] }) }, t("showHiddenSites", hidden)));
   }
-  parts.push(h("h3", {}, t("widgetsDocked")), list, h("button", { type: "button", class: "link", "data-focus-key": "restore", onclick: () => void setLayout(defaultLayout()) }, t("restoreLayout")));
+  parts.push(h("h3", {}, t("widgetsDocked")), list, h("button", { type: "button", class: "link", "data-focus-key": "restore", onclick: () => void restoreLayout() }, t("restoreLayout")));
   return parts;
 }
 
@@ -924,6 +944,7 @@ const timeElement = document.getElementById("time") as HTMLTimeElement;
 
 function applyClock(): void {
   timeElement.hidden = !settings.showClock && !settings.showDate;
+  syncCenter();
 }
 
 let tickTimer: ReturnType<typeof setTimeout> | undefined;
@@ -952,7 +973,8 @@ async function main(): Promise<void> {
   localizePage();
   const stored = await chrome.storage.local.get(["settings", "layout"]);
   settings = sanitizeSettings(stored.settings);
-  layout = sanitizeLayout(stored.layout);
+  phone = (await chrome.runtime.getPlatformInfo()).os === "android";
+  layout = sanitizeLayout(stored.layout, phone);
   applyTheme();
   applyClock();
   tick();

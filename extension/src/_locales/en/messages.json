@@ -630,7 +630,7 @@
     "message": "One row"
   },
   "twoRows": {
-    "message": "Two rows"
+    "message": "Multiple rows"
   },
   "showHiddenSites": {
     "message": "Show $1 hidden sites again"

@@ -119,6 +119,7 @@ body {
 }
 
 .top {
+  grid-row: 1;
   align-self: start;
   justify-self: center;
   width: min(100%, 62rem);
@@ -126,13 +127,21 @@ body {
 }
 
 .center {
+  grid-row: 2;
   display: grid;
   justify-items: center;
   gap: clamp(1.25rem, 3.6vh, 2.25rem);
   align-self: center;
 }
 
+/* With the clock, date and search all off, the shortcuts take the middle of the page. */
+.page:has(> .center[hidden]) > .top {
+  grid-row: 2;
+  align-self: center;
+}
+
 .bottom {
+  grid-row: 3;
   display: grid;
   gap: 0.75rem;
   align-self: end;
@@ -143,12 +152,12 @@ body {
   display: none;
 }
 
-/* Corner controls */
+/* Corner controls: Customize stays at the bottom corner, level with the credit line. */
 .corner-button {
   position: fixed;
   z-index: 2;
-  inset-block-start: clamp(0.75rem, 2.4vh, 1.25rem);
-  inset-inline-end: clamp(0.75rem, 2.4vh, 1.25rem);
+  inset-block-end: clamp(0.75rem, 2.5vh, 1.5rem);
+  inset-inline-end: var(--gutter);
   display: grid;
   place-items: center;
   width: 2.5rem;
@@ -180,7 +189,8 @@ body {
   display: flex;
   align-items: center;
   gap: 0.6rem;
-  min-height: 1.75rem;
+  min-height: 2.5rem;
+  padding-inline-end: 3.5rem;
   color: var(--muted);
   font-size: 0.75rem;
   text-shadow: var(--ink-shadow);
@@ -446,6 +456,23 @@ body {
   flex: none;
   width: 5.75rem;
   scroll-snap-align: start;
+}
+
+/* Multiple rows: shortcuts wrap instead of scrolling sideways. One row stays a carousel. */
+.widget[data-rows="2"] .tiles {
+  flex-wrap: wrap;
+  justify-content: center;
+  max-width: calc(8 * 5.75rem + 7 * 0.25rem + 1rem);
+  max-height: 15rem;
+  margin-inline: auto;
+  overflow-x: hidden;
+  overflow-y: auto;
+  scroll-snap-type: y proximity;
+  mask-image: none;
+}
+
+.widget[data-rows="2"] .rail-arrow {
+  display: none !important;
 }
 
 .tile > a,
@@ -1549,21 +1576,25 @@ body {
   flex: 1;
 }
 
-/* Narrow windows: shortcuts wrap into rows instead of scrolling sideways */
+/* Narrow windows: one row keeps its carousel with the arrows over the faded edges; multiple rows
+   show every row. */
 @media (max-width: 52rem) {
   .top {
     padding-inline: 0;
   }
 
-  .rail-arrow {
-    display: none !important;
+  .rail-arrow[data-edge="start"] {
+    inset-inline-start: 0.25rem;
   }
 
-  .tiles {
-    flex-wrap: wrap;
+  .rail-arrow[data-edge="end"] {
+    inset-inline-end: 0.25rem;
+  }
+
+  .widget[data-rows="2"] .tiles {
     row-gap: 0.35rem;
+    max-height: none;
     overflow: visible;
-    mask-image: none;
   }
 
   .dock > .widget {
@@ -1571,17 +1602,16 @@ body {
   }
 }
 
-/* Touch screens swipe or wrap; the rail's arrows are for mice */
+/* Touch screens swipe; the rail's arrows are for mice */
 @media (pointer: coarse) {
   .rail-arrow {
     display: none !important;
   }
 
-  .tiles {
-    flex-wrap: wrap;
+  .widget[data-rows="2"] .tiles {
     row-gap: 0.35rem;
+    max-height: none;
     overflow: visible;
-    mask-image: none;
   }
 }
 
@@ -1593,19 +1623,18 @@ body {
     gap: 1.5rem;
     height: auto;
     min-height: 100dvh;
-    padding: max(1rem, env(safe-area-inset-top)) 1rem max(1rem, env(safe-area-inset-bottom));
+    padding: max(clamp(1.5rem, 6vh, 3rem), env(safe-area-inset-top)) 1rem max(1rem, env(safe-area-inset-bottom));
   }
 
   .center,
   .top,
-  .bottom {
+  .dock {
     align-self: stretch;
   }
 
   .center {
     order: 1;
     gap: 1.25rem;
-    padding-top: clamp(2.5rem, 9vh, 4.5rem);
   }
 
   .top {
@@ -1613,16 +1642,27 @@ body {
     width: 100%;
   }
 
+  /* The dock follows the shortcuts; the credit line and Customize sit at the bottom edge. */
   .bottom {
+    display: contents;
+  }
+
+  .dock {
     order: 3;
-    gap: 0.75rem;
+  }
+
+  .page-foot {
+    order: 4;
+    margin-top: auto;
+    min-height: 2.25rem;
+    padding-inline: 3rem;
   }
 
   .corner-button {
     width: 2.25rem;
     height: 2.25rem;
-    inset-block-start: max(0.75rem, env(safe-area-inset-top));
-    inset-inline-end: 0.75rem;
+    inset-block-end: max(1rem, env(safe-area-inset-bottom));
+    inset-inline-end: 1rem;
   }
 
   .clock {
@@ -1659,13 +1699,27 @@ body {
   }
 
   .tiles {
+    padding: 0.4rem 0 0;
+    scroll-padding-inline: 0;
+  }
+
+  .widget[data-rows="1"] .tiles {
+    gap: 0;
+  }
+
+  /* Four and a half shortcuts in view, so the row reads as one to swipe. */
+  .widget[data-rows="1"] .tile {
+    width: calc(100% / 4.5);
+  }
+
+  .widget[data-rows="2"] .tiles {
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 0.5rem 0;
-    padding: 0.4rem 0 0;
+    max-width: none;
   }
 
-  .tile {
+  .widget[data-rows="2"] .tile {
     width: auto;
   }
 
@@ -1760,6 +1814,10 @@ body {
     padding-block: 0.75rem 0.5rem;
   }
 
+  .corner-button {
+    inset-block-end: 0.5rem;
+  }
+
   .center {
     gap: clamp(0.85rem, 2.4vh, 1.5rem);
   }
@@ -1829,7 +1887,7 @@ body {
   position: fixed;
   z-index: 2;
   inset-block-start: clamp(0.75rem, 2.4vh, 1.25rem);
-  inset-inline-end: calc(clamp(0.75rem, 2.4vh, 1.25rem) + 3.25rem);
+  inset-inline-end: clamp(0.75rem, 2.4vh, 1.25rem);
   display: flex;
   align-items: center;
   gap: 0.55rem;
@@ -1872,23 +1930,6 @@ body {
 
 :root[data-background="color"] .scrim {
   opacity: 0.55;
-}
-
-/* Two rows of shortcuts: they wrap instead of scrolling sideways. */
-.widget[data-rows="2"] .tiles {
-  flex-wrap: wrap;
-  justify-content: center;
-  max-width: calc(8 * 5.75rem + 7 * 0.25rem + 1rem);
-  max-height: 15rem;
-  margin-inline: auto;
-  overflow-x: hidden;
-  overflow-y: auto;
-  scroll-snap-type: y proximity;
-  mask-image: none;
-}
-
-.widget[data-rows="2"] .rail-arrow {
-  display: none !important;
 }
 
 /* Shortcut editor: icon */
