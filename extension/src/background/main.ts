@@ -6,7 +6,7 @@
 import { addCount, emptyCounts, emptyStats, pruneStats, sanitizeStats, type Category, type Counts } from "../shared/stats.ts";
 import { sanitizePrivacy } from "../shared/privacy.ts";
 import { addBlockedHost, allowRule, blockedList, categoryOfMatch, emptyBlockedHosts, cosmeticCss, cosmeticShard, hostSuffixes, normalizeHosts, siteOf, type BlockedHosts, type Message, type SiteCosmetic, type TabState } from "../shared/shields.ts";
-import { applyContentScripts, applyThreats, applyWebRtc, readPrivacy, runStartupCleanup } from "./privacy.ts";
+import { applyContentScripts, applyThreats, applyWebRtc, readHidingExceptions, readPrivacy, runStartupCleanup } from "./privacy.ts";
 import { checkForUpdate, scheduleUpdateCheck, UPDATE_ALARM } from "./updates.ts";
 import { seedDefaultShortcuts } from "../shared/default-shortcuts.ts";
 import { browserStartup } from "../shared/search.ts";
@@ -162,7 +162,8 @@ async function hideOnSite(tabId: number, url: string): Promise<void> {
   const host = siteOf(url);
   if (!host) return;
   const off = [...(await hostsOff()), ...(await privateHostsOff())];
-  if (hostSuffixes(host).some((suffix) => off.includes(suffix))) return;
+  const { specific } = await readHidingExceptions();
+  if (hostSuffixes(host).some((suffix) => off.includes(suffix) || specific.includes(suffix))) return;
   const entries: SiteCosmetic[] = [];
   for (const suffix of hostSuffixes(host)) {
     const entry = (await readShard(cosmeticShard(suffix)))[suffix];

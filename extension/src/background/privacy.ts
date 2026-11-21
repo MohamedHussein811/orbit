@@ -2,6 +2,7 @@
 
 import { excludeMatches, historyCutoff, removalOptions, sanitizePrivacy, type PrivacySettings } from "../shared/privacy.ts";
 import { planScripts, type ScriptSpec } from "../shared/content-scripts.ts";
+import type { HidingExceptions } from "../shared/shields.ts";
 
 const SCRIPT_ID = "orbit-fingerprint";
 const COSMETIC_ID = "orbit-cosmetic";
@@ -45,14 +46,25 @@ function fingerprintScripts(settings: PrivacySettings, hostsOff: readonly string
   ];
 }
 
-/** Hides common ad elements everywhere except on sites with Shields off. */
-function genericHidingScripts(hostsOff: readonly string[]): ScriptSpec[] {
+let hidingExceptions: Promise<HidingExceptions> | null = null;
+
+/** Sites the lists keep hiding off, often because they test for ad blockers with decoy ads. */
+export function readHidingExceptions(): Promise<HidingExceptions> {
+  hidingExceptions ??= fetch(chrome.runtime.getURL("rules/hiding-exceptions.json"))
+    .then((response) => response.json() as Promise<HidingExceptions>)
+    .catch(() => ({ generic: [], specific: [] }));
+  return hidingExceptions;
+}
+
+/** Hides common ad elements everywhere except on sites with Shields off or a list exception. */
+async function genericHidingScripts(hostsOff: readonly string[]): Promise<ScriptSpec[]> {
+  const { generic } = await readHidingExceptions();
   return [
     {
       id: COSMETIC_ID,
       css: ["rules/cosmetic-generic.css"],
       matches: ["http://*/*", "https://*/*"],
-      excludeMatches: excludeMatches(hostsOff),
+      excludeMatches: excludeMatches([...hostsOff, ...generic]),
       allFrames: true,
       runAt: "document_start",
     },
@@ -143,7 +155,7 @@ async function registerScripts(scripts: ScriptSpec[]): Promise<void> {
 /** Fingerprinting protection, cosmetic filtering, site fixes and scriptlets, registered with the
  * browser. A new extension version registers everything again, since the files may have changed. */
 export async function applyContentScripts(settings: PrivacySettings, hostsOff: readonly string[]): Promise<void> {
-  const wanted = [...fingerprintScripts(settings, hostsOff), ...genericHidingScripts(hostsOff), ...siteFixScripts(hostsOff), ...(await scriptletScripts(hostsOff))];
+  const wanted = [...fingerprintScripts(settings, hostsOff), ...(await genericHidingScripts(hostsOff)), ...siteFixScripts(hostsOff), ...(await scriptletScripts(hostsOff))];
   const version = chrome.runtime.getManifest().version;
   const [registered, stored] = await Promise.all([chrome.scripting.getRegisteredContentScripts(), chrome.storage.local.get(SCRIPTS_VERSION_KEY)]);
   const plan =

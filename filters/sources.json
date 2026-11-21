@@ -126,5 +126,12 @@
     "youtube.com",
     "youtube-nocookie.com",
     "youtube.*"
-  ]
+  ],
+  "resources": {
+    "name": "uBlock Origin resources",
+    "url": "https://github.com/gorhill/uBlock/tree/ec0d05341697d9e9bb5f701c130bea4bf3d8e269/src/web_accessible_resources",
+    "base": "https://raw.githubusercontent.com/gorhill/uBlock/ec0d05341697d9e9bb5f701c130bea4bf3d8e269/src/web_accessible_resources/",
+    "license": "GPL-3.0",
+    "attribution": "Raymond Hill and the uBlock Origin contributors (https://github.com/gorhill/uBlock)"
+  }
 }

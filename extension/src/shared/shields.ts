@@ -68,13 +68,34 @@ export function hostSuffixes(host: string): string[] {
 export interface SiteCosmetic {
   hide?: string[];
   show?: string[];
+  /** Selector and declarations, from `:style()` filters. */
+  style?: Array<[string, string]>;
 }
+
+const important = (declarations: string) =>
+  declarations
+    .split(";")
+    .map((declaration) => declaration.trim())
+    .filter(Boolean)
+    .map((declaration) => (/!important$/i.test(declaration) ? declaration : `${declaration} !important`))
+    .join(";");
 
 /** Stylesheet for one site. Selectors stay in separate rules so a rejected one affects nothing else. */
 export function cosmeticCss(entries: readonly SiteCosmetic[]): string {
   const show = new Set(entries.flatMap((entry) => entry.show ?? []));
   const hide = entries.flatMap((entry) => entry.hide ?? []).filter((selector) => !show.has(selector));
-  return [...hide.map((selector) => `${selector}{display:none!important}`), ...[...show].map((selector) => `${selector}{display:revert!important}`)].join("\n");
+  const style = entries.flatMap((entry) => entry.style ?? []);
+  return [
+    ...hide.map((selector) => `${selector}{display:none!important}`),
+    ...[...show].map((selector) => `${selector}{display:revert!important}`),
+    ...style.map(([selector, declarations]) => `${selector}{${important(declarations)}}`),
+  ].join("\n");
+}
+
+/** Sites where the lists turn hiding off (see compileHidingExceptions in tools/filter-compiler.mjs). */
+export interface HidingExceptions {
+  generic: string[];
+  specific: string[];
 }
 
 export type Message =

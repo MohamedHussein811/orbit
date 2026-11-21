@@ -1,5 +1,5 @@
 {
-  "generated": "2026-11-17T05:26:08.697Z",
+  "generated": "2026-11-21T13:48:45.539Z",
   "lists": {
     "easylist": {
       "name": "EasyList",
@@ -7,8 +7,8 @@
       "attribution": "The EasyList authors (https://easylist.to/)",
       "homepage": "https://easylist.to/",
       "url": "https://easylist.to/easylist/easylist.txt",
-      "sha256": "48e0161735e1efb78c7c00303294005ea82d67c1a2192954396dbef1953c2d02",
-      "bytes": 2038842
+      "sha256": "4aac33f7b1216db8af801ce15f2a8c23bf3badd202a95bc255de929bd82e98e9",
+      "bytes": 2077089
     },
     "easyprivacy": {
       "name": "EasyPrivacy",
@@ -16,8 +16,8 @@
       "attribution": "The EasyList authors (https://easylist.to/)",
       "homepage": "https://easylist.to/",
       "url": "https://easylist.to/easylist/easyprivacy.txt",
-      "sha256": "20054bab3af6a985ddef8ae77b7552007d6f4ccdcf4c369e57d55409c17969f5",
-      "bytes": 1517795
+      "sha256": "f8937a453a889073406666b7b2350e02ed537290b4eb5ad7627625ae1ce46b18",
+      "bytes": 1520487
     },
     "listear": {
       "name": "Liste AR",
@@ -25,7 +25,7 @@
       "attribution": "The Liste AR authors, distributed with EasyList (https://easylist.to/)",
       "homepage": "https://code.google.com/p/liste-ar-adblock/",
       "url": "https://easylist-downloads.adblockplus.org/Liste_AR.txt",
-      "sha256": "0e146fc4247b8f9b3e20533a615ec687ebe99ff6132306f698cf3c269324a731",
+      "sha256": "bf8e6f5dcdb7aad9cacf38f98d11921421ff1a184c37e7fd85812f4b16355715",
       "bytes": 61550
     },
     "ublock": {
@@ -34,8 +34,8 @@
       "attribution": "The uBlock Origin filter list authors (https://github.com/uBlockOrigin/uAssets)",
       "homepage": "https://github.com/uBlockOrigin/uAssets",
       "url": "https://ublockorigin.github.io/uAssets/filters/filters.txt",
-      "sha256": "4fbf1d9add703095a7bc799d6609c65016bf9a0b8f123d46a60dc9d529138d12",
-      "bytes": 2399044
+      "sha256": "628e2c271ecb9764df3e96f1ef141aa7b359ff2101b53d131f8b2e9a5bd82b07",
+      "bytes": 2394895
     },
     "ublockBadware": {
       "name": "uBlock filters – Badware risks",
@@ -43,8 +43,8 @@
       "attribution": "The uBlock Origin filter list authors (https://github.com/uBlockOrigin/uAssets)",
       "homepage": "https://github.com/uBlockOrigin/uAssets",
       "url": "https://ublockorigin.github.io/uAssets/filters/badware.txt",
-      "sha256": "635b2c27be4e5bfb74c3155b283cd5cc97d8c326c55b295d44d41644748ede5f",
-      "bytes": 273462
+      "sha256": "0f111aac99c322e28a90c4486094b10fb33e7469fe6a99b2e74d4646cfd8cabd",
+      "bytes": 272041
     },
     "ublockPrivacy": {
       "name": "uBlock filters – Privacy",
@@ -52,8 +52,8 @@
       "attribution": "The uBlock Origin filter list authors (https://github.com/uBlockOrigin/uAssets)",
       "homepage": "https://github.com/uBlockOrigin/uAssets",
       "url": "https://ublockorigin.github.io/uAssets/filters/privacy.txt",
-      "sha256": "03926387fdbccb0349ac9c267c13db70734fd775d82d45166e2dbebb72002d32",
-      "bytes": 191997
+      "sha256": "0561efc81bfa08ef07da693008dab6e0b1a95735229d772984d457c87128af5c",
+      "bytes": 191373
     },
     "ublockQuickFixes": {
       "name": "uBlock filters – Quick fixes",
@@ -61,8 +61,8 @@
       "attribution": "The uBlock Origin filter list authors (https://github.com/uBlockOrigin/uAssets)",
       "homepage": "https://github.com/uBlockOrigin/uAssets",
       "url": "https://ublockorigin.github.io/uAssets/filters/quick-fixes.txt",
-      "sha256": "5a4d501cd0ea041d21ec3aa02e26da6246c6b215ecb822bccfcc1aded178199b",
-      "bytes": 79706
+      "sha256": "8462d4e442069a088cacae1f294751f06197adc339848798111eca076f55fb33",
+      "bytes": 80023
     },
     "ublockUnbreak": {
       "name": "uBlock filters – Unbreak",
@@ -70,8 +70,8 @@
       "attribution": "The uBlock Origin filter list authors (https://github.com/uBlockOrigin/uAssets)",
       "homepage": "https://github.com/uBlockOrigin/uAssets",
       "url": "https://ublockorigin.github.io/uAssets/filters/unbreak.txt",
-      "sha256": "cb2824f4c4ec6f3f5876dcc244b8cf972527c44c8749080d90970f7775c00d63",
-      "bytes": 279948
+      "sha256": "1a22c5ecb4df98813fd202bae9c4dc4314466f9372fc81aae69d97de1bac32f8",
+      "bytes": 279075
     },
     "urlhaus": {
       "name": "Malicious URL Blocklist (online entries)",
@@ -79,8 +79,8 @@
       "attribution": "Ming Di Leom, from URLhaus data by abuse.ch (CC0). Not endorsed by abuse.ch.",
       "homepage": "https://gitlab.com/malware-filter/urlhaus-filter",
       "url": "https://malware-filter.gitlab.io/malware-filter/urlhaus-filter-online.txt",
-      "sha256": "cb0e0243274ba1c910d4ccf06d05796a54bb30f7f8b3749741a72ba4fcf14061",
-      "bytes": 12004475
+      "sha256": "42389c0ae3971b6f9d72cb42095e08eaef11a5a0fb090a53d0cdae9bfeed37fc",
+      "bytes": 12294317
     },
     "phishing": {
       "name": "Phishing URL Blocklist",
@@ -88,31 +88,32 @@
       "attribution": "Ming Di Leom, from OpenPhish, IPThreat and PhishTank data. Not endorsed by those sources.",
       "homepage": "https://gitlab.com/malware-filter/phishing-filter",
       "url": "https://malware-filter.gitlab.io/malware-filter/phishing-filter.txt",
-      "sha256": "539cfb8947a337217b0c66709f275626b42c1915608e8ccc6c13a375e3895843",
-      "bytes": 1920293
+      "sha256": "87488bbc854a26b17345d3d3be213c3c38935421b3f5eba0c0f6920731276509",
+      "bytes": 1896422
     }
   },
   "rulesets": {
     "ads": {
-      "rules": 10564,
-      "lines": 110188,
-      "compiled": 60269,
+      "rules": 11788,
+      "lines": 111768,
+      "compiled": 63089,
       "skipped": {
         "pattern": 30,
-        "option": 6170,
-        "cosmetic": 43419,
-        "badfilter": 249,
-        "regex": 51
+        "option": 4895,
+        "cosmetic": 43450,
+        "badfilter": 251,
+        "regex": 52,
+        "too-broad": 1
       }
     },
     "trackers": {
-      "rules": 10192,
-      "lines": 58545,
-      "compiled": 57700,
+      "rules": 10283,
+      "lines": 58627,
+      "compiled": 57847,
       "skipped": {
         "too-broad": 1,
-        "option": 422,
-        "cosmetic": 401,
+        "option": 355,
+        "cosmetic": 403,
         "pattern": 13,
         "badfilter": 7,
         "regex": 1
@@ -120,31 +121,43 @@
     },
     "threats": {
       "rules": 10,
-      "lines": 151396,
-      "compiled": 19544,
+      "lines": 152947,
+      "compiled": 18599,
       "skipped": {
-        "path": 131852
+        "path": 134348
       }
     }
   },
   "cosmetic": {
     "generic": 13812,
-    "sites": 11454,
-    "hide": 29211,
-    "unhide": 696,
+    "sites": 11747,
+    "hide": 29320,
+    "unhide": 693,
+    "style": 637,
     "genericSkipped": 389,
-    "skipped": 12855
+    "skipped": 12147
+  },
+  "hidingExceptions": {
+    "generic": 1239,
+    "specific": 3
+  },
+  "resources": {
+    "name": "uBlock Origin resources",
+    "license": "GPL-3.0",
+    "attribution": "Raymond Hill and the uBlock Origin contributors (https://github.com/gorhill/uBlock)",
+    "url": "https://github.com/gorhill/uBlock/tree/ec0d05341697d9e9bb5f701c130bea4bf3d8e269/src/web_accessible_resources",
+    "files": 46
   },
   "popups": {
-    "hosts": 46562,
+    "hosts": 48120,
     "scoped": 37
   },
   "scriptlets": {
-    "calls": 4503,
-    "sites": 23886,
-    "compiled": 9389,
-    "unsupported": 936,
+    "calls": 4923,
+    "sites": 24121,
+    "compiled": 9960,
+    "unsupported": 345,
     "generic": 0,
-    "skipped": 56
+    "skipped": 62
   }
 }
