@@ -40,6 +40,8 @@ ABOUT_VERSION = re.compile(
     r'(<message name="IDS_ABOUT_VERSION_(?:COMPANY_NAME|COPYRIGHT)"[^>]*>)(.*?)(</message>)', re.DOTALL
 )
 YOU_AND_GOOGLE = re.compile(r"(>\s*)You and Google(\s*</message>)")
+ARABIC = re.compile("[؀-ۿ]")
+GET_STARTED_AR = "البدء"
 # Orbit says private, not Incognito. Grds with Incognito in user-visible messages.
 INCOGNITO_STRING_FILES = [
     "chrome/app/generated_resources.grd",
@@ -304,15 +306,15 @@ def about_version_names(src):
 
 def rename_chrome(src):
     """Renames "Chrome" used as the browser's name in shared strings, and the Settings section
-    "You and Google", which holds the Orbit profile and import."""
+    "You and Google" to "Get Started" (the profile, import, default browser and startup)."""
     sys.path.insert(0, str(src / "tools" / "grit"))
     changed = []
     for relative in CHROME_STRING_FILES:
         changed += rename_messages(
             src,
             relative,
-            lambda text: YOU_AND_GOOGLE.sub(r"\1You and Orbit\2", text),
-            lambda text: text.replace("Google", "Orbit"),
+            lambda text: YOU_AND_GOOGLE.sub(r"\1Get Started\2", text),
+            lambda text: GET_STARTED_AR if ARABIC.search(text) else text.replace("Google", "Orbit"),
         )
         changed += rename_messages(
             src,
