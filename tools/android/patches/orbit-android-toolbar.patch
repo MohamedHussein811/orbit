@@ -376,7 +376,7 @@ diff --git a/chrome/browser/ui/android/toolbar/java/src/org/chromium/chrome/brow
 diff --git a/chrome/browser/ui/android/toolbar/java/src/org/chromium/chrome/browser/toolbar/extensions/OrbitShieldsButtonImpl.java b/chrome/browser/ui/android/toolbar/java/src/org/chromium/chrome/browser/toolbar/extensions/OrbitShieldsButtonImpl.java
 --- a/chrome/browser/ui/android/toolbar/java/src/org/chromium/chrome/browser/toolbar/extensions/OrbitShieldsButtonImpl.java
 +++ b/chrome/browser/ui/android/toolbar/java/src/org/chromium/chrome/browser/toolbar/extensions/OrbitShieldsButtonImpl.java
-@@ -0,0 +1,292 @@
+@@ -0,0 +1,307 @@
 +// Copyright 2026 NovaTech. All rights reserved.
 +
 +package org.chromium.chrome.browser.toolbar.extensions;
@@ -397,6 +397,7 @@ diff --git a/chrome/browser/ui/android/toolbar/java/src/org/chromium/chrome/brow
 +import org.chromium.chrome.browser.profiles.Profile;
 +import org.chromium.chrome.browser.tab.Tab;
 +import org.chromium.chrome.browser.tabmodel.TabModelSelector;
++import org.chromium.chrome.browser.tabmodel.TabModelUtils;
 +import org.chromium.chrome.browser.toolbar.optional_button.ButtonData;
 +import org.chromium.chrome.browser.toolbar.optional_button.ButtonDataImpl;
 +import org.chromium.chrome.browser.ui.browser_window.ChromeAndroidTask;
@@ -423,7 +424,11 @@ diff --git a/chrome/browser/ui/android/toolbar/java/src/org/chromium/chrome/brow
 +    private static final String ACTION_ID = "kceipbaiojomdibnboffoieecidpfdck";
 +
 +    private final ObserverList<ButtonDataObserver> mObservers = new ObserverList<>();
-+    private final Callback<@Nullable Tab> mTabObserver = tab -> refresh();
++    private final Callback<@Nullable Tab> mTabObserver =
++            tab -> {
++                if (mBridge == null) maybeCreateBridge();
++                refresh();
++            };
 +
 +    private final ExtensionsToolbarBridge.Observer mBridgeObserver =
 +            new ExtensionsToolbarBridge.Observer() {
@@ -495,6 +500,7 @@ diff --git a/chrome/browser/ui/android/toolbar/java/src/org/chromium/chrome/brow
 +    private @Nullable ButtonData mButtonData;
 +    private boolean mNativeInitialized;
 +    private boolean mDestroyed;
++    private boolean mWaitingForTabState;
 +
 +    @Override
 +    @Initializer
@@ -508,6 +514,7 @@ diff --git a/chrome/browser/ui/android/toolbar/java/src/org/chromium/chrome/brow
 +        mWindowAndroid = windowAndroid;
 +        mTabModelSelectorSupplier = tabModelSelectorSupplier;
 +        mCurrentTabSupplier = currentTabSupplier;
++        currentTabSupplier.addSyncObserver(mTabObserver);
 +        taskSupplier.onAvailable(
 +                task -> {
 +                    mTask = task;
@@ -540,6 +547,7 @@ diff --git a/chrome/browser/ui/android/toolbar/java/src/org/chromium/chrome/brow
 +    public void destroy() {
 +        if (mDestroyed) return;
 +        destroyBridge();
++        mCurrentTabSupplier.removeObserver(mTabObserver);
 +        mDestroyed = true;
 +        mObservers.clear();
 +    }
@@ -560,6 +568,15 @@ diff --git a/chrome/browser/ui/android/toolbar/java/src/org/chromium/chrome/brow
 +        if (selector == null) return;
 +        Profile profile = selector.getCurrentModel().getProfile();
 +        if (profile == null || !ExtensionUi.isEnabled(profile)) return;
++        // Until the task ties this activity's window to its tab list, the native toolbar would
++        // read a window without tabs. Tried again when tabs are restored and on tab changes.
++        if (task.getNativeBrowserWindowPtr(profile, mActivity) == 0) {
++            if (!mWaitingForTabState) {
++                mWaitingForTabState = true;
++                TabModelUtils.runOnTabStateInitialized(selector, unused -> maybeCreateBridge());
++            }
++            return;
++        }
 +        ActivityWindowAndroid activityWindow =
 +                mWindowAndroid instanceof ActivityWindowAndroid window ? window : null;
 +        ChromeAndroidTaskFeature added =
@@ -573,7 +590,6 @@ diff --git a/chrome/browser/ui/android/toolbar/java/src/org/chromium/chrome/brow
 +        bridge.setMenuDelegate(() -> {});
 +        bridge.addObserver(mBridgeObserver);
 +        mBridge = bridge;
-+        mCurrentTabSupplier.addSyncObserver(mTabObserver);
 +        refresh();
 +    }
 +
@@ -582,7 +598,6 @@ diff --git a/chrome/browser/ui/android/toolbar/java/src/org/chromium/chrome/brow
 +        ExtensionsToolbarBridge bridge = mBridge;
 +        if (bridge == null) return;
 +        mBridge = null;
-+        mCurrentTabSupplier.removeObserver(mTabObserver);
 +        bridge.removeObserver(mBridgeObserver);
 +        bridge.setActionListDelegate(null);
 +        bridge.setMenuDelegate(null);
