@@ -67,6 +67,60 @@ final class LibraryTests: XCTestCase {
         XCTAssertEqual(browser.selected?.id, browser.tabs[0].id)
     }
 
+    func testSettingsFromAnEarlierVersionKeepTheirValuesAndTakeTheNewDefaults() throws {
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        let old = #"{"engine":"startpage","shieldsOn":false,"shieldsOffSites":["example.com"]}"#
+        try Data(old.utf8).write(to: folder.appendingPathComponent("settings.json"))
+        let settings = Library(folder: folder).settings
+        XCTAssertEqual(settings.engine, .startpage)
+        XCTAssertFalse(settings.shieldsOn)
+        XCTAssertEqual(settings.shieldsOffSites, ["example.com"])
+        XCTAssertFalse(settings.showClock)
+        XCTAssertFalse(settings.showDate)
+        XCTAssertFalse(settings.showSearch)
+        XCTAssertEqual(settings.shortcutRows, 1)
+        XCTAssertEqual(settings.startup, .newTab)
+    }
+
+    func testNewTabLayoutChangesPersistAndRestoreLayoutResetsThem() {
+        let library = Library(folder: folder)
+        library.update {
+            $0.showClock = true
+            $0.showSearch = true
+            $0.shortcutRows = 2
+        }
+        let reopened = Library(folder: folder)
+        XCTAssertTrue(reopened.settings.showClock)
+        XCTAssertTrue(reopened.settings.showSearch)
+        XCTAssertEqual(reopened.settings.shortcutRows, 2)
+        reopened.restoreLayout()
+        XCTAssertFalse(Library(folder: folder).settings.showClock)
+        XCTAssertEqual(Library(folder: folder).settings.shortcutRows, 1)
+    }
+
+    func testStartupOpensTheChosenPagesOrTheLastTabsButNoPrivateOnes() {
+        let a = URL(string: "https://a.test/")!
+        let b = URL(string: "https://b.test/")!
+        let library = Library(folder: folder)
+        library.update {
+            $0.startup = .pages
+            $0.startupPages = [a, b]
+        }
+        let started = Browser(library: Library(folder: folder), loadsShields: false)
+        XCTAssertEqual(started.tabs.map(\.url), [a, b])
+        XCTAssertEqual(started.selected?.url, a)
+
+        started.newTab(isPrivate: true, url: URL(string: "https://private.test/")!)
+        Library(folder: folder).update { $0.startup = .restore }
+        let restored = Browser(library: Library(folder: folder), loadsShields: false)
+        XCTAssertEqual(restored.tabs.map(\.url), [a, b])
+
+        Library(folder: folder).update { $0.startup = .newTab }
+        let fresh = Browser(library: Library(folder: folder), loadsShields: false)
+        XCTAssertEqual(fresh.tabs.count, 1)
+        XCTAssertNil(fresh.tabs[0].url)
+    }
+
     func testShieldsFollowTheGlobalSwitchAndSiteChoices() {
         let browser = Browser(library: Library(folder: folder), loadsShields: false)
         XCTAssertTrue(browser.shieldsEnabled(for: "example.com"))

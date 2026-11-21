@@ -18,7 +18,14 @@ final class Browser {
 
     init(library: Library? = nil, loadsShields: Bool = true) {
         self.library = library ?? Library()
-        newTab(isPrivate: false)
+        // Settings > On startup: a new tab page, the tabs open last time, or the chosen pages.
+        let pages = self.library.startupURLs()
+        if pages.isEmpty {
+            newTab(isPrivate: false)
+        } else {
+            for url in pages { newTab(isPrivate: false, url: url) }
+            selectedID = tabs.first?.id
+        }
         if loadsShields {
             let shields = Shields()
             Task { await loadShields(shields) }
@@ -41,7 +48,13 @@ final class Browser {
         tabs.append(tab)
         selectedID = tab.id
         if let url { tab.load(url) }
+        saveSession()
         return tab
+    }
+
+    /// Keeps the open regular tabs for "Continue where you left off".
+    func saveSession() {
+        library.saveSession(tabs.filter { !$0.isPrivate }.compactMap(\.url))
     }
 
     func select(_ tab: Tab) {
@@ -55,6 +68,7 @@ final class Browser {
         if !tabs.contains(where: \.isPrivate) { privateStore = nil }
         if tabs.isEmpty { newTab(isPrivate: false) }
         if selectedID == tab.id { selectedID = tabs.last?.id }
+        saveSession()
     }
 
     func closeAll(private isPrivate: Bool) {
