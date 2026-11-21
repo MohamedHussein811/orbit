@@ -244,17 +244,7 @@ diff --git a/components/url_formatter/android/java/src/org/chromium/components/u
 diff --git a/components/webui/chrome_urls/resources/app.html.ts b/components/webui/chrome_urls/resources/app.html.ts
 --- a/components/webui/chrome_urls/resources/app.html.ts
 +++ b/components/webui/chrome_urls/resources/app.html.ts
-@@ -6,17 +6,24 @@
- 
- import type {ChromeUrlsAppElement} from './app.js';
- 
-+function orbitUrl(url: unknown): string {
-+  const text = typeof url === 'object' && url !== null && 'url' in url ?
-+      String((url as {url: unknown}).url) :
-+      String(url);
-+  return text.replace(/^chrome:\/\//, 'orbit://');
-+}
-+
+@@ -9,14 +9,14 @@
  export function getHtml(this: ChromeUrlsAppElement) {
    // clang-format off
    return html`
@@ -268,27 +258,41 @@ diff --git a/components/webui/chrome_urls/resources/app.html.ts b/components/web
        html`${info.enabled ?
 -        html`<li><a href="${info.url}">${info.url}</a></li>` :
 -        html`<li>${info.url}</li>`
-+        html`<li><a href="${info.url}">${orbitUrl(info.url)}</a></li>` :
-+        html`<li>${orbitUrl(info.url)}</li>`
++        html`<li><a href="${info.url}">${this.orbitUrl_(info.url)}</a></li>` :
++        html`<li>${this.orbitUrl_(info.url)}</li>`
        }`
      }`)}
  </ul>
-@@ -33,8 +40,8 @@
+@@ -33,8 +33,8 @@
    <ul>
      ${this.internalUrlInfos_.map(info => html`
        ${this.isInternalUiEnabled_(info) ?
 -        html`<li><a href="${info.url}">${info.url}</a></li>` :
 -        html`<li>${info.url}</li>`
-+        html`<li><a href="${info.url}">${orbitUrl(info.url)}</a></li>` :
-+        html`<li>${orbitUrl(info.url)}</li>`
++        html`<li><a href="${info.url}">${this.orbitUrl_(info.url)}</a></li>` :
++        html`<li>${this.orbitUrl_(info.url)}</li>`
        }`)}
    </ul>` : ''}
  ${this.commandUrls_.length ? html`
-@@ -45,6 +52,6 @@
+@@ -45,6 +45,6 @@
      address bar if you need them.
    </p>
    <ul>
 -    ${this.commandUrls_.map(url => html`<li>${url}</li>`)}
-+    ${this.commandUrls_.map(url => html`<li>${orbitUrl(url)}</li>`)}
++    ${this.commandUrls_.map(url => html`<li>${this.orbitUrl_(url)}</li>`)}
    </ul>` : ''}`;
  }
+diff --git a/components/webui/chrome_urls/resources/app.ts b/components/webui/chrome_urls/resources/app.ts
+--- a/components/webui/chrome_urls/resources/app.ts
++++ b/components/webui/chrome_urls/resources/app.ts
+@@ -178,6 +178,10 @@
+   protected isChromeUrlsUrl_(info: WebuiUrlInfo): boolean {
+     return info.url === 'chrome://chrome-urls';
+   }
++
++  protected orbitUrl_(url: Url): string {
++    return url.replace(/^chrome:\/\//, 'orbit://');
++  }
+ }
+ 
+ declare global {
