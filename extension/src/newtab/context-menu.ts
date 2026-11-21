@@ -3,6 +3,7 @@
 
 import { t } from "../shared/i18n.ts";
 import { h, icon } from "./dom.ts";
+import { tileMenus } from "./widgets.ts";
 
 interface MenuItem {
   label: string;
@@ -92,6 +93,16 @@ function linkEntries(url: string): Entry[] {
   ];
 }
 
+/** A shortcut's own actions first, then the usual link actions. */
+function tileEntries(tile: Element, url: string | null): Entry[] | null {
+  const menu = tileMenus.get(tile);
+  if (!menu) return null;
+  const own: Entry[] = [];
+  if (menu.edit) own.push({ label: menu.edit.label, icon: "edit", run: menu.edit.run });
+  if (menu.remove) own.push({ label: menu.remove.label, icon: "trash", run: menu.remove.run });
+  return url ? [...own, "separator", ...linkEntries(url)] : own;
+}
+
 function pageEntries(actions: { customize: () => void }): Entry[] {
   const navigation = (window as unknown as { navigation?: NavigationState }).navigation;
   return [
@@ -122,7 +133,9 @@ export function installContextMenu(actions: { customize: () => void }): void {
     const url = link && /^https?:/i.test(link.href) ? link.href : null;
     const fromKeyboard = event.button !== 2 && event.clientX === 0 && event.clientY === 0;
     const anchor = fromKeyboard ? (document.activeElement ?? document.body).getBoundingClientRect() : null;
-    show(url ? linkEntries(url) : pageEntries(actions), anchor ? anchor.left + 8 : event.clientX, anchor ? anchor.bottom + 4 : event.clientY);
+    const tile = target?.closest(".tile");
+    const entries = (tile && tileEntries(tile, url)) || (url ? linkEntries(url) : pageEntries(actions));
+    show(entries, anchor ? anchor.left + 8 : event.clientX, anchor ? anchor.bottom + 4 : event.clientY);
   });
   document.addEventListener("pointerdown", (event) => {
     if (open && !open.contains(event.target as Node)) close();

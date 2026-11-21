@@ -116,9 +116,6 @@
   "statThreats": {
     "message": "Threats stopped"
   },
-  "countedLocally": {
-    "message": "Counted on this device. Nothing is sent anywhere."
-  },
   "resetCounts": {
     "message": "Reset counts"
   },
@@ -154,6 +151,9 @@
   },
   "editShortcut": {
     "message": "Edit shortcut"
+  },
+  "removeShortcut": {
+    "message": "Remove"
   },
   "backToParent": {
     "message": "Back to the parent folder"

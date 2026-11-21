@@ -1,0 +1,38 @@
+diff --git a/chrome/browser/android/ntp/new_tab_page_url_handler.cc b/chrome/browser/android/ntp/new_tab_page_url_handler.cc
+--- a/chrome/browser/android/ntp/new_tab_page_url_handler.cc
++++ b/chrome/browser/android/ntp/new_tab_page_url_handler.cc
+@@ -26,6 +26,9 @@
+ 
+ namespace {
+ const char kBookmarkFolderPath[] = "folder/";
++// Shown in place of the new tab page until Orbit's extension has registered its page.
++const char kOrbitNewTabPlaceholder[] =
++    "data:text/html;orbit=new-tab;charset=utf-8,%3C!doctype%20html%3E%3Cmeta%20name%3D%22theme-color%22%20content%3D%22%2308090b%22%3E%3Ctitle%3ENew%20Tab%3C%2Ftitle%3E%3Cstyle%3Ehtml%7Bbackground%3A%2308090b%7D%3C%2Fstyle%3E";
+ }
+ 
+ namespace chrome {
+@@ -45,6 +48,11 @@
+ #endif
+ 
+   if (url->SchemeIs(content::kChromeUIScheme)) {
++    if (url->GetHost() == chrome::kChromeUINewTabHost &&
++        !Profile::FromBrowserContext(browser_context)->IsOffTheRecord()) {
++      *url = GURL(kOrbitNewTabPlaceholder);
++      return true;
++    }
+     if (url->GetHost() == chrome::kChromeUINewTabHost) {
+       // The url handler rewrites the url from chrome://newtab to the WebUI
+       // NTP if the WebUI NTP is enabled. Depending on the default search
+diff --git a/chrome/browser/url_constants/android/java/src/org/chromium/chrome/browser/url_constants/ExtensionsUrlOverrideRegistry.java b/chrome/browser/url_constants/android/java/src/org/chromium/chrome/browser/url_constants/ExtensionsUrlOverrideRegistry.java
+--- a/chrome/browser/url_constants/android/java/src/org/chromium/chrome/browser/url_constants/ExtensionsUrlOverrideRegistry.java
++++ b/chrome/browser/url_constants/android/java/src/org/chromium/chrome/browser/url_constants/ExtensionsUrlOverrideRegistry.java
+@@ -24,7 +24,8 @@
+ 
+     /** Returns true if an extension has overridden the NTP page. */
+     public static boolean getNtpOverrideEnabled() {
+-        return getPrefs().readBoolean(buildKey(EXTENSIONS_NTP_URL_OVERRIDE_ENABLED), false);
++        // Orbit's built-in extension provides the new tab page from the first start.
++        return getPrefs().readBoolean(buildKey(EXTENSIONS_NTP_URL_OVERRIDE_ENABLED), true);
+     }
+ 
+     /** Returns true if extensions can override pages in incognito mode for incognito mode. */

@@ -11,6 +11,7 @@ sdk=${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}}
 aapt2=$(ls "$sdk"/build-tools/*/aapt2 | sort -V | tail -1)
 package=$("$aapt2" dump badging "$apk" | sed -n "s/^package: name='\([^']*\)'.*/\1/p")
 echo "package $package"
+"$aapt2" dump permissions "$apk" | grep -E "FOREGROUND|QUERY_ALL|INSTALL_PACKAGES"
 
 adb wait-for-device
 adb install -r -g "$apk"

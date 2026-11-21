@@ -1,3 +1,122 @@
+diff --git a/chrome/android/java/src/org/chromium/chrome/browser/ChromeTabbedActivity.java b/chrome/android/java/src/org/chromium/chrome/browser/ChromeTabbedActivity.java
+--- a/chrome/android/java/src/org/chromium/chrome/browser/ChromeTabbedActivity.java
++++ b/chrome/android/java/src/org/chromium/chrome/browser/ChromeTabbedActivity.java
+@@ -356,6 +356,7 @@
+ import org.chromium.chrome.browser.ui.browser_window.BrowserWindowType;
+ import org.chromium.chrome.browser.ui.browser_window.ChromeAndroidTask;
+ import org.chromium.chrome.browser.ui.browser_window.ChromeAndroidTaskFeatureKey;
++import org.chromium.chrome.browser.ui.browser_window.ChromeAndroidTaskTracker;
+ import org.chromium.chrome.browser.ui.default_browser_promo.DefaultBrowserPromoUtils;
+ import org.chromium.chrome.browser.ui.edge_to_edge.EdgeToEdgeUtils;
+ import org.chromium.chrome.browser.ui.edge_to_edge.TransitiveTopInsetProvider;
+@@ -744,6 +745,7 @@
+     private final Callback<Boolean> mOnXrSpaceModeChanged = this::onXrSpaceModeChanged;
+     private @Nullable XrSceneCoreSessionInitializer mXrSceneCoreSessionInitializer;
+     private @SupportedProfileType int mSupportedProfileType = SupportedProfileType.UNSET;
++    private boolean mStartsAsPendingIncognitoWindow;
+ 
+     private @Nullable TipsPromoCoordinator mTipsPromoCoordinator;
+     private @MonotonicNonNull RecentlyClosedEntriesManager mRecentlyClosedEntriesManager;
+@@ -1779,6 +1781,9 @@
+                                         new CookiesFetcher(
+                                                 profileProvider, CipherLazyHolder.sCipherInstance);
+                             }
++                            // A window opened through the browser window API, such as an
++                            // extension's private window, needs its profile until it is created.
++                            if (isBrowserWindowPending()) return;
+                             IncognitoStartup.onResumeWithNative(
+                                     profileProvider,
+                                     mIncognitoCookiesFetcher,
+@@ -2738,12 +2743,13 @@
+                 Tab currentTab = getActivityTab();
+                 boolean isTabNtp = isTabRegularNtp(currentTab);
+                 boolean isTabWebUiNtp = UrlOverrideUtils.isWebUiNtpOverrideEnabled();
++                boolean isNtpOverridden = UrlOverrideUtils.isNtpOverrideEnabled();
+                 assumeNonNull(currentTab);
+-                if (isTabNtp && !currentTab.isNativePage() && !isTabWebUiNtp) {
++                if (isTabNtp && !currentTab.isNativePage() && !isTabWebUiNtp && !isNtpOverridden) {
+                     // This will be a NTP, but the native page hasn't been created yet. Need to wait
+-                    // for this to be created before allowing the toolbar to draw. The WebUI NTP is
+-                    // not a native Tab, so we don't wait for it to be created, otherwise it hangs
+-                    // the rendering thread.
++                    // for this to be created before allowing the toolbar to draw. The WebUI NTP and
++                    // an extension's NTP (an override) are not native Tabs, so we don't wait for
++                    // them to be created, otherwise it hangs the rendering thread.
+                     currentTab.addObserver(
+                             new TabObserver() {
+                                 @Override
+@@ -2842,7 +2848,9 @@
+     private void createInitialTab() {
+         Log.i(TAG, "#createInitialTab executed.");
+         mPendingInitialTabCreation = false;
+-        boolean incognito = mSupportedProfileType == SupportedProfileType.OFF_THE_RECORD;
++        boolean incognito =
++                mSupportedProfileType == SupportedProfileType.OFF_THE_RECORD
++                        || mStartsAsPendingIncognitoWindow;
+ 
+         String url = null;
+         GURL homepageGurl = HomepageManager.getInstance().getHomepageGurlForZeroTabs(incognito);
+@@ -3926,8 +3934,12 @@
+                 shouldPersistAcrossReboots()
+                         && persistentState != null
+                         && persistentState.getBoolean(IS_INCOGNITO_SELECTED, false);
++        mStartsAsPendingIncognitoWindow =
++                mSupportedProfileType == SupportedProfileType.MIXED
++                        && isPendingIncognitoBrowserWindow();
+         boolean startIncognito =
+                 (mSupportedProfileType == SupportedProfileType.OFF_THE_RECORD)
++                        || mStartsAsPendingIncognitoWindow
+                         || (mSupportedProfileType == SupportedProfileType.MIXED
+                                 && (isIncognitoSelectedInSavedState
+                                         || isIncognitoSelectedInPersistentState));
+@@ -4731,8 +4743,19 @@
+         } else if (id == R.id.extensions_menu_menu_id) {
+             ExtensionsToolbarCoordinator coordinator =
+                     assumeNonNull(getToolbarManager()).getExtensionsToolbarCoordinator();
+-            assumeNonNull(coordinator);
+-            coordinator.showExtensionsMenu();
++            if (coordinator != null) {
++                coordinator.showExtensionsMenu();
++            } else {
++                // Phone toolbars have no extensions button for the menu to anchor to.
++                LoadUrlParams params =
++                        new LoadUrlParams(
++                                UrlConstants.CHROME_EXTENSIONS_URL, PageTransition.AUTO_TOPLEVEL);
++                getTabCreator(/* incognito= */ false)
++                        .createNewTab(
++                                params,
++                                TabLaunchType.FROM_CHROME_UI,
++                                getCurrentTabModel().isIncognito() ? null : currentTab);
++            }
+             RecordUserAction.record("MobileMenuExtensionsMenu");
+         } else if (id == R.id.manage_extensions_menu_id) {
+             LoadUrlParams params =
+@@ -5067,6 +5090,25 @@
+         return tab != null && UrlUtilities.isNtpUrl(tab.getUrl());
+     }
+ 
++    private static boolean isBrowserWindowPending() {
++        for (Activity activity : ApplicationStatus.getRunningActivities()) {
++            if (IntentUtils.safeHasExtra(
++                    activity.getIntent(),
++                    ChromeAndroidTaskTracker.EXTRA_PENDING_BROWSER_WINDOW_TASK_ID)) {
++                return true;
++            }
++        }
++        return false;
++    }
++
++    private boolean isPendingIncognitoBrowserWindow() {
++        Intent intent = getIntent();
++        return IntentUtils.safeHasExtra(
++                        intent, ChromeAndroidTaskTracker.EXTRA_PENDING_BROWSER_WINDOW_TASK_ID)
++                && IntentUtils.safeGetBooleanExtra(
++                        intent, IntentHandler.EXTRA_OPEN_NEW_INCOGNITO_WINDOW, false);
++    }
++
+     @Contract("null -> false")
+     private boolean isTabRegularNtp(@Nullable Tab tab) {
+         return isTabNtp(tab) && !tab.isIncognito();
 diff --git a/chrome/android/java/src/org/chromium/chrome/browser/tab/TabWebContentsObserver.java b/chrome/android/java/src/org/chromium/chrome/browser/tab/TabWebContentsObserver.java
 --- a/chrome/android/java/src/org/chromium/chrome/browser/tab/TabWebContentsObserver.java
 +++ b/chrome/android/java/src/org/chromium/chrome/browser/tab/TabWebContentsObserver.java

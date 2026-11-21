@@ -38,6 +38,7 @@ These also apply to unbranded Chromium builds.
 - **Default browser:** the Windows installer registers Orbit so Windows can offer it in Default apps. Settings has a "Make default" button whose effect has not been tested, and it may not detect that Orbit is the default.
 - **Sign-in to the browser** is off. Google sites can still be used normally in a tab, though real Google login has not been tested.
 - **macOS and Linux** have only run on CI machines, not on physical computers.
+- **Android:** Settings still has a "Google services" section (Chromium's own settings for Google features). Strings meant for device administrators (managed configuration of the app) still say Chrome, and in some languages a translation names Chrome where the English text does not. The app is tested on phone and tablet emulators and by the owner on one phone.
 - **macOS full screen** shows the tabs in macOS's full screen title bar above the toolbar, as Chrome does, and hides Orbit's rail.
 
 ## Not measured yet

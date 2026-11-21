@@ -1,0 +1,70 @@
+diff --git a/chrome/android/java/src/org/chromium/chrome/browser/identity_disc/IdentityDiscController.java b/chrome/android/java/src/org/chromium/chrome/browser/identity_disc/IdentityDiscController.java
+--- a/chrome/android/java/src/org/chromium/chrome/browser/identity_disc/IdentityDiscController.java
++++ b/chrome/android/java/src/org/chromium/chrome/browser/identity_disc/IdentityDiscController.java
+@@ -205,20 +205,8 @@
+     }
+ 
+     private void calculateButtonData() {
+-        if (mProfile == null) {
+-            assert !mButtonData.canShow();
+-            return;
+-        }
+-
+-        ensureProfileDataCache(mProfile);
+-        final @Nullable CoreAccountId accountId =
+-                CoreAccountInfo.getIdFrom(getSignedInAccountInfo());
+-        final @Nullable DisplayableProfileData profileData =
+-                accountId != null ? mProfileDataCache.getById(accountId) : null;
+-
+-        mButtonData.setButtonSpec(
+-                buttonSpecWithDrawableAndDescription(mButtonData.getButtonSpec(), profileData));
+-        mButtonData.setCanShow(true);
++        // Orbit has no accounts, so the toolbar has no account button.
++        mButtonData.setCanShow(false);
+     }
+ 
+     private ButtonSpec buttonSpecWithDrawableAndDescription(
+diff --git a/chrome/browser/flags/android/chrome_feature_list.cc b/chrome/browser/flags/android/chrome_feature_list.cc
+--- a/chrome/browser/flags/android/chrome_feature_list.cc
++++ b/chrome/browser/flags/android/chrome_feature_list.cc
+@@ -686,7 +686,7 @@
+ BASE_FEATURE(kAndroidAutoProjected, base::FEATURE_DISABLED_BY_DEFAULT);
+ BASE_FEATURE(kAndroidAutofillPrefObserver, base::FEATURE_DISABLED_BY_DEFAULT);
+ BASE_FEATURE(kAndroidBeforeUnloadSupport, base::FEATURE_DISABLED_BY_DEFAULT);
+-BASE_FEATURE(kAndroidBottomBar, base::FEATURE_DISABLED_BY_DEFAULT);
++BASE_FEATURE(kAndroidBottomBar, base::FEATURE_ENABLED_BY_DEFAULT);
+ BASE_FEATURE(kAndroidBricksNativePage, base::FEATURE_DISABLED_BY_DEFAULT);
+ // When enabled, the "Close all tabs" action in the tab switcher (GTS/Hub) leaves
+ // pinned tabs open, and the confirmation dialog offers an opt-in checkbox to close
+diff --git a/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/ChromeFeatureList.java b/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/ChromeFeatureList.java
+--- a/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/ChromeFeatureList.java
++++ b/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/flags/ChromeFeatureList.java
+@@ -972,7 +972,7 @@
+     public static final CachedFlag sAndroidAutoProjected =
+             newCachedFlag(ANDROID_AUTO_PROJECTED, false);
+     public static final CachedFlag sAndroidBottomBar =
+-            newCachedFlag(ANDROID_BOTTOM_BAR, false, /* defaultValueInTests= */ true);
++            newCachedFlag(ANDROID_BOTTOM_BAR, true, /* defaultValueInTests= */ true);
+     public static final CachedFlag sAndroidDesktopWebUiHistory =
+             newCachedFlag(
+                     ANDROID_DESKTOP_WEB_UI_HISTORY,
+diff --git a/chrome/browser/ui/android/toolbar/java/src/org/chromium/chrome/browser/toolbar/signin_button/SigninButtonCoordinator.java b/chrome/browser/ui/android/toolbar/java/src/org/chromium/chrome/browser/toolbar/signin_button/SigninButtonCoordinator.java
+--- a/chrome/browser/ui/android/toolbar/java/src/org/chromium/chrome/browser/toolbar/signin_button/SigninButtonCoordinator.java
++++ b/chrome/browser/ui/android/toolbar/java/src/org/chromium/chrome/browser/toolbar/signin_button/SigninButtonCoordinator.java
+@@ -176,14 +176,8 @@
+      * incognito) and inflates SigninButton view if needed.
+      */
+     public void updateButtonVisibility() {
+-        Tab tab = mTabSupplier.get();
+-        boolean shouldHideButtonForUrlFocus =
+-                !DeviceFormFactor.isNonMultiDisplayContextOnTablet(mContext) && mUrlHasFocus;
+-        boolean showSigninButton =
+-                tab != null
+-                        && !tab.isOffTheRecord()
+-                        && !shouldHideButtonForUrlFocus
+-                        && (mShowOnAllPages || isNtp(tab));
++        // Orbit has no accounts, so the toolbar has no sign-in button.
++        boolean showSigninButton = false;
+ 
+         // Only update signin button if it does not match the intended state.
+         if (showSigninButton != isShown()) {

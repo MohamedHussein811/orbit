@@ -1,0 +1,36 @@
+diff --git a/chrome/app/chrome_main_delegate.cc b/chrome/app/chrome_main_delegate.cc
+--- a/chrome/app/chrome_main_delegate.cc
++++ b/chrome/app/chrome_main_delegate.cc
+@@ -1198,10 +1198,14 @@
+   if (command_line->HasSwitch(switches::kProcessType)) {
+     return;
+   }
+-  for (const char* name :
+-       {"disable-domain-reliability", "disable-sync", "no-pings"}) {
++  for (const char* name : {"disable-domain-reliability", "no-pings"}) {
+     command_line->AppendSwitch(name);
+   }
++#if !BUILDFLAG(IS_ANDROID)
++  // Android's browser UI needs the sync service; there sync stays off because sign-in is not
++  // allowed (primary_account_manager.cc).
++  command_line->AppendSwitch("disable-sync");
++#endif
+   const auto merge = [command_line](const char* name, const char* values) {
+     std::string merged = command_line->GetSwitchValueASCII(name);
+     if (!merged.empty()) {
+diff --git a/components/signin/internal/identity_manager/primary_account_manager.cc b/components/signin/internal/identity_manager/primary_account_manager.cc
+--- a/components/signin/internal/identity_manager/primary_account_manager.cc
++++ b/components/signin/internal/identity_manager/primary_account_manager.cc
+@@ -391,7 +391,12 @@
+       prefs::kGoogleServicesSyncingUsernameMigratedToSignedIn, std::string());
+   registry->RegisterIntegerPref(prefs::kGoogleServicesSyncingUserMigrationType,
+                                 /*SyncToSigninMigrationType::kUnknown=*/0);
++#if BUILDFLAG(IS_ANDROID)
++  // Orbit has no accounts: sign-in, and with it sync, is off on Android.
++  registry->RegisterBooleanPref(prefs::kSigninAllowed, false);
++#else
+   registry->RegisterBooleanPref(prefs::kSigninAllowed, true);
++#endif
+   registry->RegisterBooleanPref(prefs::kSignedInWithCredentialProvider, false);
+   registry->RegisterBooleanPref(prefs::kExplicitBrowserSignin, false);
+   registry->RegisterBooleanPref(
