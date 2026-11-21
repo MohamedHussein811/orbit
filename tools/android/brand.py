@@ -62,6 +62,19 @@ GLYPH = (
 GLYPH_BOX = (96, 320)
 ADAPTIVE_GLYPH = 44
 DENSITIES = {"mdpi": 1, "hdpi": 1.5, "xhdpi": 2, "xxhdpi": 3, "xxxhdpi": 4}
+# Chromium's incognito hat, redrawn as Orbit's private mark: vector drawables (True: a filled
+# disc with the mark cut out) and bitmaps (mark color, disc color or None for no disc).
+PRIVATE_VECTORS = (
+    ("components/browser_ui/styles/android/java/res/drawable/ic_incognito_24dp.xml", False),
+    ("components/browser_ui/styles/android/java/res/drawable/ic_incognito_fill_18dp.xml", False),
+    ("components/browser_ui/styles/android/java/res/drawable/ic_incognito_fill_24dp.xml", False),
+    ("components/browser_ui/styles/android/java/res/drawable/ic_incognito_circle_fill_24dp.xml", True),
+)
+PRIVATE_PNGS = {
+    "incognito_splash": ("#ffffff", None),
+    "location_bar_incognito_badge": ("#ffffff", "#24252c"),
+    "shortcut_incognito": ("#9eacff", "#131418"),
+}
 # Chromium logos in the app's screens: the icon of new tab pages in the tab switcher and the blue
 # Chromium logo.
 LOGO_PNGS = (
@@ -109,6 +122,74 @@ def themed_icon():
 
 def render(svg, size, out):
     subprocess.run(["rsvg-convert", "-w", str(size), "-h", str(size), "-o", str(out), str(svg)], check=True)
+
+
+def private_mark(k=1.0, ox=0.0, oy=0.0):
+    """Orbit's private mark as filled SVG path data: the orbit arc of Orbit's mark (round ends),
+    its dot, and a crescent moon inside, on the 512 grid of orbit-mark.svg, scaled by k and moved
+    by (ox, oy)."""
+    def p(x, y):
+        return f"{x * k + ox:.2f},{y * k + oy:.2f}"
+
+    def r(value):
+        return f"{value * k:.2f}"
+
+    ring = (
+        f"M{p(407.65, 215.37)}A{r(157)},{r(157)} 0 1 1 {p(296.64, 104.35)}"
+        f"A{r(23)},{r(23)} 0 0 1 {p(284.73, 148.78)}"
+        f"A{r(111)},{r(111)} 0 1 0 {p(363.22, 227.27)}"
+        f"A{r(23)},{r(23)} 0 0 1 {p(407.65, 215.37)}Z"
+    )
+    dot = f"M{p(320.75, 161.25)}A{r(30)},{r(30)} 0 1 0 {p(380.75, 161.25)}A{r(30)},{r(30)} 0 1 0 {p(320.75, 161.25)}Z"
+    moon = f"M{p(325.73, 273.95)}A{r(72)},{r(72)} 0 1 1 {p(238.05, 186.27)}A{r(62)},{r(62)} 0 1 0 {p(325.73, 273.95)}Z"
+    return [ring, dot, moon]
+
+
+def private_vector(original, circle):
+    """An incognito vector drawable redrawn as Orbit's private mark, keeping its size, tint and
+    fill color. `circle` draws a filled disc with the mark cut out."""
+    head = re.search(r"<vector\b.*?>", original, re.DOTALL)
+    color = re.search(r'android:fillColor="([^"]+)"', original)
+    box = re.search(r'android:viewportWidth="([\d.]+)"', original)
+    if not head or not color or not box or float(box.group(1)) != 960:
+        sys.exit("incognito drawable: unexpected format")
+    if circle:
+        disc = "M480,80A400,400 0 1 1 480,880A400,400 0 1 1 480,80Z"
+        data = disc + "".join(private_mark(1.375, 128, 128))
+        body = f'  <path\n      android:fillColor="{color.group(1)}"\n      android:fillType="evenOdd"\n      android:pathData="{data}"/>\n'
+    else:
+        body = f'  <path\n      android:fillColor="{color.group(1)}"\n      android:pathData="{"".join(private_mark(2.25, -96, -96))}"/>\n'
+    return f'<?xml version="1.0" encoding="utf-8"?>\n{head.group(0)}\n{body}</vector>\n'
+
+
+def private_svg(glyph, disc=None):
+    paths = "".join(f'<path d="{d}" fill="{glyph}"/>' for d in private_mark())
+    if disc:
+        return f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><circle cx="256" cy="256" r="256" fill="{disc}"/><g transform="translate(256 256) scale(0.7) translate(-256 -256)">{paths}</g></svg>'
+    return f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><g transform="translate(256 256) scale(0.8) translate(-256 -256)">{paths}</g></svg>'
+
+
+def private_icons(src):
+    """Orbit's private mark in place of Chromium's incognito hat."""
+    changed = []
+    for relative, circle in PRIVATE_VECTORS:
+        target = src / relative
+        target.write_text(private_vector(target.read_text(encoding="utf-8"), circle), encoding="utf-8")
+        changed.append(target)
+    with tempfile.TemporaryDirectory() as work:
+        for name, colors in PRIVATE_PNGS.items():
+            svg = pathlib.Path(work) / f"{name}.svg"
+            svg.write_text(private_svg(*colors))
+            for density in DENSITIES:
+                target = src / f"chrome/android/java/res/drawable-{density}/{name}.png"
+                if not target.exists():
+                    sys.exit(f"{target}: missing in the source")
+                width, height = png_size(target)
+                if width != height:
+                    sys.exit(f"{target}: not square ({width}x{height})")
+                render(svg, width, target)
+                changed.append(target)
+    return changed
 
 
 def png_size(path):
@@ -355,6 +436,7 @@ def main():
     changed.append(themed)
 
     changed += orbit_logos(src)
+    changed += private_icons(src)
 
     with tempfile.TemporaryDirectory() as work:
         adaptive = pathlib.Path(work) / "adaptive.svg"
