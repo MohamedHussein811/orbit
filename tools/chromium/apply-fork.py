@@ -35,7 +35,13 @@ CHROME = re.compile(
     r"(?!(?: |&nbsp;)?(?:OS|Web Store|Enterprise|Apps?|apps?|Remote Desktop|Root Store|Cleanup|Authors|project)\b)"
     r'(?!<ph name="END_LINK_CHROMIUM")'
 )
-CHROME_STRING_FILES = ["chrome/app/generated_resources.grd", "components/components_strings.grd"]
+CHROME_STRING_FILES = [
+    "chrome/app/generated_resources.grd",
+    "components/components_strings.grd",
+    "extensions/strings/extensions_strings.grd",
+]
+# "Google Chrome" naming the browser itself in the system's verify-it's-you prompts.
+GOOGLE_CHROME_SELF = re.compile(r"Google(?: |&nbsp;)Chrome(?= (?:is trying|wants)\b)")
 ABOUT_VERSION = re.compile(
     r'(<message name="IDS_ABOUT_VERSION_(?:COMPANY_NAME|COPYRIGHT)"[^>]*>)(.*?)(</message>)', re.DOTALL
 )
@@ -47,6 +53,7 @@ INCOGNITO_STRING_FILES = [
     "chrome/app/generated_resources.grd",
     "components/components_strings.grd",
     "chrome/app/chromium_strings.grd",
+    "ui/strings/ui_strings.grd",
 ]
 MESSAGE_BODY = re.compile(r"(<message\b[^>]*>)(.*?)(</message>)", re.DOTALL)
 MARKUP = re.compile(r"(<ph\b.*?</ph>|<[^>]+>)", re.DOTALL)
@@ -105,9 +112,13 @@ def incognito_english(text):
     return MESSAGE_BODY.sub(body, text)
 
 
+INCOGNITO_AR = re.compile("(ال)?متخف[ٍّ]*(?:ي)?(ة)?")
+
+
 def incognito_translation(text):
-    """Arabic says خاص (private) for المتخفي (incognito); other languages keep their word."""
-    return text.replace("المتخفي", "الخاص").replace("متخفٍ", "خاص")
+    """Arabic says خاص (private) for متخفٍ / المتخفي (incognito), with or without diacritics;
+    other languages keep their word."""
+    return INCOGNITO_AR.sub(lambda m: (m.group(1) or "") + "خاص" + (m.group(2) or ""), text)
 
 
 def rename_incognito(src, files, enabled=()):
@@ -321,6 +332,12 @@ def rename_chrome(src):
             relative,
             lambda text: CHROME.sub("Orbit", text),
             lambda text: CHROME.sub("Orbit", text),
+        )
+        changed += rename_messages(
+            src,
+            relative,
+            lambda text: GOOGLE_CHROME_SELF.sub("Orbit", text),
+            lambda text: re.sub(r"Google(?: |&nbsp;| )Chrome", "Orbit", text),
         )
     return changed
 
