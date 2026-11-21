@@ -9,6 +9,8 @@ import { addBlockedHost, allowRule, blockedList, categoryOfMatch, emptyBlockedHo
 import { applyContentScripts, applyThreats, applyWebRtc, readPrivacy, runStartupCleanup } from "./privacy.ts";
 import { checkForUpdate, scheduleUpdateCheck, UPDATE_ALARM } from "./updates.ts";
 import { seedDefaultShortcuts } from "../shared/default-shortcuts.ts";
+import { browserStartup } from "../shared/search.ts";
+import { planStartup, type OpenTab } from "../shared/startup.ts";
 
 const FLUSH_DELAY_MS = 500;
 const DYNAMIC_ALLOW_RULE = 1;
@@ -437,6 +439,47 @@ chrome.runtime.onInstalled.addListener((details) => {
   }
 });
 
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+/** Tabs once the browser has finished restoring them: the same count twice in a row. */
+async function settledTabs(): Promise<chrome.tabs.Tab[]> {
+  let tabs = await chrome.tabs.query({});
+  for (let i = 0; i < 12; i++) {
+    await sleep(250);
+    const next = await chrome.tabs.query({});
+    if (next.length === tabs.length && next.length > 0) return next;
+    tabs = next;
+  }
+  return tabs;
+}
+
+/** Orbit for Android restores its tabs at every start and leaves Settings > On startup to this:
+ * the chosen pages open once each, or a new tab page comes to front. */
+async function openStartupPages(): Promise<void> {
+  const startup = await browserStartup();
+  if (!startup || startup.mode === "restore") return;
+  const tabs: OpenTab[] = (await settledTabs()).flatMap((tab) => (tab.id === undefined ? [] : [{ id: tab.id, url: tab.url || tab.pendingUrl || "", incognito: tab.incognito }]));
+  for (const step of planStartup(startup, tabs, chrome.runtime.getURL("newtab/"))) {
+    if (step.open) await chrome.tabs.create({ url: step.open, active: step.active }).catch(() => undefined);
+    else if (step.activate !== undefined) await chrome.tabs.update(step.activate, { active: true }).catch(() => undefined);
+  }
+}
+
+/** Android can start the browser without a window (for a download or a notification); the pages
+ * then open with the first window. */
+async function startupPagesWhenShown(): Promise<void> {
+  if ((await chrome.windows.getAll()).length > 0) return openStartupPages();
+  await chrome.storage.session.set({ startupPending: true });
+}
+
+chrome.windows.onCreated.addListener(() => {
+  void chrome.storage.session.get("startupPending").then(async ({ startupPending }) => {
+    if (!startupPending) return;
+    await chrome.storage.session.remove("startupPending");
+    await openStartupPages();
+  });
+});
+
 // The browser re-registers an extension loaded from a folder at each launch, and may report that as
 // either event, so the first worker run of a browser session does the startup work.
 async function startOncePerSession(): Promise<void> {
@@ -444,6 +487,7 @@ async function startOncePerSession(): Promise<void> {
   if (sessionStarted) return;
   await chrome.storage.session.set({ sessionStarted: true });
   await replacePlaceholderTabs();
+  if ((await chrome.runtime.getPlatformInfo()).os === "android") void startupPagesWhenShown();
   const tabs = await chrome.tabs.query({});
   await Promise.all(tabs.map((tab) => (tab.id === undefined ? undefined : syncAction(tab.id, tab.url ?? tab.pendingUrl))));
   await applyAll();

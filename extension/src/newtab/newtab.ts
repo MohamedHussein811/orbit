@@ -767,8 +767,9 @@ async function saveStartup(next: StartupSettings): Promise<void> {
 
 /** What opens when Orbit starts, the same choice as Settings > On startup. */
 function startupSection(): HTMLElement[] {
-  const settingsLink = h("button", { type: "button", class: "link", "data-focus-key": "startup-settings", onclick: () => void chrome.tabs.update({ url: "chrome://settings/onStartup" }) }, t("startupMore"));
-  if (!startup) return [h("p", { class: "notice lead" }, t("startupUnavailable")), settingsLink];
+  // Android has no Settings page to send people to: this section is its On startup setting.
+  const settingsLink = phone ? null : h("button", { type: "button", class: "link", "data-focus-key": "startup-settings", onclick: () => void chrome.tabs.update({ url: "chrome://settings/onStartup" }) }, t("startupMore"));
+  if (!startup) return [h("p", { class: "notice lead" }, t("startupUnavailable")), ...(settingsLink ? [settingsLink] : [])];
   const current = startup;
   const parts: HTMLElement[] = [
     h("h3", {}, t("startupHeading")),
@@ -822,7 +823,8 @@ function startupSection(): HTMLElement[] {
       );
     }
   }
-  parts.push(h("p", { class: "notice alert", role: "status" }, startupNotice), settingsLink);
+  parts.push(h("p", { class: "notice alert", role: "status" }, startupNotice));
+  if (settingsLink) parts.push(settingsLink);
   return parts;
 }
 
@@ -1001,6 +1003,13 @@ async function main(): Promise<void> {
     drawCustomize();
   });
   openButton.addEventListener("click", () => void openCustomize());
+  // Settings links here with #customize=<section>, such as Android Settings > On startup.
+  const wanted = /^#customize(?:=(\w+))?$/.exec(location.hash);
+  if (wanted) {
+    if ((SECTIONS as readonly string[]).includes(wanted[1] ?? "")) section = wanted[1] as Section;
+    history.replaceState(null, "", location.pathname + location.search);
+    void openCustomize();
+  }
   customize.addEventListener("click", (event) => {
     if (event.target === customize) customize.close();
   });
