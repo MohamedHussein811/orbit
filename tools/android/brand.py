@@ -38,6 +38,12 @@ GLYPH = (
 GLYPH_BOX = (96, 320)
 ADAPTIVE_GLYPH = 44
 DENSITIES = {"mdpi": 1, "hdpi": 1.5, "xhdpi": 2, "xxhdpi": 3, "xxxhdpi": 4}
+# Chromium logos in the app's screens: the icon of new tab pages in the tab switcher and the blue
+# Chromium logo.
+LOGO_PNGS = (
+    "chrome/browser/ui/android/favicon/java/res/drawable-{density}/chromelogo16.png",
+    "chrome/android/java/res/drawable-{density}/chrome_logo_blue.png",
+)
 
 ADAPTIVE_SVG = (
     '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 108 108">'
@@ -79,6 +85,29 @@ def themed_icon():
 
 def render(svg, size, out):
     subprocess.run(["rsvg-convert", "-w", str(size), "-h", str(size), "-o", str(out), str(svg)], check=True)
+
+
+def png_size(path):
+    data = path.read_bytes()[:24]
+    if data[:8] != b"\x89PNG\r\n\x1a\n":
+        sys.exit(f"{path}: not a PNG")
+    return int.from_bytes(data[16:20], "big"), int.from_bytes(data[20:24], "big")
+
+
+def orbit_logos(src):
+    """Chromium logos drawn in Orbit's own screens become Orbit's mark at the same pixel size."""
+    changed = []
+    for pattern in LOGO_PNGS:
+        for density in DENSITIES:
+            target = src / pattern.format(density=density)
+            if not target.exists():
+                sys.exit(f"{target}: missing in the source")
+            width, height = png_size(target)
+            if width != height:
+                sys.exit(f"{target}: not square ({width}x{height})")
+            render(ROOT / "branding" / "orbit-mark.svg", width, target)
+            changed.append(target)
+    return changed
 
 
 def apply_patches(src):
@@ -266,6 +295,8 @@ def main():
     themed = res / "drawable" / "themed_app_icon.xml"
     themed.write_text(themed_icon(), encoding="utf-8")
     changed.append(themed)
+
+    changed += orbit_logos(src)
 
     with tempfile.TemporaryDirectory() as work:
         adaptive = pathlib.Path(work) / "adaptive.svg"

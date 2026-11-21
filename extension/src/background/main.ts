@@ -488,14 +488,18 @@ async function startOncePerSession(): Promise<void> {
   if (sessionStarted) return;
   await chrome.storage.session.set({ sessionStarted: true });
   await replacePlaceholderTabs();
-  if ((await chrome.runtime.getPlatformInfo()).os === "android") void startupPagesWhenShown();
   const tabs = await chrome.tabs.query({});
   await Promise.all(tabs.map((tab) => (tab.id === undefined ? undefined : syncAction(tab.id, tab.url ?? tab.pendingUrl))));
   await applyAll();
   await runStartupCleanup(await readPrivacy());
 }
 
-chrome.runtime.onStartup.addListener(() => {});
+// Only a browser start, never an update or reload of this extension, opens the startup pages.
+chrome.runtime.onStartup.addListener(() => {
+  void chrome.runtime.getPlatformInfo().then(({ os }) => {
+    if (os === "android") void startupPagesWhenShown();
+  });
+});
 void startOncePerSession();
 
 chrome.alarms.onAlarm.addListener((alarm) => {
