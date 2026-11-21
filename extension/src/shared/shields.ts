@@ -79,7 +79,7 @@ export function cosmeticCss(entries: readonly SiteCosmetic[]): string {
 
 export type Message =
   | { type: "tab-state"; tabId: number }
-  | { type: "set-shields"; host: string; enabled: boolean; incognito: boolean }
+  | { type: "set-shields"; tabId?: number; host: string; enabled: boolean; incognito: boolean }
   | { type: "continue-to-site"; host: string }
   | { type: "reset-stats" }
   | { type: "open-intent" }

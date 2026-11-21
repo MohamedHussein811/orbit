@@ -482,6 +482,9 @@
   "thisPage": {
     "message": "هذه الصفحة"
   },
+  "shieldsSwitchFailed": {
+    "message": "تعذّر تغيير الدروع لهذا الموقع. حاول مرة أخرى."
+  },
   "shieldsWebsitesOnly": {
     "message": "تعمل الدروع على المواقع فقط"
   },

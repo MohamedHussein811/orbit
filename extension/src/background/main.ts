@@ -30,9 +30,21 @@ function serialized<T>(work: () => Promise<T>): Promise<T> {
 // The page each tab shows now. A page that is closing or being left still sends requests (such as
 // analytics beacons), and those blocks count in the totals but not for the tab's next page.
 const tabDocuments = new Map<number, string>();
+const NAVIGATING = "navigating";
 
-chrome.webNavigation.onCommitted.addListener(({ tabId, frameId, documentId }) => {
-  if (frameId === 0 && documentId) tabDocuments.set(tabId, documentId);
+// Every new page in a tab, a reload included, starts from zero blocked and gets its Shields button
+// and site hiding again: the browser resets a tab's button state on each navigation.
+chrome.webNavigation.onBeforeNavigate.addListener(({ tabId, frameId }) => {
+  if (frameId !== 0 || tabId < 0) return;
+  tabDocuments.set(tabId, NAVIGATING);
+  void clearTab(tabId).then(() => showBadge(tabId, emptyCounts()));
+});
+
+chrome.webNavigation.onCommitted.addListener(({ tabId, frameId, documentId, url }) => {
+  if (frameId !== 0 || tabId < 0) return;
+  if (documentId) tabDocuments.set(tabId, documentId);
+  void syncAction(tabId, url);
+  void hideOnSite(tabId, url);
 });
 
 function countsForTab(request: chrome.declarativeNetRequest.RequestDetails): boolean {
@@ -119,19 +131,16 @@ function clearTab(tabId: number): Promise<void> {
 }
 
 // Shields works on web pages only, so on the new tab page and other browser pages its button
-// rests, greyed out.
+// rests, greyed out. The button is on by default, so a tab whose state the browser has reset still
+// opens the Shields panel.
 function syncAction(tabId: number, url: string | undefined): Promise<void> {
   return (siteOf(url) ? chrome.action.enable(tabId) : chrome.action.disable(tabId)).catch(() => {});
 }
 
-void chrome.action.disable().catch(() => {});
+void chrome.action.enable().catch(() => {});
 
 chrome.tabs.onUpdated.addListener((tabId, change) => {
   if (change.url) void syncAction(tabId, change.url);
-  if (change.status === "loading" && change.url) {
-    void clearTab(tabId).then(() => showBadge(tabId, emptyCounts()));
-    void hideOnSite(tabId, change.url);
-  }
 });
 
 // Hiding leftover ad space on sites that have their own hiding rules
@@ -274,6 +283,12 @@ async function applySessionRule(id: number, hosts: string[]): Promise<void> {
   });
 }
 
+/** Sites with Shields off in any window. Content scripts cannot tell windows apart, so a site turned
+ * off in a private window runs without them everywhere until the last private window closes. */
+async function allHostsOff(): Promise<string[]> {
+  return normalizeHosts([...(await hostsOff()), ...(await privateHostsOff())]);
+}
+
 /** A choice made in a private window lasts only for this session and never reaches the profile. */
 async function setShields(host: string, enabled: boolean, incognito: boolean): Promise<void> {
   const change = (hosts: string[]) => normalizeHosts(enabled ? hosts.filter((h) => h !== host) : [...hosts, host]);
@@ -285,9 +300,31 @@ async function setShields(host: string, enabled: boolean, incognito: boolean): P
     const sitesOff = change(await hostsOff());
     await chrome.storage.local.set({ sitesOff });
     await applyPersistentRules(sitesOff);
-    await applyContentScripts(await readPrivacy(), sitesOff);
   }
+  await applyContentScripts(await readPrivacy(), await allHostsOff());
 }
+
+/** The switch in the Shields panel: applies the choice, then reloads the page from here, so closing
+ * the panel early cannot leave the page in its old state. */
+async function switchShields(tabId: number | undefined, host: string, enabled: boolean, incognito: boolean): Promise<void> {
+  await setShields(host, enabled, incognito);
+  if (tabId === undefined) return;
+  await clearTab(tabId);
+  await showBadge(tabId, emptyCounts());
+  await chrome.tabs.reload(tabId).catch(() => {});
+}
+
+chrome.windows.onRemoved.addListener(() => {
+  void (async () => {
+    const windows = await chrome.windows.getAll();
+    if (windows.some((window) => window.incognito)) return;
+    const { privateSitesOff } = await chrome.storage.session.get("privateSitesOff");
+    if (!normalizeHosts(privateSitesOff).length) return;
+    await chrome.storage.session.remove("privateSitesOff");
+    await applySessionRule(SESSION_PRIVATE_RULE, []);
+    await applyContentScripts(await readPrivacy(), await hostsOff());
+  })();
+});
 
 async function continueToSite(host: string): Promise<void> {
   const { continuedSites } = await chrome.storage.session.get("continuedSites");
@@ -317,12 +354,12 @@ async function handle(message: Message): Promise<unknown> {
       const state: TabState = {
         counts: (web && tabCounts[message.tabId]) || emptyCounts(),
         blocked: { ads: blockedList(hosts.ads), trackers: blockedList(hosts.trackers), threats: blockedList(hosts.threats) },
-        sitesOff: [...regular, ...privateHosts],
+        sitesOff: tab?.incognito ? [...regular, ...privateHosts] : regular,
       };
       return state;
     }
     case "set-shields":
-      await setShields(message.host, message.enabled, message.incognito);
+      await switchShields(message.tabId, message.host, message.enabled, message.incognito);
       return { ok: true };
     case "continue-to-site":
       await continueToSite(message.host);
@@ -333,7 +370,7 @@ async function handle(message: Message): Promise<unknown> {
       if (!privacy.checkUpdates) await chrome.storage.local.remove("update");
       await applyWebRtc(privacy);
       await applyThreats(privacy);
-      await applyContentScripts(privacy, await hostsOff());
+      await applyContentScripts(privacy, await allHostsOff());
       return { ok: true };
     }
     case "reset-stats":
@@ -347,10 +384,9 @@ async function handle(message: Message): Promise<unknown> {
 
 async function applyAll(): Promise<void> {
   const privacy = await readPrivacy();
-  const sitesOff = await hostsOff();
   await applyWebRtc(privacy);
   await applyThreats(privacy);
-  await applyContentScripts(privacy, sitesOff);
+  await applyContentScripts(privacy, await allHostsOff());
 }
 
 /** What Orbit for Android shows for a new tab until this extension's page is registered

@@ -482,6 +482,9 @@
   "thisPage": {
     "message": "This page"
   },
+  "shieldsSwitchFailed": {
+    "message": "Shields could not change for this site. Try again."
+  },
   "shieldsWebsitesOnly": {
     "message": "Shields only apply to websites"
   },

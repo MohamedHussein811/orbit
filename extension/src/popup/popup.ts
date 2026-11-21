@@ -83,10 +83,16 @@ async function main(): Promise<void> {
   toggle.checked = !off;
   showState(!off);
   toggle.addEventListener("change", async () => {
-    const message: Message = { type: "set-shields", host, enabled: toggle.checked, incognito: tab.incognito };
-    await chrome.runtime.sendMessage(message);
-    showState(toggle.checked);
-    await chrome.tabs.reload(tab.id!);
+    const enabled = toggle.checked;
+    const message: Message = { type: "set-shields", tabId, host, enabled, incognito: tab.incognito };
+    toggle.disabled = true;
+    showState(enabled);
+    const reply = (await chrome.runtime.sendMessage(message).catch((error: Error) => ({ error: error.message }))) as { ok?: boolean; error?: string } | undefined;
+    toggle.disabled = false;
+    if (reply?.ok) return;
+    toggle.checked = !enabled;
+    showState(!enabled);
+    byId("switch-label").textContent = t("shieldsSwitchFailed");
   });
 }
 
