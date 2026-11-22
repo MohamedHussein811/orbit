@@ -13,6 +13,15 @@ on:
       cpu:
         type: string
         default: x64
+  workflow_dispatch:
+    inputs:
+      apk_run:
+        description: run id of the Android build whose APK to check
+        type: string
+        required: true
+      cpu:
+        type: string
+        default: x64
   push:
     branches: [design]
     paths:
@@ -80,5 +89,6 @@ jobs:
           path: |
             ${{ runner.temp }}/smoke.png
             ${{ runner.temp }}/logcat.txt
+            ${{ runner.temp }}/anr.txt
             ${{ runner.temp }}/store-*.png
           if-no-files-found: ignore

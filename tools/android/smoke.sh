@@ -39,7 +39,14 @@ finish() {
   status=$1
   adb shell screencap -p /sdcard/smoke.png > /dev/null 2>&1 && adb pull /sdcard/smoke.png "$out/smoke.png" > /dev/null || true
   adb logcat -d -v threadtime > "$out/logcat.txt" 2> /dev/null || true
+  # Thread stacks Android wrote when the app stopped responding (needs adb root, done above).
+  adb shell 'for f in /data/anr/*; do [ -f "$f" ] && echo "===== $f" && cat "$f"; done' > "$out/anr.txt" 2> /dev/null || true
+  [ -s "$out/anr.txt" ] || rm -f "$out/anr.txt"
   if [ "$status" -ne 0 ]; then
+    if [ -f "$out/anr.txt" ]; then
+      echo "=== main thread when Orbit stopped responding ==="
+      awk '/^Cmd line: '"$package"'$/{p=1} p&&/^"main"/{m=1} m{print} m&&/^$/{exit}' "$out/anr.txt" | head -80 || true
+    fi
     echo "=== crash buffer ==="
     adb logcat -d -b crash | tail -120 || true
     echo "=== Chromium lines ==="
