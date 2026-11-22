@@ -376,7 +376,7 @@ diff --git a/chrome/browser/ui/android/toolbar/java/src/org/chromium/chrome/brow
 diff --git a/chrome/browser/ui/android/toolbar/java/src/org/chromium/chrome/browser/toolbar/extensions/OrbitShieldsButtonImpl.java b/chrome/browser/ui/android/toolbar/java/src/org/chromium/chrome/browser/toolbar/extensions/OrbitShieldsButtonImpl.java
 --- a/chrome/browser/ui/android/toolbar/java/src/org/chromium/chrome/browser/toolbar/extensions/OrbitShieldsButtonImpl.java
 +++ b/chrome/browser/ui/android/toolbar/java/src/org/chromium/chrome/browser/toolbar/extensions/OrbitShieldsButtonImpl.java
-@@ -0,0 +1,308 @@
+@@ -0,0 +1,305 @@
 +// Copyright 2026 NovaTech. All rights reserved.
 +
 +package org.chromium.chrome.browser.toolbar.extensions;
@@ -397,7 +397,6 @@ diff --git a/chrome/browser/ui/android/toolbar/java/src/org/chromium/chrome/brow
 +import org.chromium.chrome.browser.profiles.Profile;
 +import org.chromium.chrome.browser.tab.Tab;
 +import org.chromium.chrome.browser.tabmodel.TabModelSelector;
-+import org.chromium.chrome.browser.tabmodel.TabModelUtils;
 +import org.chromium.chrome.browser.toolbar.optional_button.ButtonData;
 +import org.chromium.chrome.browser.toolbar.optional_button.ButtonDataImpl;
 +import org.chromium.chrome.browser.ui.browser_window.ChromeAndroidTask;
@@ -412,6 +411,7 @@ diff --git a/chrome/browser/ui/android/toolbar/java/src/org/chromium/chrome/brow
 +import org.chromium.ui.base.ActivityWindowAndroid;
 +import org.chromium.ui.base.WindowAndroid;
 +
++import java.util.Arrays;
 +import java.util.function.Supplier;
 +
 +/**
@@ -496,7 +496,6 @@ diff --git a/chrome/browser/ui/android/toolbar/java/src/org/chromium/chrome/brow
 +    private @Nullable ButtonData mButtonData;
 +    private boolean mNativeInitialized;
 +    private boolean mDestroyed;
-+    private boolean mWaitingForTabState;
 +
 +    @Override
 +    @Initializer
@@ -569,15 +568,6 @@ diff --git a/chrome/browser/ui/android/toolbar/java/src/org/chromium/chrome/brow
 +        if (selector == null) return;
 +        Profile profile = selector.getCurrentModel().getProfile();
 +        if (profile == null || !ExtensionUi.isEnabled(profile)) return;
-+        // Until the task ties this activity's window to its tab list, the native toolbar would
-+        // read a window without tabs. Tried again when tabs are restored and on tab changes.
-+        if (task.getNativeBrowserWindowPtr(profile, mActivity) == 0) {
-+            if (!mWaitingForTabState) {
-+                mWaitingForTabState = true;
-+                TabModelUtils.runOnTabStateInitialized(selector, unused -> maybeCreateBridge());
-+            }
-+            return;
-+        }
 +        ActivityWindowAndroid activityWindow =
 +                mWindowAndroid instanceof ActivityWindowAndroid window ? window : null;
 +        ChromeAndroidTaskFeature added =
@@ -621,6 +611,9 @@ diff --git a/chrome/browser/ui/android/toolbar/java/src/org/chromium/chrome/brow
 +        ExtensionsToolbarBridge bridge = mBridge;
 +        Tab tab = mCurrentTabSupplier.get();
 +        if (bridge == null || tab == null) return null;
++        // The native toolbar dereferences the action without a check, and Orbit's action exists
++        // only once the built-in extension is installed and the actions are initialized.
++        if (!hasOrbitAction(bridge)) return null;
 +        WebContents webContents = tab.getWebContents();
 +        ExtensionAction action = bridge.getAction(ACTION_ID, webContents);
 +        if (action == null) return null;
@@ -642,9 +635,13 @@ diff --git a/chrome/browser/ui/android/toolbar/java/src/org/chromium/chrome/brow
 +        return new ButtonDataImpl(/* canShow= */ true, /* isEnabled= */ true, spec);
 +    }
 +
++    private static boolean hasOrbitAction(ExtensionsToolbarBridge bridge) {
++        return Arrays.asList(bridge.getAllActionIds()).contains(ACTION_ID);
++    }
++
 +    private void onClick(View view) {
 +        ExtensionsToolbarBridge bridge = mBridge;
-+        if (bridge == null) return;
++        if (bridge == null || !hasOrbitAction(bridge)) return;
 +        if (mPopup != null) {
 +            closePopup();
 +            return;
