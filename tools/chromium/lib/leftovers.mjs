@@ -21,12 +21,13 @@ const ALLOWED = new RegExp(
 // Search engine choices, import sources and links to an engine's own page name Google on purpose.
 const ALLOWED_LINES = [
   /^Google$/,
+  /^(?:Edit|Remove) Google$/,
   /^(?:Google Chrome|Chromium|Microsoft Edge|Mozilla Firefox|Safari|Brave|Opera)$/,
   /google\.com\/search\?q=%s|\{google:baseURL\}/,
 ];
 
 // Pages that crash, hang or change state, or only explain how to enable other pages.
-const SKIP_PAGES = /^chrome:\/\/(?:quit|restart|crash|kill|hang|inducebrowsercrashforrealz|memory-exhaust|gpuclean|gpucrash|gpuhang|ppapiflashcrash|ppapiflashhang|webuijserror|badcastcrash|shorthang|chrome-urls|contextual-tasks|indexeddb-internals|dino)\b/;
+const SKIP_PAGES = /^chrome:\/\/(?:quit|restart|crash|kill|hang|inducebrowsercrashforrealz|memory-exhaust|gpuclean|gpucrash|gpuhang|ppapiflashcrash|ppapiflashhang|webuijserror|badcastcrash|shorthang|chrome-urls|contextual-tasks|indexeddb-internals|internals|dino)\b/;
 
 // Pages people use, visited first so a page that hangs later cannot hide them.
 const USER_PAGES = [
@@ -51,7 +52,7 @@ const PAGE_TEXT = `(() => {
             parent.checkVisibility({ checkOpacity: true, checkVisibilityCSS: true })) {
           lines.push(text);
         }
-      } else {
+      } else if (node.nodeType === Node.ELEMENT_NODE) {
         for (const attr of ["aria-label", "title", "placeholder"]) {
           const value = node.getAttribute(attr);
           if (value && node.checkVisibility()) lines.push(value);
@@ -74,7 +75,12 @@ export function leftoverWords(line) {
 async function pageLeftovers(page, url, settleMs) {
   const result = await page.goto(url, { settleMs, timeoutMs: 8000 });
   if (result.errorText) return { url, error: result.errorText, hits: [], lines: 0 };
-  const lines = await page.eval(PAGE_TEXT).catch(() => []);
+  let lines;
+  try {
+    lines = await page.eval(PAGE_TEXT);
+  } catch (error) {
+    return { url, error: `text not readable: ${error.message}`, hits: [], lines: 0 };
+  }
   const hits = [];
   for (const line of lines) {
     const words = leftoverWords(line);
