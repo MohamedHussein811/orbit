@@ -426,7 +426,11 @@ async function takeOverNewTabs(welcome: boolean): Promise<void> {
   );
 }
 
+let installedThisRun = false;
+
 chrome.runtime.onInstalled.addListener((details) => {
+  installedThisRun = true;
+  void traceStartup(`installed:${details.reason}`);
   void chrome.action.setBadgeBackgroundColor({ color: "#3b4ad0" });
   void chrome.action.setBadgeTextColor({ color: "#ffffff" });
   if (details.reason === "install" || details.reason === "update") {
@@ -466,6 +470,24 @@ async function openStartupPages(): Promise<void> {
   }
 }
 
+/** The last browser starts as this worker saw them (events, windows open, pages opened), kept for
+ * the Android check. */
+async function traceStartup(event: string): Promise<void> {
+  const { startupTrace } = await chrome.storage.local.get("startupTrace");
+  const windows = (await chrome.windows.getAll()).length;
+  const entries = Array.isArray(startupTrace) ? startupTrace : [];
+  await chrome.storage.local.set({ startupTrace: [...entries, { at: Date.now(), event, windows }].slice(-20) });
+}
+
+/** Opens the startup pages once per browser session, whichever start signal comes first. */
+async function startupPagesOnce(source: string): Promise<void> {
+  const { startupPagesDone } = await chrome.storage.session.get("startupPagesDone");
+  if (startupPagesDone) return;
+  await chrome.storage.session.set({ startupPagesDone: true });
+  void traceStartup(`pages:${source}`);
+  await startupPagesWhenShown();
+}
+
 /** Android can start the browser without a window (for a download or a notification); the pages
  * then open with the first window. */
 async function startupPagesWhenShown(): Promise<void> {
@@ -477,6 +499,7 @@ chrome.windows.onCreated.addListener(() => {
   void chrome.storage.session.get("startupPending").then(async ({ startupPending }) => {
     if (!startupPending) return;
     await chrome.storage.session.remove("startupPending");
+    void traceStartup("pages:first-window");
     await openStartupPages();
   });
 });
@@ -487,6 +510,7 @@ async function startOncePerSession(): Promise<void> {
   const { sessionStarted } = await chrome.storage.session.get("sessionStarted");
   if (sessionStarted) return;
   await chrome.storage.session.set({ sessionStarted: true });
+  void startupPagesAtSessionStart();
   await replacePlaceholderTabs();
   const tabs = await chrome.tabs.query({});
   await Promise.all(tabs.map((tab) => (tab.id === undefined ? undefined : syncAction(tab.id, tab.url ?? tab.pendingUrl))));
@@ -495,11 +519,22 @@ async function startOncePerSession(): Promise<void> {
 }
 
 // Only a browser start, never an update or reload of this extension, opens the startup pages.
+// runtime.onStartup is not reliably sent to the built-in extension at a cold start on Android, so
+// the first worker run of a browser session also counts, unless this run installed or updated it.
 chrome.runtime.onStartup.addListener(() => {
+  void traceStartup("onStartup");
   void chrome.runtime.getPlatformInfo().then(({ os }) => {
-    if (os === "android") void startupPagesWhenShown();
+    if (os === "android") void startupPagesOnce("onStartup");
   });
 });
+
+async function startupPagesAtSessionStart(): Promise<void> {
+  const { os } = await chrome.runtime.getPlatformInfo();
+  if (os !== "android") return;
+  await sleep(1500);
+  void traceStartup(installedThisRun ? "session:installed" : "session");
+  if (!installedThisRun) await startupPagesOnce("session");
+}
 void startOncePerSession();
 
 chrome.alarms.onAlarm.addListener((alarm) => {

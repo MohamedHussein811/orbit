@@ -512,6 +512,7 @@ async function v108() {
     const urls = await targets();
     r.startup.push(pages.map((p) => urls.filter((u) => u === p).length));
   }
+  r.startupTrace = await evaluate(ORBIT_PAGE, `chrome.storage.local.get("startupTrace").then(({ startupTrace }) => startupTrace ?? [])`).catch((e) => String(e));
   await evaluate(ORBIT_PAGE, `new Promise((done) => chrome.search.setStartup({ mode: "restore", urls: [] }, done))`);
 
   // Android stops the app in the background; coming back shows Orbit's page, not Chromium's.
@@ -721,7 +722,7 @@ if (v) {
   if (unwanted.length) problems.push(`Settings shows: ${unwanted.join(", ")}`);
   if (v.recentTabs && v.recentTabs.some((t) => t.includes("chrome://"))) problems.push(`Recent tabs shows chrome://: ${v.recentTabs.filter((t) => t.includes("chrome://")).join(", ")}`);
   if (v.startupSet !== true) problems.push(`startup pages not set: ${JSON.stringify(v.startupSet)}`);
-  else v.startup?.forEach((counts, i) => counts.some((c) => c !== 1) && problems.push(`startup pages after cold start ${i + 1}: ${JSON.stringify(counts)} (each should open once)`));
+  else v.startup?.forEach((counts, i) => counts.some((c) => c !== 1) && problems.push(`startup pages after cold start ${i + 1}: ${JSON.stringify(counts)} (each should open once); trace ${JSON.stringify(v.startupTrace)}`));
 }
 const wording = report.menu.filter((m) => /Incognito|Gemini/.test(m.name));
 if (wording.length) problems.push(`menu: ${wording.map((m) => m.name).join(", ")}`);
