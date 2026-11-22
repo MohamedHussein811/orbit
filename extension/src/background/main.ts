@@ -426,10 +426,7 @@ async function takeOverNewTabs(welcome: boolean): Promise<void> {
   );
 }
 
-let installedThisRun = false;
-
 chrome.runtime.onInstalled.addListener((details) => {
-  installedThisRun = true;
   void traceStartup(`installed:${details.reason}`);
   void chrome.action.setBadgeBackgroundColor({ color: "#3b4ad0" });
   void chrome.action.setBadgeTextColor({ color: "#ffffff" });
@@ -462,24 +459,36 @@ async function settledTabs(): Promise<chrome.tabs.Tab[]> {
  * the chosen pages open once each, or a new tab page comes to front. */
 async function openStartupPages(): Promise<void> {
   const startup = await browserStartup();
+  void traceStartup(`mode:${startup ? `${startup.mode} ${startup.urls.length} urls` : "none"}`);
   if (!startup || startup.mode === "restore") return;
   const tabs: OpenTab[] = (await settledTabs()).flatMap((tab) => (tab.id === undefined ? [] : [{ id: tab.id, url: tab.url || tab.pendingUrl || "", incognito: tab.incognito }]));
-  for (const step of planStartup(startup, tabs, chrome.runtime.getURL("newtab/"))) {
-    if (step.open) await chrome.tabs.create({ url: step.open, active: step.active }).catch(() => undefined);
-    else if (step.activate !== undefined) await chrome.tabs.update(step.activate, { active: true }).catch(() => undefined);
+  const steps = planStartup(startup, tabs, chrome.runtime.getURL("newtab/"));
+  void traceStartup(`plan:${tabs.length} tabs, ${steps.length} steps`);
+  for (const step of steps) {
+    const done = step.open
+      ? chrome.tabs.create({ url: step.open, active: step.active }).then((tab) => `opened ${tab.id}`)
+      : step.activate !== undefined
+        ? chrome.tabs.update(step.activate, { active: true }).then(() => `activated ${step.activate}`)
+        : Promise.resolve("nothing");
+    void traceStartup(await done.catch((error: unknown) => `failed: ${String(error)}`));
   }
 }
 
 /** The last browser starts as this worker saw them (events, windows open, pages opened), kept for
  * the Android check. */
-async function traceStartup(event: string): Promise<void> {
-  const { startupTrace } = await chrome.storage.local.get("startupTrace");
-  const windows = (await chrome.windows.getAll()).length;
-  const entries = Array.isArray(startupTrace) ? startupTrace : [];
-  await chrome.storage.local.set({ startupTrace: [...entries, { at: Date.now(), event, windows }].slice(-20) });
+let traceWrites: Promise<void> = Promise.resolve();
+function traceStartup(event: string): Promise<void> {
+  const at = Date.now();
+  traceWrites = traceWrites.then(async () => {
+    const { startupTrace } = await chrome.storage.local.get("startupTrace");
+    const windows = (await chrome.windows.getAll()).length;
+    const entries = Array.isArray(startupTrace) ? startupTrace : [];
+    await chrome.storage.local.set({ startupTrace: [...entries, { at, event, windows }].slice(-30) });
+  }).catch(() => undefined);
+  return traceWrites;
 }
 
-/** Opens the startup pages once per browser session, whichever start signal comes first. */
+/** Opens the startup pages once per browser session. */
 async function startupPagesOnce(source: string): Promise<void> {
   const { startupPagesDone } = await chrome.storage.session.get("startupPagesDone");
   if (startupPagesDone) return;
@@ -510,7 +519,6 @@ async function startOncePerSession(): Promise<void> {
   const { sessionStarted } = await chrome.storage.session.get("sessionStarted");
   if (sessionStarted) return;
   await chrome.storage.session.set({ sessionStarted: true });
-  void startupPagesAtSessionStart();
   await replacePlaceholderTabs();
   const tabs = await chrome.tabs.query({});
   await Promise.all(tabs.map((tab) => (tab.id === undefined ? undefined : syncAction(tab.id, tab.url ?? tab.pendingUrl))));
@@ -519,22 +527,12 @@ async function startOncePerSession(): Promise<void> {
 }
 
 // Only a browser start, never an update or reload of this extension, opens the startup pages.
-// runtime.onStartup is not reliably sent to the built-in extension at a cold start on Android, so
-// the first worker run of a browser session also counts, unless this run installed or updated it.
 chrome.runtime.onStartup.addListener(() => {
   void traceStartup("onStartup");
   void chrome.runtime.getPlatformInfo().then(({ os }) => {
     if (os === "android") void startupPagesOnce("onStartup");
   });
 });
-
-async function startupPagesAtSessionStart(): Promise<void> {
-  const { os } = await chrome.runtime.getPlatformInfo();
-  if (os !== "android") return;
-  await sleep(1500);
-  void traceStartup(installedThisRun ? "session:installed" : "session");
-  if (!installedThisRun) await startupPagesOnce("session");
-}
 void startOncePerSession();
 
 chrome.alarms.onAlarm.addListener((alarm) => {
