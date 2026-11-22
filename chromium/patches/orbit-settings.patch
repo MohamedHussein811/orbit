@@ -1,3 +1,15 @@
+diff --git a/chrome/browser/resources/settings/a11y_page/live_caption.html.ts b/chrome/browser/resources/settings/a11y_page/live_caption.html.ts
+--- a/chrome/browser/resources/settings/a11y_page/live_caption.html.ts
++++ b/chrome/browser/resources/settings/a11y_page/live_caption.html.ts
+@@ -78,7 +78,7 @@
+     </settings-toggle-button>
+   </cr-collapse>
+   ${this.enableLiveTranslate_ ? html`
+-    <settings-live-translate></settings-live-translate>
++    <settings-live-translate hidden></settings-live-translate>
+   ` : ''}
+ ` : ''}
+ ${this.showAddLanguagesDialog_ ? html`
 diff --git a/chrome/browser/resources/settings/about_page/about_page.html.ts b/chrome/browser/resources/settings/about_page/about_page.html.ts
 --- a/chrome/browser/resources/settings/about_page/about_page.html.ts
 +++ b/chrome/browser/resources/settings/about_page/about_page.html.ts
@@ -10,6 +22,42 @@ diff --git a/chrome/browser/resources/settings/about_page/about_page.html.ts b/c
        label="$i18n{aboutGetHelpUsingChrome}" external></cr-link-row>
  <if expr="_google_chrome">
    <cr-link-row class="hr" id="reportIssue" @click="${this.onReportIssueClick_}"
+diff --git a/chrome/browser/resources/settings/autofill_page/autofill_page.html.ts b/chrome/browser/resources/settings/autofill_page/autofill_page.html.ts
+--- a/chrome/browser/resources/settings/autofill_page/autofill_page.html.ts
++++ b/chrome/browser/resources/settings/autofill_page/autofill_page.html.ts
+@@ -68,17 +68,17 @@
+   <collapsible-autofill-settings-card></collapsible-autofill-settings-card>
+ </settings-section>
+ 
+-<settings-section page-title="$i18n{yourSavedInfoRelatedServicesTitle}">
++<settings-section page-title="$i18n{orbitRelatedServices}">
+   <div route-path="default">
+     <cr-link-row id="passwordManagerButton" label="$i18n{localPasswordManager}"
+         @click="${this.onPasswordManagerRelatedServiceClick_}"
+         start-icon="cr20:password-manager" external>
+     </cr-link-row>
+-    <cr-link-row id="googleWalletButton" label="$i18n{googleWalletTitle}"
++    <cr-link-row id="googleWalletButton" label="$i18n{googleWalletTitle}" hidden
+         @click="${this.onGoogleWalletRelatedServiceClick_}"
+         start-icon="settings20:wallet" external>
+     </cr-link-row>
+-    <cr-link-row id="googleAccountButton" label="$i18n{googleAccount}"
++    <cr-link-row id="googleAccountButton" label="$i18n{googleAccount}" hidden
+         @click="${this.onGoogleAccountRelatedServiceClick_}"
+         start-icon="settings20:google" external>
+     </cr-link-row>
+diff --git a/chrome/browser/resources/settings/autofill_page/payments/payments_page.html.ts b/chrome/browser/resources/settings/autofill_page/payments/payments_page.html.ts
+--- a/chrome/browser/resources/settings/autofill_page/payments/payments_page.html.ts
++++ b/chrome/browser/resources/settings/autofill_page/payments/payments_page.html.ts
+@@ -98,7 +98,7 @@
+         this.onCanMakePaymentSettingsBooleanControlChange_}">
+ </settings-toggle-button>
+ 
+-<div id="manageLink" class="cr-row">
++<div id="manageLink" class="cr-row" hidden>
+   <!-- This span lays out the link correctly, relative to the text. -->
+   <div class="cr-padded-text">$i18nRaw{manageCreditCardsLabel}</div>
+ </div>
 diff --git a/chrome/browser/resources/settings/default_browser_page/default_browser_browser_proxy.ts b/chrome/browser/resources/settings/default_browser_page/default_browser_browser_proxy.ts
 --- a/chrome/browser/resources/settings/default_browser_page/default_browser_browser_proxy.ts
 +++ b/chrome/browser/resources/settings/default_browser_page/default_browser_browser_proxy.ts
@@ -68,6 +116,18 @@ diff --git a/chrome/browser/resources/settings/default_browser_page/default_brow
    // SettingsPlugin implementation
    async searchContents(query: string) {
      const searchRequest = await getSearchManager().search(query, this);
+diff --git a/chrome/browser/resources/settings/languages_page/translate_page.html.ts b/chrome/browser/resources/settings/languages_page/translate_page.html.ts
+--- a/chrome/browser/resources/settings/languages_page/translate_page.html.ts
++++ b/chrome/browser/resources/settings/languages_page/translate_page.html.ts
+@@ -8,7 +8,7 @@
+ 
+ export function getHtml(this: SettingsTranslatePageElement) {
+   return html`<!--_html_template_start_-->
+-<settings-section page-title="$i18n{translatePageTitle}">
++<settings-section page-title="$i18n{translatePageTitle}" hidden>
+ <settings-toggle-button id="offerTranslateOtherLanguages"
+     pref-key="translate.enabled"
+     label="$i18n{offerToEnableTranslate}"
 diff --git a/chrome/browser/resources/settings/on_startup_page/on_startup_page.ts b/chrome/browser/resources/settings/on_startup_page/on_startup_page.ts
 --- a/chrome/browser/resources/settings/on_startup_page/on_startup_page.ts
 +++ b/chrome/browser/resources/settings/on_startup_page/on_startup_page.ts
@@ -200,6 +260,15 @@ diff --git a/chrome/browser/resources/settings/privacy_page/security/security_pa
          label="$i18n{passwordsLeakDetectionLabel}"
          pref-key="generated.password_leak_detection"
          sub-label="${this.getPasswordsLeakToggleSubLabel_()}">
+@@ -213,7 +213,7 @@
+         @click="${this.onManageCertificatesClick_}" external>
+     </cr-link-row>
+ 
+-    <cr-link-row id="advancedProtectionProgramLink" class="hr"
++    <cr-link-row id="advancedProtectionProgramLink" class="hr" hidden
+         label="$i18n{advancedProtectionProgramTitle}"
+         sub-label="$i18n{advancedProtectionProgramDesc}"
+         @click="${this.onAdvancedProtectionProgramLinkClick_}"
 diff --git a/chrome/browser/resources/settings/route.ts b/chrome/browser/resources/settings/route.ts
 --- a/chrome/browser/resources/settings/route.ts
 +++ b/chrome/browser/resources/settings/route.ts
@@ -434,7 +503,7 @@ diff --git a/chrome/browser/ui/webui/settings/settings_default_browser_handler.h
 diff --git a/chrome/browser/ui/webui/settings/settings_ui.cc b/chrome/browser/ui/webui/settings/settings_ui.cc
 --- a/chrome/browser/ui/webui/settings/settings_ui.cc
 +++ b/chrome/browser/ui/webui/settings/settings_ui.cc
-@@ -374,10 +374,19 @@
+@@ -374,10 +374,24 @@
    html_source->AddBoolean("isOSSettings", false);
  #endif  // BUILDFLAG(IS_CHROMEOS)
  
@@ -455,10 +524,15 @@ diff --git a/chrome/browser/ui/webui/settings/settings_ui.cc b/chrome/browser/ui
 +  html_source->AddString(
 +      "orbitPinToTaskbarButton",
 +      orbit_arabic ? u"\u062a\u062b\u0628\u064a\u062a" : u"Pin");
++  html_source->AddString(
++      "orbitRelatedServices",
++      orbit_arabic ? u"\u062e\u062f\u0645\u0627\u062a \u0630\u0627\u062a "
++                     u"\u0635\u0644\u0629"
++                   : u"Related services");
  
    html_source->AddBoolean("enableHandTrackingContentSetting",
  #if BUILDFLAG(ENABLE_VR)
-@@ -679,9 +688,7 @@
+@@ -679,9 +693,7 @@
    // Within the AI subpage are separate sections for Glic, for GEIC, and for all
    // other AI features. The visibility of these is separately controlled, but
    // we want to show the subpage if any of them are enabled.
@@ -469,7 +543,7 @@ diff --git a/chrome/browser/ui/webui/settings/settings_ui.cc b/chrome/browser/ui
    html_source->AddBoolean("showAiPageAiFeatureSection",
                            show_ai_features_section);
  
-@@ -947,9 +954,6 @@
+@@ -947,9 +959,6 @@
    base::DictValue update;
    update.Set("showGlicSettings", show_glic);
    update.Set("glicDisallowedByAdmin", enablement.DisallowedByAdmin());

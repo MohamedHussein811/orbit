@@ -307,6 +307,29 @@ diff --git a/chrome/common/extensions/api/search.idl b/chrome/common/extensions/
 +        optional QueryCallback callback);
    };
  };
+diff --git a/components/search_engines/template_url_starter_pack_data.cc b/components/search_engines/template_url_starter_pack_data.cc
+--- a/components/search_engines/template_url_starter_pack_data.cc
++++ b/components/search_engines/template_url_starter_pack_data.cc
+@@ -17,7 +17,7 @@
+ namespace template_url_starter_pack_data {
+ 
+ // Update this whenever a change is made to any starter pack data.
+-const int kCurrentDataVersion = 13;
++const int kCurrentDataVersion = 14;
+ 
+ // Only update this if there's an incompatible change that requires force
+ // updating the user's starter pack data. This will overwrite any of the
+@@ -108,6 +108,10 @@
+   std::vector<std::unique_ptr<TemplateURLData>> t_urls;
+ 
+   for (auto* engine : engines) {
++    if (engine->id == StarterPackId::kGemini ||
++        engine->id == StarterPackId::kAiMode) {
++      continue;
++    }
+     t_urls.push_back(TemplateURLDataFromStarterPackEngine(*engine));
+   }
+   return t_urls;
 diff --git a/extensions/browser/extension_function_histogram_value.h b/extensions/browser/extension_function_histogram_value.h
 --- a/extensions/browser/extension_function_histogram_value.h
 +++ b/extensions/browser/extension_function_histogram_value.h

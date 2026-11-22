@@ -22,12 +22,13 @@ const ALLOWED = new RegExp(
 const ALLOWED_LINES = [
   /^Google$/,
   /^(?:Edit|Remove) Google$/,
+  /^(?:More actions for|Click to open Edit dialog for) Google$/,
   /^(?:Google Chrome|Chromium|Microsoft Edge|Mozilla Firefox|Safari|Brave|Opera)$/,
   /google\.com\/search\?q=%s|\{google:baseURL\}/,
 ];
 
 // Pages that crash, hang or change state, or only explain how to enable other pages.
-const SKIP_PAGES = /^chrome:\/\/(?:quit|restart|crash|kill|hang|inducebrowsercrashforrealz|memory-exhaust|gpuclean|gpucrash|gpuhang|ppapiflashcrash|ppapiflashhang|webuijserror|badcastcrash|shorthang|chrome-urls|contextual-tasks|indexeddb-internals|internals|dino)\b/;
+const SKIP_PAGES = /^chrome:\/\/(?:quit|restart|crash|kill|hang|inducebrowsercrashforrealz|memory-exhaust|gpuclean|gpucrash|gpuhang|ppapiflashcrash|ppapiflashhang|webuijserror|badcastcrash|shorthang|chrome-urls|contextual-tasks|indexeddb-internals|internals|intro|profile-picker|history-sync-optin|dino)\b/;
 
 // Pages people use, visited first so a page that hangs later cannot hide them.
 const USER_PAGES = [
