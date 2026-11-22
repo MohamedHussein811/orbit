@@ -1,0 +1,59 @@
+# Names the native frames of an Android crash: unpacks libchrome.so with its symbols from a saved
+# Android build state and runs llvm-symbolizer on the tombstone's pc values.
+name: Symbolize an Android crash
+
+on:
+  push:
+    branches: [exp/symbolize]
+  workflow_dispatch:
+    inputs:
+      run:
+        description: Run whose android-state artifact holds the crashed build
+        required: true
+      state:
+        description: State number
+        required: true
+      addresses:
+        description: Space-separated pc values from the tombstone (libchrome.so offsets)
+        required: true
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  symbolize:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      RUN: ${{ inputs.run || '44964365972' }}
+      STATE: ${{ inputs.state || '2' }}
+      ADDRESSES: ${{ inputs.addresses || '0x874793b 0x874848b' }}
+    steps:
+      - name: Free disk space
+        run: sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc /opt/hostedtoolcache/CodeQL
+
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: android-state-${{ env.STATE }}
+          path: state
+          run-id: ${{ env.RUN }}
+          github-token: ${{ github.token }}
+
+      - name: Unpack libchrome.so and llvm-symbolizer
+        run: |
+          set -o pipefail
+          mkdir src
+          zstd -dc state/state.tar.zst | tar -xf - -C src --wildcards '*lib.unstripped/libchrome.so' 'third_party/llvm-build/*/bin/llvm-symbolizer'
+          rm -rf state
+          find src -name libchrome.so -o -name llvm-symbolizer | xargs ls -l
+
+      - name: Symbolize
+        run: |
+          lib=$(find src -path '*lib.unstripped/libchrome.so' | head -1)
+          symbolizer=$(find src -name llvm-symbolizer | head -1)
+          file "$lib"
+          for address in $ADDRESSES; do
+            echo "== $address"
+            "$symbolizer" --obj="$lib" --functions=linkage --inlines --demangle "$address"
+          done | tee -a "$GITHUB_STEP_SUMMARY"
