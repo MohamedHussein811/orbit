@@ -1,6 +1,8 @@
 // Finds Chrome, Chromium, Google, Gemini and Incognito names left on Orbit's internal pages: every
-// Settings route, every page listed on orbit://chrome-urls and the private new tab page. Text is
-// read through shadow roots and only from visible elements.
+// Settings route, the pages people use (new tab, history, downloads, bookmarks, passwords,
+// extensions...), the private new tab page, then every other page listed on orbit://chrome-urls.
+// Text is read through shadow roots and only from visible elements. Developer pages (internals,
+// histograms, credits...) are reported apart: they are not part of the everyday browser.
 
 export const WORDS = /\b(?:Chrom(?:e|ium)\w*|Google|Gemini|Incognito|INCOGNITO)\b|chrome:\/\/|كروم|غوغل|جوجل|متخف/;
 
@@ -23,8 +25,19 @@ const ALLOWED_LINES = [
   /google\.com\/search\?q=%s|\{google:baseURL\}/,
 ];
 
-// Debug pages that crash or hang, change state, or only explain how to enable other pages.
-const SKIP_PAGES = /^chrome:\/\/(?:quit|restart|crash|kill|hang|inducebrowsercrashforrealz|memory-exhaust|gpuclean|gpucrash|gpuhang|ppapiflashcrash|ppapiflashhang|webuijserror|badcastcrash|shorthang|chrome-urls|contextual-tasks)\b/;
+// Pages that crash, hang or change state, or only explain how to enable other pages.
+const SKIP_PAGES = /^chrome:\/\/(?:quit|restart|crash|kill|hang|inducebrowsercrashforrealz|memory-exhaust|gpuclean|gpucrash|gpuhang|ppapiflashcrash|ppapiflashhang|webuijserror|badcastcrash|shorthang|chrome-urls|contextual-tasks|indexeddb-internals|dino)\b/;
+
+// Pages people use, visited first so a page that hangs later cannot hide them.
+const USER_PAGES = [
+  "chrome://newtab", "chrome://history", "chrome://downloads", "chrome://bookmarks",
+  "chrome://password-manager", "chrome://password-manager/passwords", "chrome://password-manager/checkup",
+  "chrome://password-manager/settings", "chrome://extensions", "chrome://management",
+  "chrome://version", "chrome://help", "chrome://welcome", "chrome://whats-new", "chrome://print",
+  "chrome://history/syncedTabs", "chrome://settings/help",
+];
+
+const DEVELOPER_PAGES = /^chrome:\/\/(?:[\w-]+-internals|histograms|accessibility|credits|debug-webuis-disabled|tracing|net-export|gpu|media-engagement|webrtc-logs|device-log|inspect|serviceworker-internals|discards|ukm|user-actions|flags|components|terms|system|sandbox|process-internals|predictors|prefs-internals|local-state|signin-internals|sync-internals|omnibox|interstitials|segmentation-internals|traces|usb-internals|webrtc-internals)\b/;
 
 const PAGE_TEXT = `(() => {
   const lines = [];
@@ -51,7 +64,6 @@ const PAGE_TEXT = `(() => {
   return [...new Set(lines)];
 })()`;
 
-
 export function leftoverWords(line) {
   if (ALLOWED_LINES.some((pattern) => pattern.test(line))) return null;
   const rest = line.replace(ALLOWED, "");
@@ -61,14 +73,14 @@ export function leftoverWords(line) {
 
 async function pageLeftovers(page, url, settleMs) {
   const result = await page.goto(url, { settleMs, timeoutMs: 8000 });
-  if (result.errorText) return { url, error: result.errorText, hits: [] };
+  if (result.errorText) return { url, error: result.errorText, hits: [], lines: 0 };
   const lines = await page.eval(PAGE_TEXT).catch(() => []);
   const hits = [];
   for (const line of lines) {
     const words = leftoverWords(line);
     if (words) hits.push({ words, text: line.slice(0, 200) });
   }
-  return { url, hits };
+  return { url, hits, lines: lines.length };
 }
 
 export async function settingsPaths(page) {
@@ -87,10 +99,13 @@ export async function chromeUrls(page) {
   return [...new Set(urls)].filter((url) => !SKIP_PAGES.test(url)).sort();
 }
 
-/** Visits the pages and returns [{ url, hits: [{ words, text }], error? }] for pages with hits. */
+/**
+ * Visits the pages and returns { results: [{ url, group, hits, lines, error? }], unvisited }.
+ * group is "settings", "user", "private" or "developer".
+ */
 export async function crawlLeftovers(cdp, { log = console.log, progress = () => {} } = {}) {
   let page = await cdp.newPage("about:blank");
-  const found = [];
+  const results = [];
   const visit = async (url, settleMs) => {
     progress(url);
     try {
@@ -98,50 +113,75 @@ export async function crawlLeftovers(cdp, { log = console.log, progress = () => 
     } catch (error) {
       await page.close();
       page = await cdp.newPage("about:blank").catch(() => null);
-      return { url, error: page ? error.message : `${error.message}; the browser stopped`, hits: [] };
+      return { url, error: page ? error.message : `${error.message}; the browser stopped`, hits: [], lines: 0 };
     }
   };
   const paths = await settingsPaths(page).catch((error) => {
     log(`note Settings routes not readable: ${error.message}`);
     return ["/"];
   });
-  const urls = await chromeUrls(page).catch((error) => {
+  const listed = await chromeUrls(page).catch((error) => {
     log(`note orbit://chrome-urls not readable: ${error.message}`);
     return [];
   });
-  log(`crawl: ${paths.length} Settings routes, ${urls.length} internal pages`);
-  const targets = [...paths.map((path) => [`chrome://settings${path}`, 1200]), ...urls.map((url) => [url, 1000])];
-  for (const [url, settleMs] of targets) {
-    const result = await visit(url, settleMs);
-    if (result.hits.length || result.error) found.push(result);
-    if (!page) return found;
-  }
-  await page.close();
+  const user = [...new Set([...USER_PAGES, ...listed.filter((url) => !DEVELOPER_PAGES.test(url))])];
+  const developer = listed.filter((url) => DEVELOPER_PAGES.test(url));
+  log(`crawl: ${paths.length} Settings routes, ${user.length} other pages, ${developer.length} developer pages`);
 
-  const context = await cdp.send("Target.createBrowserContext").catch(() => null);
-  if (context) {
-    try {
-      const { targetId } = await cdp.send("Target.createTarget", { url: "about:blank", browserContextId: context.browserContextId });
-      const result = await pageLeftovers(await cdp.page(targetId), "chrome://newtab", 1500);
-      result.url = "private chrome://newtab";
-      if (result.hits.length || result.error) found.push(result);
-    } catch (error) {
-      found.push({ url: "private chrome://newtab", error: error.message, hits: [] });
+  const queue = [
+    ...paths.map((path) => [`chrome://settings${path}`, 1200, "settings"]),
+    ...user.map((url) => [url, 1000, "user"]),
+  ];
+  const run = async (items) => {
+    for (let i = 0; i < items.length; i++) {
+      const [url, settleMs, group] = items[i];
+      results.push({ ...(await visit(url, settleMs)), group });
+      if (!page) return items.slice(i + 1).map(([url]) => url);
     }
-    await cdp.send("Target.disposeBrowserContext", { browserContextId: context.browserContextId }).catch(() => {});
+    return [];
+  };
+  let unvisited = await run(queue);
+
+  if (page) {
+    const context = await cdp.send("Target.createBrowserContext").catch(() => null);
+    if (context) {
+      try {
+        const { targetId } = await cdp.send("Target.createTarget", { url: "about:blank", browserContextId: context.browserContextId });
+        const result = await pageLeftovers(await cdp.page(targetId), "chrome://newtab", 1500);
+        results.push({ ...result, url: "private chrome://newtab", group: "private" });
+      } catch (error) {
+        results.push({ url: "private chrome://newtab", error: error.message, hits: [], lines: 0, group: "private" });
+      }
+      await cdp.send("Target.disposeBrowserContext", { browserContextId: context.browserContextId }).catch(() => {});
+    }
+    unvisited = await run(developer.map((url) => [url, 1000, "developer"]));
+  } else {
+    unvisited.push("private chrome://newtab", ...developer);
   }
-  return found;
+  await page?.close();
+  return { results, unvisited };
 }
 
-export function printLeftovers(found, log = console.log) {
+export function printLeftovers({ results, unvisited }, log = console.log) {
   let count = 0;
-  for (const { url, hits, error } of found) {
-    if (error) log(`leftover ${url}: page error ${error}`);
-    for (const hit of hits) {
-      count++;
-      log(`leftover ${url.replace(/^chrome:/, "orbit:")} [${hit.words.join(", ")}] ${hit.text}`);
+  const show = (url) => url.replace(/chrome:\/\//, "orbit://");
+  for (const group of ["settings", "user", "private", "developer"]) {
+    const pages = results.filter((r) => r.group === group);
+    const empty = pages.filter((r) => !r.error && r.lines === 0).map((r) => show(r.url));
+    let hits = 0;
+    for (const { url, hits: found, error } of pages) {
+      if (error) log(`leftover ${group} ${show(url)}: page error ${error}`);
+      for (const hit of found) {
+        hits++;
+        log(`leftover ${group} ${show(url)} [${hit.words.join(", ")}] ${hit.text}`);
+      }
     }
+    if (group !== "developer") count += hits;
+    const lines = pages.reduce((sum, r) => sum + r.lines, 0);
+    log(`crawl ${group}: ${pages.length} pages, ${lines} text lines read, ${hits} leftover texts` +
+      (empty.length ? `, no text on ${empty.join(" ")}` : ""));
   }
-  log(`crawl: ${count} leftover texts on ${found.filter((f) => f.hits.length).length} pages`);
+  if (unvisited.length) log(`crawl: not visited (the browser stopped): ${unvisited.map(show).join(" ")}`);
+  log(`crawl: ${count} leftover texts outside developer pages`);
   return count;
 }
