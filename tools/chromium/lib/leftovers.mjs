@@ -135,10 +135,6 @@ export async function crawlLeftovers(cdp, { log = console.log, progress = () => 
   const developer = listed.filter((url) => DEVELOPER_PAGES.test(url));
   log(`crawl: ${paths.length} Settings routes, ${user.length} other pages, ${developer.length} developer pages`);
 
-  const queue = [
-    ...paths.map((path) => [`chrome://settings${path}`, 1200, "settings"]),
-    ...user.map((url) => [url, 1000, "user"]),
-  ];
   const run = async (items) => {
     for (let i = 0; i < items.length; i++) {
       const [url, settleMs, group] = items[i];
@@ -147,23 +143,29 @@ export async function crawlLeftovers(cdp, { log = console.log, progress = () => 
     }
     return [];
   };
-  let unvisited = await run(queue);
-
-  if (page) {
+  const visitPrivate = async () => {
     const context = await cdp.send("Target.createBrowserContext").catch(() => null);
-    if (context) {
-      try {
-        const { targetId } = await cdp.send("Target.createTarget", { url: "about:blank", browserContextId: context.browserContextId });
-        const result = await pageLeftovers(await cdp.page(targetId), "chrome://newtab", 1500);
-        results.push({ ...result, url: "private chrome://newtab", group: "private" });
-      } catch (error) {
-        results.push({ url: "private chrome://newtab", error: error.message, hits: [], lines: 0, group: "private" });
-      }
-      await cdp.send("Target.disposeBrowserContext", { browserContextId: context.browserContextId }).catch(() => {});
+    if (!context) return;
+    try {
+      const { targetId } = await cdp.send("Target.createTarget", { url: "about:blank", browserContextId: context.browserContextId });
+      const result = await pageLeftovers(await cdp.page(targetId), "chrome://newtab", 1500);
+      results.push({ ...result, url: "private chrome://newtab", group: "private" });
+    } catch (error) {
+      results.push({ url: "private chrome://newtab", error: error.message, hits: [], lines: 0, group: "private" });
     }
-    unvisited = await run(developer.map((url) => [url, 1000, "developer"]));
+    await cdp.send("Target.disposeBrowserContext", { browserContextId: context.browserContextId }).catch(() => {});
+  };
+
+  const rest = user.filter((url) => !USER_PAGES.includes(url));
+  let unvisited = await run([
+    ...paths.map((path) => [`chrome://settings${path}`, 1200, "settings"]),
+    ...USER_PAGES.map((url) => [url, 1000, "user"]),
+  ]);
+  if (page) {
+    await visitPrivate();
+    unvisited = await run([...rest.map((url) => [url, 1000, "user"]), ...developer.map((url) => [url, 1000, "developer"])]);
   } else {
-    unvisited.push("private chrome://newtab", ...developer);
+    unvisited.push("private chrome://newtab", ...rest, ...developer);
   }
   await page?.close();
   return { results, unvisited };
