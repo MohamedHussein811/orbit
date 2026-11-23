@@ -238,12 +238,18 @@ test("redirect filters load a harmless stand-in instead of the blocked file", ()
 });
 
 test("redirect names resolve through their aliases, priorities are dropped, types follow the stand-in", () => {
-  assert.equal(one("||imasdk.googleapis.com/js/sdkloader/ima3.js$redirect-rule=google-ima3:5").action.redirect.extensionPath, "/rules/resources/google-ima.js");
+  assert.equal(one("||imasdk.googleapis.com/js/sdkloader/ima3.js$redirect=google-ima3:5").action.redirect.extensionPath, "/rules/resources/google-ima.js");
   const image = one("||ads.example/pixel$redirect=1x1.gif,domain=a.example");
   assert.deepEqual(image.condition.resourceTypes, ["image"]);
   assert.deepEqual(image.condition.initiatorDomains, ["a.example"]);
   assert.deepEqual(one("||ads.example^$xhr,redirect=nooptext").condition.resourceTypes, ["xmlhttprequest"]);
   assert.deepEqual(compileFilters(["||ads.example^$document,redirect=noopjs"]).rules, []);
+});
+
+test("redirect-rule filters, which only change how an already blocked request is answered, are dropped", () => {
+  const { rules, stats } = compileFilters(["*.svg#$image,redirect-rule=1x1.gif\n||news.example/resources/*$image,1p,redirect-rule=1x1.gif\n*$xhr,3p,method=head,redirect-rule=nooptext:-1"]);
+  assert.deepEqual(rules, []);
+  assert.equal(stats.skipped["redirect-rule"], 3);
 });
 
 test("generichide and elemhide exceptions name the sites that keep hiding off", () => {

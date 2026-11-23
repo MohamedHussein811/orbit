@@ -13,7 +13,7 @@
 "al-wrwd.com":{"hide":["#bannbox"]},
 "alt-codes.net":{"hide":["#copyModal .modal-body"]},
 "aman-dn.blogspot.com":{"hide":["#overlay","#popup"],"show":[".ads-ad"],"style":[["body","overflow: auto !important;"]]},
-"amateurphotographer.com":{"hide":[".content-ad",".cta"]},
+"amateurphotographer.com":{"hide":["#VideoAdContainer",".c-squirrel-embed",".content-ad",".cta",".pageskin-ads"]},
 "amateurvoyeurforum.com":{"hide":[".tborder[width=\"99%\"][cellpadding=\"6\"]"]},
 "amtrak.com":{"show":[".ads-block",".ads-border",".ads-box-border"]},
 "androidheadlines.com":{"hide":[".adthrive"]},

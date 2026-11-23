@@ -15,7 +15,7 @@
 "babepedia.com":{"hide":[".left_side > .sidebar_block > a",".sidebar_block > a[rel=\"nofollow noopener\"]","a[href*=\".com/track/\"]","a[href^=\"https://porndoe.com/\"]"]},
 "bendigoadvertiser.com.au":{"style":[[".subscribe-article .subscribe-truncate","max-height:unset!important;order:unset!important;"],[".subscribe-article .subscribe-truncate::before","background:none!important;"],[".subscribe-article .subscriber-hider","display:block!important"]]},
 "bigbuttshub2.top":{"hide":["body > div ~ div[class]:empty"]},
-"billboard.com":{"hide":["^script.pmc-admiral"]},
+"billboard.com":{"hide":[".boomerang","^script.pmc-admiral"]},
 "bleedingcool.com":{"hide":["#bottom_leaderboard","#bottom_leaderboard2","#bottom_medium_rectangle",".med_rect_wrapper"]},
 "bravenewcoin.com":{"hide":[".sevio-ad-wrapper"]},
 "bypassapp.com":{"hide":["center > [class*=\"buttonPress-\"]"]},

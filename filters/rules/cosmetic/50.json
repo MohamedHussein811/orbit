@@ -179,7 +179,7 @@
 "whitecoatinvestor.com":{"hide":[".abc",".widget_abc","[class*=\"blog-\"][class*=\"-as\"]"]},
 "womensrunning.com":{"hide":[".c-thinbanner"]},
 "wvt.free.nf":{"hide":[".tracking-btn"]},
-"wwd.com":{"hide":["^script.pmc-admiral"]},
+"wwd.com":{"hide":[".boomerang","^script.pmc-admiral"]},
 "xn-----0b4asja7ccgu2b4b0gd0edbjm2jpa1b1e9zva7a0347s4da2797e8qri.xn--1ck2e1b":{"hide":["[style=\"position: fixed; inset: 0px; z-index: 2147483647; pointer-events: auto;\"]"]},
 "yourbittorrent.com":{"hide":[".extneed","[href*=\"%20\"][href$=\".html\"]","iframe[src]"]},
 "youtubelike.com":{"hide":["#header-top",".bottom-thumbs",".bottom-top",".gallery-thumbs"]}

@@ -16,7 +16,6 @@
 "austurfrett.is":{"show":[".middlead"]},
 "auto-data.net":{"hide":[".ad_incar",".adin"]},
 "base64encode.org":{"hide":[".ad_header_box",".ad_left_box",".ad_right_box"]},
-"besttwinkass.com":{"hide":["[class*=\"_Bns\"]"]},
 "bigeye.ug":{"hide":["img[width=\"300\"]"]},
 "binaries4all.com":{"hide":["#payserver"]},
 "bitdegree.org":{"hide":["#campaign-modal",".comparison-suggestion",".page-coupon-landing"]},

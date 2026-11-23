@@ -72,7 +72,7 @@
 "kissinggames.com":{"hide":[".ad-title-megaban"]},
 "kmzu.com":{"hide":[".sticky-footer-promo-container"]},
 "komonews.com":{"hide":["#deeper-dive-container-0",".TaboolaHomepageFeed_taboolaWrapper__dtrdt",".index-module_featuredVideosWhiteWrapper__kfND",".style_medTopAdsWrapper__rd6bz","[data-slot-label^=\"DisplayAd\"]","a[href*=\"/sponsored/\"]"]},
-"kyivindependent.com":{"hide":["#article-banner-slot"]},
+"kyivindependent.com":{"hide":["#article-banner-slot",".nts-ad"]},
 "lendi.pl":{"hide":[".placeholder","div[id^=\"onet-ad-\"]"]},
 "lesbenhd.com":{"hide":["#wa_join_btn"]},
 "linuxtracker.org":{"show":["#adbar"]},

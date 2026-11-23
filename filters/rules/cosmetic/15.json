@@ -124,7 +124,7 @@
 "multiup.org":{"hide":[".mfp-ready",".text-center.bg-info","a[href^=\"/download-fast/\"]","div.col-md-4:has(> .panel > .panel-footer > a[href^=\"/download-fast/\"])","div.text-center:has(a[class=\"btn btn-success\"][href^=\"abp:subscribe\"])"]},
 "my-subs.co":{"hide":["#countdown"]},
 "nathanmichaelphoto.com":{"show":["#gdpr-cookie-notice"]},
-"navalnews.com":{"hide":[".pubLateral"]},
+"navalnews.com":{"hide":[".code-block",".pubLateral"]},
 "newstimes.com":{"hide":["#modals",".ar16-9",".b-gray300.bt",".mnh90px",".y100:has([data-block-type=\"ad\"])"],"show":["[name^=\"google_ads_iframe\"]"]},
 "nightingaledvs.com":{"hide":[".widget-area--below-post"]},
 "novelfull.com":{"hide":["a[rel=\"nofollow noopener sponsored\"]"]},

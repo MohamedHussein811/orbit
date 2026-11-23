@@ -166,7 +166,12 @@ function parseOptions(text) {
       parsed.important = true;
     } else if (name === "all") {
       parsed.types.push(...ALL_TYPES);
-    } else if ((name === "redirect" || name === "redirect-rule") && !negated) {
+    } else if (name === "redirect-rule") {
+      // uBlock Origin answers with the stand-in only when another filter blocks the request. The
+      // rule engine cannot make a redirect depend on a block, and alone it would replace files no
+      // filter blocks (every "*.svg#" icon, every image on a site), so these filters are dropped.
+      parsed.redirectRule = true;
+    } else if (name === "redirect" && !negated) {
       // A trailing ":<number>" is uBlock Origin's redirect priority, which the rule engine has no use for.
       const file = RESOURCE_BY_NAME.get(value.replace(/:-?\d+$/, ""));
       if (!file) return null;
@@ -209,6 +214,7 @@ export function parseFilter(raw) {
   const [patternText, optionText] = splitOptions(allow ? line.slice(2) : line);
   const options = parseOptions(optionText);
   if (!options) return { skipped: "option" };
+  if (options.redirectRule) return { skipped: "redirect-rule" };
   if (allow && options.redirect) return { skipped: "option" };
 
   if (patternText.startsWith("/") && patternText.endsWith("/") && patternText.length > 2) {
