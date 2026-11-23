@@ -627,13 +627,13 @@
     "message": "تُقترح المواقع من الصفحات التي تزورها كثيرًا"
   },
   "topSitesRows": {
-    "message": "الصفوف"
+    "message": "طريقة العرض"
   },
   "oneRow": {
     "message": "صف واحد"
   },
   "twoRows": {
-    "message": "صفوف متعددة"
+    "message": "شبكة"
   },
   "showHiddenSites": {
     "message": "إظهار $1 من المواقع المخفية مجددًا"
@@ -934,5 +934,26 @@
   },
   "safeBrowsingOffDetail": {
     "message": "يفتح كل موقع دون فحصه في القوائم."
+  },
+  "oneRowNote": {
+    "message": "مرّر جانبًا لرؤية المزيد"
+  },
+  "twoRowsNote": {
+    "message": "كل الاختصارات في صفوف"
+  },
+  "widgetsTop": {
+    "message": "أعلى الصفحة"
+  },
+  "widgetsOrderHint": {
+    "message": "اسحب البطاقة أو استخدم أسهمها لتغيير الترتيب."
+  },
+  "shortcutsSettings": {
+    "message": "إعدادات الاختصارات"
+  },
+  "widgetOn": {
+    "message": "مفعّل"
+  },
+  "widgetOff": {
+    "message": "متوقف"
   }
 }
