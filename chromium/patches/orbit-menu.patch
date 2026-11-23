@@ -1,0 +1,493 @@
+diff --git a/chrome/browser/extensions/api/settings_private/prefs_util.cc b/chrome/browser/extensions/api/settings_private/prefs_util.cc
+--- a/chrome/browser/extensions/api/settings_private/prefs_util.cc
++++ b/chrome/browser/extensions/api/settings_private/prefs_util.cc
+@@ -222,6 +222,12 @@
+   }
+   s_allowlist = new PrefsUtil::TypedPrefMap();
+ 
++  // Orbit's Customize menu.
++  for (const char* row : prefs::kOrbitMenuRows) {
++    (*s_allowlist)[std::string(prefs::kOrbitMenuPrefPrefix) + row] =
++        settings_api::PrefType::kBoolean;
++  }
++
+   // Miscellaneous
+   (*s_allowlist)[::embedder_support::kAlternateErrorPagesEnabled] =
+       settings_api::PrefType::kBoolean;
+diff --git a/chrome/browser/prefs/browser_prefs.cc b/chrome/browser/prefs/browser_prefs.cc
+--- a/chrome/browser/prefs/browser_prefs.cc
++++ b/chrome/browser/prefs/browser_prefs.cc
+@@ -2004,6 +2004,10 @@
+ void RegisterProfilePrefs(user_prefs::PrefRegistrySyncable* registry,
+                           const std::string& locale) {
+   TRACE_EVENT0("browser", "chrome::RegisterProfilePrefs");
++  for (const char* row : prefs::kOrbitMenuRows) {
++    registry->RegisterBooleanPref(std::string(prefs::kOrbitMenuPrefPrefix) + row,
++                                  true);
++  }
+   // User prefs. Please keep this list alphabetized.
+   AccessibilityLabelsService::RegisterProfilePrefs(registry);
+   registry->RegisterBooleanPref(prefs::kRendererAccessibilityEnabled, true);
+diff --git a/chrome/browser/resources/settings/appearance_page/appearance_page.html.ts b/chrome/browser/resources/settings/appearance_page/appearance_page.html.ts
+--- a/chrome/browser/resources/settings/appearance_page/appearance_page.html.ts
++++ b/chrome/browser/resources/settings/appearance_page/appearance_page.html.ts
+@@ -311,6 +311,11 @@
+           .menuOptions="${this.fontSizeOptions_}">
+       </settings-dropdown-menu>
+     </div>
++    <cr-link-row class="hr" id="orbitMenuSubpageTrigger"
++        label="$i18n{orbitMenuTitle}" sub-label="$i18n{orbitMenuDescription}"
++        @click="${this.onOrbitMenuClick_}"
++        role-description="$i18n{subpageArrowRoleDescription}">
++    </cr-link-row>
+     <cr-link-row class="hr" id="customize-fonts-subpage-trigger"
+         label="$i18n{customizeFonts}" @click="${this.onCustomizeFontsClick_}"
+         role-description="$i18n{subpageArrowRoleDescription}">
+diff --git a/chrome/browser/resources/settings/appearance_page/appearance_page.ts b/chrome/browser/resources/settings/appearance_page/appearance_page.ts
+--- a/chrome/browser/resources/settings/appearance_page/appearance_page.ts
++++ b/chrome/browser/resources/settings/appearance_page/appearance_page.ts
+@@ -457,6 +457,10 @@
+     Router.getInstance().navigateTo(routes.FONTS);
+   }
+ 
++  protected onOrbitMenuClick_() {
++    Router.getInstance().navigateTo(routes.ORBIT_MENU);
++  }
++
+   protected onDisableExtensionClick_() {
+     PrefService.getInstance().refreshPrefFromBackend('homepage');
+   }
+@@ -747,6 +751,9 @@
+     if (routes.FONTS) {
+       map.set(routes.FONTS.path, '#customize-fonts-subpage-trigger');
+     }
++    if (routes.ORBIT_MENU) {
++      map.set(routes.ORBIT_MENU.path, '#orbitMenuSubpageTrigger');
++    }
+     return map;
+   }
+ 
+diff --git a/chrome/browser/resources/settings/appearance_page/appearance_page_index.html.ts b/chrome/browser/resources/settings/appearance_page/appearance_page_index.html.ts
+--- a/chrome/browser/resources/settings/appearance_page/appearance_page_index.html.ts
++++ b/chrome/browser/resources/settings/appearance_page/appearance_page_index.html.ts
+@@ -18,6 +18,10 @@
+   <settings-appearance-fonts-page slot="view" id="fonts"
+       data-parent-view-id="parent" route-path="${this.routes_.FONTS.path}">
+   </settings-appearance-fonts-page>
++
++  <settings-orbit-menu-page slot="view" id="orbitMenu"
++      data-parent-view-id="parent" route-path="${this.routes_.ORBIT_MENU.path}">
++  </settings-orbit-menu-page>
+ </cr-view-manager>
+ <!--_html_template_end_-->`;
+   // clang-format on
+diff --git a/chrome/browser/resources/settings/appearance_page/appearance_page_index.ts b/chrome/browser/resources/settings/appearance_page/appearance_page_index.ts
+--- a/chrome/browser/resources/settings/appearance_page/appearance_page_index.ts
++++ b/chrome/browser/resources/settings/appearance_page/appearance_page_index.ts
+@@ -66,6 +66,10 @@
+           this.$.viewManager.switchView(
+               'fonts', 'no-animation', 'no-animation');
+           break;
++        case routes.ORBIT_MENU:
++          this.$.viewManager.switchView(
++              'orbitMenu', 'no-animation', 'no-animation');
++          break;
+         case routes.BASIC:
+           // Switch back to the default view in case they are part of search
+           // results.
+diff --git a/chrome/browser/resources/settings/appearance_page/orbit_menu_page.css b/chrome/browser/resources/settings/appearance_page/orbit_menu_page.css
+--- a/chrome/browser/resources/settings/appearance_page/orbit_menu_page.css
++++ b/chrome/browser/resources/settings/appearance_page/orbit_menu_page.css
+@@ -0,0 +1,14 @@
++/* Copyright 2026 NovaTech
++ * Use of this source code is governed by a BSD-style license that can be
++ * found in the LICENSE file. */
++
++/* #css_wrapper_metadata_start
++ * #type=style-lit
++ * #import=../settings_shared_lit.css.js
++ * #import=chrome://resources/cr_elements/cr_shared_style_lit.css.js
++ * #include=cr-shared-style-lit settings-shared-lit
++ * #css_wrapper_metadata_end */
++
++#description {
++  color: var(--cr-secondary-text-color);
++}
+diff --git a/chrome/browser/resources/settings/appearance_page/orbit_menu_page.html.ts b/chrome/browser/resources/settings/appearance_page/orbit_menu_page.html.ts
+--- a/chrome/browser/resources/settings/appearance_page/orbit_menu_page.html.ts
++++ b/chrome/browser/resources/settings/appearance_page/orbit_menu_page.html.ts
+@@ -0,0 +1,25 @@
++// Copyright 2026 NovaTech
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++
++import {html} from '//resources/lit/v3_0/lit.rollup.js';
++
++import type {SettingsOrbitMenuPageElement} from './orbit_menu_page.js';
++
++export function getHtml(this: SettingsOrbitMenuPageElement) {
++  // clang-format off
++  return html`<!--_html_template_start_-->
++<settings-subpage page-title="$i18n{orbitMenuTitle}"
++    route-path="${this.routePath}">
++  <div id="description" class="cr-row first cr-padded-text">
++    $i18n{orbitMenuDescription}
++  </div>
++  ${this.rows_.map(row => html`
++    <settings-toggle-button class="hr" pref-key="${this.prefKey_(row)}"
++        label="${this.label_(row)}">
++    </settings-toggle-button>
++  `)}
++</settings-subpage>
++<!--_html_template_end_-->`;
++  // clang-format on
++}
+diff --git a/chrome/browser/resources/settings/appearance_page/orbit_menu_page.ts b/chrome/browser/resources/settings/appearance_page/orbit_menu_page.ts
+--- a/chrome/browser/resources/settings/appearance_page/orbit_menu_page.ts
++++ b/chrome/browser/resources/settings/appearance_page/orbit_menu_page.ts
+@@ -0,0 +1,85 @@
++// Copyright 2026 NovaTech
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++
++/**
++ * @fileoverview 'settings-orbit-menu-page' is Settings > Appearance > Customize
++ * menu: a switch for each row of the app menu.
++ */
++import '../controls/settings_toggle_button.js';
++import '../settings_page/settings_subpage.js';
++
++import {loadTimeData} from 'chrome://resources/js/load_time_data.js';
++import {CrLitElement} from 'chrome://resources/lit/v3_0/lit.rollup.js';
++
++import {SettingsViewMixinLit} from '../settings_page/settings_view_mixin_lit.js';
++
++import {getCss} from './orbit_menu_page.css.js';
++import {getHtml} from './orbit_menu_page.html.js';
++
++/** The menu's rows, in the menu's order (prefs::kOrbitMenuRows). */
++const ROWS: string[] = [
++  'new_tab',
++  'new_window',
++  'new_private_window',
++  'profile',
++  'passwords',
++  'history',
++  'downloads',
++  'bookmarks',
++  'tab_groups',
++  'extensions',
++  'delete_data',
++  'zoom',
++  'print',
++  'translate',
++  'find_edit',
++  'save_share',
++  'more_tools',
++  'help',
++  'settings',
++  'exit',
++  'make_default',
++];
++
++const SettingsOrbitMenuPageElementBase = SettingsViewMixinLit(CrLitElement);
++
++export class SettingsOrbitMenuPageElement extends
++    SettingsOrbitMenuPageElementBase {
++  static get is() {
++    return 'settings-orbit-menu-page';
++  }
++
++  static override get styles() {
++    return getCss();
++  }
++
++  override render() {
++    return getHtml.bind(this)();
++  }
++
++  static override get properties() {
++    return {
++      rows_: {type: Array},
++    };
++  }
++
++  protected accessor rows_: string[] = ROWS;
++
++  protected prefKey_(row: string): string {
++    return `orbit.menu.${row}`;
++  }
++
++  protected label_(row: string): string {
++    return loadTimeData.getString(`orbitMenu_${row}`);
++  }
++}
++
++declare global {
++  interface HTMLElementTagNameMap {
++    'settings-orbit-menu-page': SettingsOrbitMenuPageElement;
++  }
++}
++
++customElements.define(
++    SettingsOrbitMenuPageElement.is, SettingsOrbitMenuPageElement);
+diff --git a/chrome/browser/resources/settings/BUILD.gn b/chrome/browser/resources/settings/BUILD.gn
+--- a/chrome/browser/resources/settings/BUILD.gn
++++ b/chrome/browser/resources/settings/BUILD.gn
+@@ -202,6 +202,8 @@
+     "appearance_page/appearance_page.ts",
+     "appearance_page/appearance_page_index.html.ts",
+     "appearance_page/appearance_page_index.ts",
++    "appearance_page/orbit_menu_page.html.ts",
++    "appearance_page/orbit_menu_page.ts",
+     "appearance_page/home_url_input.html.ts",
+     "appearance_page/home_url_input.ts",
+     "autofill_page/account_card.html.ts",
+@@ -589,6 +591,7 @@
+     "appearance_page/appearance_fonts_page.css",
+     "appearance_page/appearance_page.css",
+     "appearance_page/appearance_page_index.css",
++    "appearance_page/orbit_menu_page.css",
+     "appearance_page/home_url_input.css",
+     "autofill_page/account_card.css",
+     "autofill_page/autofill_ai_add_or_edit_dialog.css",
+diff --git a/chrome/browser/resources/settings/lazy_load.ts b/chrome/browser/resources/settings/lazy_load.ts
+--- a/chrome/browser/resources/settings/lazy_load.ts
++++ b/chrome/browser/resources/settings/lazy_load.ts
+@@ -10,6 +10,7 @@
+ import './ai_page/offer_writing_help_page.js';
+ import './ai_page/skills_page.js';
+ import './appearance_page/appearance_fonts_page.js';
++import './appearance_page/orbit_menu_page.js';
+ import './autofill_page/contact_info/contact_info_page.js';
+ import './autofill_page/identity_docs/identity_docs_page.js';
+ // <if expr="is_win or is_macosx">
+@@ -173,6 +174,7 @@
+ // </if>
+ export {SettingsSkillsPageElement} from './ai_page/skills_page.js';
+ export {SettingsAppearanceFontsPageElement} from './appearance_page/appearance_fonts_page.js';
++export {SettingsOrbitMenuPageElement} from './appearance_page/orbit_menu_page.js';
+ export {EntityTypeName} from './autofill_ai_enums.mojom-webui.js';
+ export {SettingsAutofillAiAddOrEditDialogElement} from './autofill_page/autofill_ai_add_or_edit_dialog.js';
+ export {SettingsAutofillAiEntriesListElement} from './autofill_page/autofill_ai_entries_list.js';
+diff --git a/chrome/browser/resources/settings/route.ts b/chrome/browser/resources/settings/route.ts
+--- a/chrome/browser/resources/settings/route.ts
++++ b/chrome/browser/resources/settings/route.ts
+@@ -214,6 +214,7 @@
+         '/appearance', 'appearance',
+         loadTimeData.getString('appearancePageTitle'));
+     r.FONTS = r.APPEARANCE.createChild('/fonts');
++    r.ORBIT_MENU = r.APPEARANCE.createChild('/customizeMenu');
+   }
+ 
+   if (visibility.yourSavedInfo !== false) {
+diff --git a/chrome/browser/resources/settings/router.ts b/chrome/browser/resources/settings/router.ts
+--- a/chrome/browser/resources/settings/router.ts
++++ b/chrome/browser/resources/settings/router.ts
+@@ -34,6 +34,7 @@
+   DOWNLOADS: Route;
+   EDIT_DICTIONARY: Route;
+   FONTS: Route;
++  ORBIT_MENU: Route;
+   GEMINI: Route;
+   GEMINI_LOGIN: Route;
+   GEMINI_ENTERPRISE: Route;
+diff --git a/chrome/browser/ui/toolbar/app_menu_model.cc b/chrome/browser/ui/toolbar/app_menu_model.cc
+--- a/chrome/browser/ui/toolbar/app_menu_model.cc
++++ b/chrome/browser/ui/toolbar/app_menu_model.cc
+@@ -1253,6 +1253,7 @@
+ 
+ void AppMenuModel::Init() {
+   Build();
++  RemoveRowsHiddenInSettings();
+ 
+ #if BUILDFLAG(IS_CHROMEOS)
+   PrefService* const local_state = g_browser_process->local_state();
+@@ -2531,6 +2532,65 @@
+       features::IsRoundedIconsEnabled() ? kZoomInIcon : kZoomInOldIcon);
+ }
+ 
++void AppMenuModel::RemoveRowsHiddenInSettings() {
++  const PrefService* pref_service =
++      browser_->GetProfile()->GetOriginalProfile()->GetPrefs();
++  struct Row {
++    const char* name;
++    int commands[3];
++  };
++  static constexpr Row kRows[] = {
++      {"new_tab", {IDC_NEW_TAB}},
++      {"new_window", {IDC_NEW_WINDOW}},
++      {"new_private_window", {IDC_NEW_INCOGNITO_WINDOW}},
++      {"profile", {IDC_PROFILE_MENU_IN_APP_MENU}},
++      {"passwords", {IDC_PASSWORDS_AND_AUTOFILL_MENU}},
++      {"history", {IDC_RECENT_TABS_MENU}},
++      {"downloads", {IDC_SHOW_DOWNLOADS}},
++      {"bookmarks", {IDC_BOOKMARKS_MENU}},
++      {"tab_groups", {kSavedTabGroupsMenuPlaceholder}},
++      {"extensions", {kSkillsAndExtensionsMenuPlaceholder, IDC_EXTENSIONS_SUBMENU, IDC_FIND_EXTENSIONS}},
++      {"delete_data", {IDC_CLEAR_BROWSING_DATA}},
++      {"zoom", {IDC_ZOOM_MENU}},
++      {"print", {IDC_PRINT}},
++      {"translate", {IDC_SHOW_TRANSLATE}},
++      {"find_edit", {IDC_FIND_AND_EDIT_MENU}},
++      {"save_share", {IDC_SAVE_AND_SHARE_MENU}},
++      {"more_tools", {IDC_MORE_TOOLS_MENU}},
++      {"help", {IDC_HELP_MENU, IDC_ABOUT}},
++      {"settings", {IDC_OPTIONS}},
++      {"exit", {IDC_EXIT}},
++      {"make_default", {IDC_SET_BROWSER_AS_DEFAULT}},
++  };
++  for (const Row& row : kRows) {
++    if (pref_service->GetBoolean(std::string(prefs::kOrbitMenuPrefPrefix) +
++                                 row.name)) {
++      continue;
++    }
++    for (int command : row.commands) {
++      if (!command) {
++        continue;
++      }
++      if (std::optional<size_t> index = GetIndexOfCommandId(command)) {
++        RemoveItemAt(*index);
++      }
++    }
++  }
++  // No separator at either end of the menu or next to another one.
++  for (size_t i = GetItemCount(); i > 0; --i) {
++    const size_t index = i - 1;
++    if (GetTypeAt(index) != ui::MenuModel::TYPE_SEPARATOR) {
++      continue;
++    }
++    const bool at_edge = index == 0 || index + 1 == GetItemCount();
++    const bool doubled = index + 1 < GetItemCount() &&
++                         GetTypeAt(index + 1) == ui::MenuModel::TYPE_SEPARATOR;
++    if (at_edge || doubled) {
++      RemoveItemAt(index);
++    }
++  }
++}
++
+ bool AppMenuModel::AddGlobalErrorMenuItems() {
+   // TODO(sail): Currently we only build the app menu once per browser
+   // window. This means that if a new error is added after the menu is built
+diff --git a/chrome/browser/ui/toolbar/app_menu_model.h b/chrome/browser/ui/toolbar/app_menu_model.h
+--- a/chrome/browser/ui/toolbar/app_menu_model.h
++++ b/chrome/browser/ui/toolbar/app_menu_model.h
+@@ -355,6 +355,9 @@
+   // Builds the menu model, adding appropriate menu items.
+   virtual void Build();
+ 
++  // Orbit: removes the rows hidden in Settings > Appearance > Customize menu.
++  void RemoveRowsHiddenInSettings();
++
+   // Appends a clipboard menu (without separators).
+   void CreateCutCopyPasteMenu();
+ 
+diff --git a/chrome/browser/ui/webui/settings/settings_ui.cc b/chrome/browser/ui/webui/settings/settings_ui.cc
+--- a/chrome/browser/ui/webui/settings/settings_ui.cc
++++ b/chrome/browser/ui/webui/settings/settings_ui.cc
+@@ -101,6 +101,7 @@
+ #include "chrome/common/chrome_features.h"
+ #include "chrome/common/pref_names.h"
+ #include "chrome/common/url_constants.h"
++#include "chrome/grit/branded_strings.h"
+ #include "chrome/grit/generated_resources.h"
+ #include "chrome/grit/settings_resources.h"
+ #include "chrome/grit/settings_resources_map.h"
+@@ -393,6 +394,59 @@
+                      u"\u0635\u0644\u0629"
+                    : u"Related services");
+ 
++  // Settings > Appearance > Customize menu: the page, and each row's label as
++  // the menu shows it (without its keyboard mnemonic).
++  html_source->AddString(
++      "orbitMenuTitle",
++      orbit_arabic ? u"\u062a\u062e\u0635\u064a\u0635 \u0627\u0644\u0642\u0627\u0626\u0645\u0629" : u"Customize menu");
++  html_source->AddString(
++      "orbitMenuDescription",
++      orbit_arabic ? u"\u0627\u062e\u062a\u0631 \u0645\u0627 \u064a\u0638\u0647\u0631 \u0641\u064a \u0627\u0644\u0642\u0627\u0626\u0645\u0629"
++                   : u"Choose what the menu shows");
++  html_source->AddString("orbitMenu_profile",
++                         orbit_arabic ? u"\u0627\u0644\u0645\u0644\u0641 \u0627\u0644\u0634\u062e\u0635\u064a" : u"Profile");
++  struct OrbitMenuLabel {
++    const char* name;
++    int id;
++  };
++  static constexpr OrbitMenuLabel kOrbitMenuLabels[] = {
++      {"orbitMenu_new_tab", IDS_NEW_TAB},
++      {"orbitMenu_new_window", IDS_NEW_WINDOW},
++      {"orbitMenu_new_private_window", IDS_NEW_INCOGNITO_WINDOW},
++      {"orbitMenu_passwords", IDS_PASSWORDS_AND_AUTOFILL_MENU},
++      {"orbitMenu_history", IDS_HISTORY_MENU},
++      {"orbitMenu_downloads", IDS_SHOW_DOWNLOADS},
++      {"orbitMenu_bookmarks", IDS_BOOKMARKS_AND_LISTS_MENU},
++      {"orbitMenu_tab_groups", IDS_SAVED_TAB_GROUPS_MENU},
++      {"orbitMenu_extensions", IDS_EXTENSIONS_SUBMENU},
++      {"orbitMenu_delete_data", IDS_CLEAR_BROWSING_DATA},
++      {"orbitMenu_zoom", IDS_ZOOM_MENU},
++      {"orbitMenu_print", IDS_PRINT},
++      {"orbitMenu_translate", IDS_SHOW_TRANSLATE},
++      {"orbitMenu_find_edit", IDS_FIND_AND_EDIT_MENU},
++      {"orbitMenu_save_share", IDS_SAVE_AND_SHARE_MENU},
++      {"orbitMenu_more_tools", IDS_MORE_TOOLS_MENU},
++      {"orbitMenu_help", IDS_ABOUT},
++      {"orbitMenu_settings", IDS_SETTINGS},
++      {"orbitMenu_exit", IDS_EXIT},
++      {"orbitMenu_make_default", IDS_SET_BROWSER_AS_DEFAULT_MENU_ITEM},
++  };
++  for (const OrbitMenuLabel& label : kOrbitMenuLabels) {
++    const std::u16string text = l10n_util::GetStringUTF16(label.id);
++    std::u16string plain;
++    for (size_t i = 0; i < text.size(); ++i) {
++      if (text[i] == u'&') {
++        if (i + 1 < text.size() && text[i + 1] == u'&') {
++          plain += u'&';
++          ++i;
++        }
++        continue;
++      }
++      plain += text[i];
++    }
++    html_source->AddString(label.name, plain);
++  }
++
+   html_source->AddBoolean("enableHandTrackingContentSetting",
+ #if BUILDFLAG(ENABLE_VR)
+                           device::features::IsHandTrackingEnabled());
+diff --git a/chrome/common/pref_names.h b/chrome/common/pref_names.h
+--- a/chrome/common/pref_names.h
++++ b/chrome/common/pref_names.h
+@@ -3325,6 +3325,34 @@
+ // Value indicating that the CPU performance tier has not been overridden.
+ inline constexpr int kCpuPerformanceTierOverrideNone = -1;
+ 
++// Orbit: rows of the app menu that Settings > Appearance > Customize menu can
++// hide. Each row shows while its boolean pref, kOrbitMenuPrefPrefix + row, is
++// true.
++inline constexpr char kOrbitMenuPrefPrefix[] = "orbit.menu.";
++inline constexpr const char* kOrbitMenuRows[] = {
++    "new_tab",
++    "new_window",
++    "new_private_window",
++    "profile",
++    "passwords",
++    "history",
++    "downloads",
++    "bookmarks",
++    "tab_groups",
++    "extensions",
++    "delete_data",
++    "zoom",
++    "print",
++    "translate",
++    "find_edit",
++    "save_share",
++    "more_tools",
++    "help",
++    "settings",
++    "exit",
++    "make_default",
++};
++
+ }  // namespace prefs
+ 
+ #endif  // CHROME_COMMON_PREF_NAMES_H_
