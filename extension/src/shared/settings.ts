@@ -33,8 +33,8 @@ export type ClockFormat = (typeof CLOCK_FORMATS)[number];
 /** Search engines offered in Customize. Choosing one also makes it the browser's search engine. "default" is a search engine Orbit does not list, chosen in Settings. */
 export const SEARCH_ENGINES = {
   default: "",
-  duckduckgo: "https://duckduckgo.com/?q=",
   google: "https://www.google.com/search?q=",
+  duckduckgo: "https://duckduckgo.com/?q=",
   bing: "https://www.bing.com/search?q=",
   ecosia: "https://www.ecosia.org/search?q=",
   brave: "https://search.brave.com/search?q=",
@@ -45,8 +45,8 @@ export const SEARCH_ENGINE_IDS = Object.keys(SEARCH_ENGINES) as SearchEngine[];
 
 /** The browser's keyword for each listed engine (see orbit-behavior.patch). */
 export const ENGINE_KEYWORDS: Record<Exclude<SearchEngine, "default">, string> = {
-  duckduckgo: "duckduckgo.com",
   google: "google.com",
+  duckduckgo: "duckduckgo.com",
   bing: "bing.com",
   ecosia: "ecosia.org",
   brave: "search.brave.com",
@@ -97,7 +97,7 @@ export function defaultSettings(): Settings {
     showClock: false,
     clockFormat: "auto",
     showDate: false,
-    searchEngine: "duckduckgo",
+    searchEngine: "google",
     topSitesMode: "favorites",
     shortcutRows: 1,
     hiddenSites: [],

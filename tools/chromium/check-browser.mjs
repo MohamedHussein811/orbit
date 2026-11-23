@@ -69,7 +69,7 @@ try {
   expect("translation", value(prefs.translate?.enabled), false);
   expect("sign-in", value(prefs.signin?.allowed), false);
   expect("third-party cookies", value(prefs.profile?.cookie_controls_mode), 1);
-  expect("first search engine", value(prefs.search_provider_overrides)?.[0]?.keyword, "duckduckgo.com");
+  expect("first search engine", value(prefs.search_provider_overrides)?.[0]?.keyword, "google.com");
   expect("continues where the person left off", value(prefs.session?.restore_on_startup), 1);
 
   await page.goto("chrome://settings");
@@ -85,8 +85,8 @@ try {
   const engines = await page.eval(
     `import("chrome://resources/js/cr.js").then((cr) => cr.sendWithPromise("getSearchEnginesList")).then((list) => list.defaults.map((e) => ({ name: e.name, isDefault: e.default })))`,
   );
-  expect("search engines offered", engines.map((e) => e.name), ["DuckDuckGo", "Google", "Bing", "Ecosia", "Brave Search", "Startpage"]);
-  expect("default search engine", engines.find((e) => e.isDefault)?.name, "DuckDuckGo");
+  expect("search engines offered", engines.map((e) => e.name), ["Google", "DuckDuckGo", "Bing", "Ecosia", "Brave Search", "Startpage"]);
+  expect("default search engine", engines.find((e) => e.isDefault)?.name, "Google");
 
   expect("default color scheme follows the device", value(prefs.browser?.theme?.color_scheme2), 0);
 
@@ -153,7 +153,7 @@ try {
   }
   expect("Shields scriptlets registered", scriptlets >= 30, true);
   const searchDefault = await tab.eval("new Promise((resolve) => chrome.search.getDefault(resolve))");
-  expect("new tab reads the default search engine", searchDefault, "duckduckgo.com");
+  expect("new tab reads the default search engine", searchDefault, "google.com");
   await tab.eval("new Promise((resolve) => chrome.search.setDefault('startpage.com', resolve))");
   expect("new tab sets the default search engine", await tab.eval("new Promise((resolve) => chrome.search.getDefault(resolve))"), "startpage.com");
   const startup = await tab.eval("new Promise((resolve) => chrome.search.getStartup(resolve))");

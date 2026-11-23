@@ -21,7 +21,7 @@ enum StartupMode: String, Codable, CaseIterable, Identifiable {
 }
 
 struct Settings: Codable, Equatable {
-    var engine: SearchEngine = .duckduckgo
+    var engine: SearchEngine = .google
     var shieldsOn = true
     var shieldsOffSites: [String] = []
     // New tab page widgets, off by default as on Orbit's other phones.

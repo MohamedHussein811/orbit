@@ -269,7 +269,7 @@ test("new tab settings keep valid choices and drop bad ones", () => {
   assert.equal(bad.background, "gallery");
   assert.equal(bad.color, "midnight");
   assert.equal(bad.clockFormat, "auto");
-  assert.equal(bad.searchEngine, "duckduckgo");
+  assert.equal(bad.searchEngine, "google");
   assert.equal(bad.topSitesMode, "favorites");
   assert.equal(bad.shortcutRows, 1);
   assert.deepEqual(bad.hiddenSites, []);

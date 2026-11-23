@@ -51,7 +51,29 @@ diff --git a/chrome/browser/chrome_content_browser_client.cc b/chrome/browser/ch
 diff --git a/chrome/browser/profiles/pref_service_builder_utils.cc b/chrome/browser/profiles/pref_service_builder_utils.cc
 --- a/chrome/browser/profiles/pref_service_builder_utils.cc
 +++ b/chrome/browser/profiles/pref_service_builder_utils.cc
-@@ -96,6 +96,16 @@
+@@ -80,15 +80,17 @@
+ 
+ void SetOrbitProfileDefaults(user_prefs::PrefRegistrySyncable* registry) {
+   base::ListValue engines;
+-  engines.Append(OrbitSearchEngine(
+-      "DuckDuckGo", "duckduckgo.com", "https://duckduckgo.com/?q={searchTerms}",
+-      "https://duckduckgo.com/ac/?q={searchTerms}&type=list",
+-      "https://duckduckgo.com/favicon.ico", 92));
++  // Google is the default search engine (the fallback default is the engine
++  // with Google's id) and comes first in the list.
+   engines.Append(OrbitSearchEngine(
+       "Google", "google.com", "https://www.google.com/search?q={searchTerms}",
+       "https://www.google.com/complete/search?client=chrome&q={searchTerms}",
+       "https://www.google.com/favicon.ico", 1));
+   engines.Append(OrbitSearchEngine(
++      "DuckDuckGo", "duckduckgo.com", "https://duckduckgo.com/?q={searchTerms}",
++      "https://duckduckgo.com/ac/?q={searchTerms}&type=list",
++      "https://duckduckgo.com/favicon.ico", 92));
++  engines.Append(OrbitSearchEngine(
+       "Bing", "bing.com", "https://www.bing.com/search?q={searchTerms}",
+       "https://www.bing.com/osjson.aspx?query={searchTerms}",
+       "https://www.bing.com/favicon.ico", 3));
+@@ -96,6 +98,16 @@
        "Ecosia", "ecosia.org", "https://www.ecosia.org/search?q={searchTerms}",
        "https://ac.ecosia.org/autocomplete?q={searchTerms}&type=list",
        "https://www.ecosia.org/favicon.ico", 101));
@@ -68,7 +90,7 @@ diff --git a/chrome/browser/profiles/pref_service_builder_utils.cc b/chrome/brow
    SetOrbitDefault(registry, "search_provider_overrides", base::Value(std::move(engines)));
  
    SetOrbitDefault(registry, "profile.cookie_controls_mode", base::Value(1));
-@@ -111,6 +121,8 @@
+@@ -111,6 +123,8 @@
  
    // Follow the device's light or dark setting.
    SetOrbitDefault(registry, "browser.theme.color_scheme2", base::Value(0));
