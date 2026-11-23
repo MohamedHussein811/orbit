@@ -138,12 +138,16 @@ struct CustomizeSheet: View {
                     Toggle("Date", isOn: Binding(get: { library.settings.showDate }, set: { on in library.update { $0.showDate = on } }))
                     Toggle("Search", isOn: Binding(get: { library.settings.showSearch }, set: { on in library.update { $0.showSearch = on } }))
                 }
-                Section("Shortcuts") {
-                    Picker("Rows", selection: Binding(get: { library.settings.shortcutRows }, set: { rows in library.update { $0.shortcutRows = rows } })) {
+                Section {
+                    Picker("Layout", selection: Binding(get: { library.settings.shortcutRows }, set: { rows in library.update { $0.shortcutRows = rows } })) {
                         Text("One row").tag(1)
-                        Text("Multiple rows").tag(2)
+                        Text("Grid").tag(2)
                     }
                     .pickerStyle(.segmented)
+                } header: {
+                    Text("Shortcuts layout")
+                } footer: {
+                    Text(library.settings.shortcutRows == 1 ? "One row: scroll sideways to see more." : "Grid: every shortcut, in rows.")
                 }
                 Section {
                     Button("Restore layout") { library.restoreLayout() }
