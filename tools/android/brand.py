@@ -56,6 +56,18 @@ ORBIT_MESSAGES = (
         "On startup",
         "عند بدء التشغيل",
     ),
+    (
+        "IDS_ORBIT_SETTINGS_CUSTOMIZE_MENU",
+        "Settings row and page title: switches for which rows the browser's menu shows. [CHAR_LIMIT=32]",
+        "Customize menu",
+        "تخصيص القائمة",
+    ),
+    (
+        "IDS_ORBIT_SETTINGS_CUSTOMIZE_MENU_SUMMARY",
+        "Summary of the Customize menu settings row. [CHAR_LIMIT=NONE]",
+        "Choose what the menu shows",
+        "اختر ما يظهر في القائمة",
+    ),
 )
 BACKGROUND = "#0b0b0d"
 GLYPH = (
