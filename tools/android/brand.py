@@ -80,10 +80,16 @@ PRIVATE_PNGS = {
     "shortcut_incognito": ("#9eacff", "#131418"),
 }
 # Chromium logos in the app's screens: the icon of new tab pages in the tab switcher and the blue
-# Chromium logo.
+# Chromium logo. The tab switcher tints its icon to one color and keeps only its shape, so that
+# one is the glyph alone on a transparent background; the full mark would become a plain square.
 LOGO_PNGS = (
-    "chrome/browser/ui/android/favicon/java/res/drawable-{density}/chromelogo16.png",
-    "chrome/android/java/res/drawable-{density}/chrome_logo_blue.png",
+    ("chrome/browser/ui/android/favicon/java/res/drawable-{density}/chromelogo16.png", "glyph"),
+    ("chrome/android/java/res/drawable-{density}/chrome_logo_blue.png", "mark"),
+)
+GLYPH_SVG = (
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="80 80 352 352">'
+    + GLYPH.format(color="#ffffff")
+    + "</svg>"
 )
 
 ADAPTIVE_SVG = (
@@ -206,16 +212,20 @@ def png_size(path):
 def orbit_logos(src):
     """Chromium logos drawn in Orbit's own screens become Orbit's mark at the same pixel size."""
     changed = []
-    for pattern in LOGO_PNGS:
-        for density in DENSITIES:
-            target = src / pattern.format(density=density)
-            if not target.exists():
-                sys.exit(f"{target}: missing in the source")
-            width, height = png_size(target)
-            if width != height:
-                sys.exit(f"{target}: not square ({width}x{height})")
-            render(ROOT / "branding" / "orbit-mark.svg", width, target)
-            changed.append(target)
+    with tempfile.TemporaryDirectory() as work:
+        glyph = pathlib.Path(work) / "glyph.svg"
+        glyph.write_text(GLYPH_SVG)
+        sources = {"glyph": glyph, "mark": ROOT / "branding" / "orbit-mark.svg"}
+        for pattern, kind in LOGO_PNGS:
+            for density in DENSITIES:
+                target = src / pattern.format(density=density)
+                if not target.exists():
+                    sys.exit(f"{target}: missing in the source")
+                width, height = png_size(target)
+                if width != height:
+                    sys.exit(f"{target}: not square ({width}x{height})")
+                render(sources[kind], width, target)
+                changed.append(target)
     return changed
 
 
