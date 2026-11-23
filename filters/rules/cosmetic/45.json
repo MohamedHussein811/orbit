@@ -48,6 +48,7 @@
 "enca.com":{"hide":["#block-views-block-sponsored-block-1"]},
 "enryumanga.com":{"hide":["#floatcenter"]},
 "entrepreneur.com":{"hide":["#anchorcontainer",".adbox",".sky"]},
+"europeantour.com":{"hide":[".advertisement"]},
 "faithpot.com":{"hide":[".inarticle-ad"]},
 "fcportables.com":{"hide":["^script#antiadblock-core-js","^script[data-cfasync=\"false\"][nowprocket]"]},
 "fidlarmusic.com":{"hide":["#link1s-generate","#link1s-link","#link1s-wait1"]},

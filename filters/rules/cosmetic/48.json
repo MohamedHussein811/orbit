@@ -105,6 +105,7 @@
 "policyoptions.irpp.org":{"hide":[".single__ad"]},
 "pornoenspanish.es":{"hide":[".advertisement",".ofrnmdnrnevhlzmzyxbgleutslzfwuroexvcnwqwwlydvdjqzttajkpx.elnisglznxbrvawnsndqdxnzturaunseyzjlvvtznnavldvzzajkpx"]},
 "pornult.com":{"hide":[".sexshp"]},
+"primepages.sbs":{"hide":["#popupOverlay"]},
 "probuilds.net":{"hide":[".welcome-bnr","a[class^=\"dl-blitz-\"]"]},
 "puzzle-killer-sudoku.com":{"hide":["#MainContainer + [id]:has(> #bannerSide)","#MainContainer > [id]:has(> [id^=\"btIn\"] > #bannerTop)","#MainContainer > [id^=\"bannerTopSpacer\"]","div[id]:has(> #bannerSide)","div[id]:has(> #bannerTop)"]},
 "qns.com":{"hide":[".ad-container"]},

@@ -24,6 +24,7 @@
 "boysxclusive.com":{"hide":["[href^=\"https://tsyndicate.com/\"]"]},
 "brandingmag.com":{"hide":[".add-wrap"]},
 "camfox.com":{"hide":[".table"]},
+"camsmut.com":{"hide":[".main-video div.noselect.no-drag[draggable]:not([style])","a[href^=\"/g/\"]"]},
 "car.com":{"hide":["table[height=\"90\"]"]},
 "cgpress.org":{"hide":[".ezlazyloaded.header-wrapper","li > div[id^=\"cgpre-\"]"]},
 "chaser.com.au":{"hide":[".chaser-banner-ad"]},

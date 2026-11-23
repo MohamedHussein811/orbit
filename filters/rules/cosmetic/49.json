@@ -70,7 +70,7 @@
 "hotmovs.tube":{"hide":[".header__controls--link",".jw-reset > .nopop",".partners-wrap",".video-page > .block_label > div"]},
 "houstoniamag.com":{"hide":[".is-cream"]},
 "idmcrackeys.com":{"hide":["center > [class*=\"buttonPress-\"]"]},
-"indiatimes.com":{"hide":["#adslot_wrapper",".PPD_ADS_JS",".ad1",".ads",".ads-between-story.story-content",".advertorialwrapper",".amazonProductSidebar",".article_first_ad",".atf-wrapper",".bottom-ad-height",".btf_ads",".colombia",".ecom-widget",".fbnad",".product-cont",".pwa-deals.wdt_amz",".rmfp",".top-atf-enabled-wrapper",".wdt-taboola",".wzrk-overlay","[href^=\"https://apnabazaar.indiatimes.com/\"]","div > .ad-wrapper-625","div[class=\"news-card col4\"]"],"show":[".adhide","a[onclick*=\"/click.htm?\"]","div:has(> div[id^=\"div-gpt-ad-\"])"]},
+"indiatimes.com":{"hide":["#adslot_wrapper","#custom_ad_wrapper_0",".PPD_ADS_JS",".ad1",".ads",".ads-between-story.story-content",".advertorialwrapper",".amazonProductSidebar",".article_first_ad",".atf-wrapper",".bottom-ad-height",".btf_ads",".colombia",".ecom-widget",".fbnad",".product-cont",".pwa-deals.wdt_amz",".rmfp",".top-atf-enabled-wrapper",".wdt-taboola",".wzrk-overlay","[href^=\"https://apnabazaar.indiatimes.com/\"]","div > .ad-wrapper-625","div:has(> div[id^=\"div-gpt-ad-\"][id*=\"-atf\"])","div[class=\"news-card col4\"]","div[data-type=\"in_view\"]:has(> span + div .adWrapperPlaceholder > div[id^=\"div-gpt-ad-mrec\"])","li:has(> .adInv:only-child)"],"show":[".adhide","a[onclick*=\"/click.htm?\"]","div:has(> div[id^=\"div-gpt-ad-\"])"]},
 "insidehpc.com":{"hide":[".featured-728x90-ad",".sidebar-sponsored-content",".widget_download_manager_widget"]},
 "iobroker.pro":{"hide":[".jss43"]},
 "islamicfinder.org":{"hide":[".pad-xs.box.columns.large-12"]},

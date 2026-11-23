@@ -99,7 +99,7 @@
 "l2network.eu":{"hide":[".ubm_banner"]},
 "lacronicabadajoz.com":{"hide":[".popup-location"]},
 "laist.com":{"hide":[".AdModule-container",".Page-above"]},
-"leetcode.com":{"hide":[".group\\/ads",".lc-ads__241X"]},
+"leetcode.com":{"hide":[".announcement-bar__container",".group\\/ads",".lc-ads__241X"]},
 "lewrockwell.com":{"hide":[".header [data-ad-loc]","a[href^=\"https://www.amazon.\"][href*=\"tag=\"]"]},
 "londonlovesbusiness.com":{"hide":[".code-block"]},
 "main-spitze.de":{"hide":[".adSlot, .loadingBanner"]},

@@ -145,7 +145,7 @@
 "tvcancelrenew.com":{"hide":[".h-72"]},
 "tvtonight.com.au":{"hide":[".code-block"]},
 "twinfinite.net":{"hide":["#mvp-main-content-wrap",".wp-block-gamurs-ad"]},
-"upday.com":{"hide":[".AdsSolutionsSlot",".OutbrainSlotWidget"]},
+"upday.com":{"hide":[".AdsSolutionsSlot",".OutbrainSlotWidget",".bg-subtle"]},
 "uxmatters.com":{"hide":[".promo_block"]},
 "webike.de":{"show":[".ad_box:not(.text-ad)",".ad_title"]},
 "wetransfer.com":{"hide":[".wallpaper"]},

@@ -31,7 +31,6 @@
 "cloud.hownetwork.xyz":{"hide":["#overlay"]},
 "coloradotimesrecorder.com":{"hide":[".adSidebar"]},
 "coveredgeekly.com":{"hide":["#jeg_off_canvas + div[id][class*=\" \"]"]},
-"cracksray.com":{"hide":["center > [class*=\"buttonPress-\"]"]},
 "cricketcountry.com":{"hide":[".ad90mob300",".add-box"]},
 "crn.com":{"hide":["#bottom-ribbon","#imu1forarticles","#top-ad-fragment-container",".article-cards-ad",".bottom-section",".chartbeat-wrapper",".layout-right > .ad-wrapper",".sponsored-resources"]},
 "cutepdf-editor.com":{"show":[".adtable"]},

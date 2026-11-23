@@ -2,7 +2,7 @@
 "111.90.151.26":{"hide":["[href^=\"http://buaksib.in/\"]"]},
 "18tube.sex":{"hide":[".opt"]},
 "aan.com":{"hide":[".advertisement"]},
-"ab.nanacdn.com":{"hide":["#overlay||com/ick.infonium.org^$frame,1p",".loading-overlay ~ div[style^=\"position: relative;\"]"]},
+"ab.nanacdn.com":{"hide":["#overlay",".loading-overlay ~ div[style^=\"position: relative;\"]"]},
 "ads.snapchat.com":{"show":[".banner_ad"]},
 "adsupply.com":{"hide":["HTML"]},
 "airportinfo.live":{"hide":[".AdvallyTag"]},

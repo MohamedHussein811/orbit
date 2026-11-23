@@ -1,7 +1,7 @@
 {
 "1news.co.nz":{"hide":[".arcad_feature"]},
 "247spades.com":{"hide":["div[class^=\"aspace-\"]"]},
-"abysscdn.com":{"hide":["#overlay||com/ick.infonium.org^$frame,1p",".loading-overlay ~ div[style^=\"position: relative;\"]",".playover","div[style*=\"z-index:100000\"]"]},
+"abysscdn.com":{"hide":["#overlay",".loading-overlay ~ div[style^=\"position: relative;\"]",".playover","div[style*=\"z-index:100000\"]"]},
 "adn.com":{"hide":[".adn-adwrap",".arcad-feature"]},
 "albertsonsmarket.com":{"hide":[".item-citrus"]},
 "alistapart.com":{"hide":[".banner"]},
@@ -20,7 +20,6 @@
 "bitzite.com":{"hide":[".modal-overlay","div[id^=\"countdownText\"]"]},
 "bloggingtheboys.com":{"hide":["[data-concert=\"desktop_leaderboard_variable\"]","[data-concert=\"leaderboard_top_tablet_desktop\"]"]},
 "bo3.gg":{"hide":[".c-benner1-custom",".c-benner1-partner-branding",".c-benner1-partner-top-manager"]},
-"bobs-tube.com":{"hide":[".adv",".adv_nad_player",".advertising",".player-related-videos",".sponsored_top"]},
 "breitbart.com":{"hide":["#HavDW","#accontainer",".a-wrapper",".a8d",".acadnotice"]},
 "bus-location.1507t.xyz":{"show":[".ad-area:not(.text-ad)"]},
 "c-span.org":{"hide":[".cspan-ad-still-prebid-wrapper",".cspan-ad-still-wrapper"]},

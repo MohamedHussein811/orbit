@@ -53,10 +53,10 @@
 "freeviewmovies.com":{"hide":["#pause-container"]},
 "ft.com":{"hide":[".mod-header-ad",".o-ads",".slot-wrapper","pg-slot.pg-slot[id]"]},
 "fuckedporno.com":{"hide":[".bannersinner"]},
-"fullfreeimage.com":{"hide":["#overlay||com/ick.infonium.org^$frame,1p",".loading-overlay ~ div[style^=\"position: relative;\"]"]},
+"fullfreeimage.com":{"hide":["#overlay",".loading-overlay ~ div[style^=\"position: relative;\"]"]},
 "fuqster.com":{"hide":[".asside-link",".link-offer",".spot"]},
 "fxleaders.com":{"hide":["#fxl-popup-banner"]},
-"gamepadla.com":{"hide":[".gpPartnerCard","div:has(> div > div > a[href^=\"/visit/\"][href*=\"cmp=slider\"])"]},
+"gamepadla.com":{"hide":[".gpPartnerCard",".panel-container:has(img[src*=\"/upload/slider/\"])","div:has(> div > div > a[href^=\"/visit/\"][href*=\"cmp=slider\"])"]},
 "games.fresnobee.com":{"hide":["[class^=\"DisplayAd__container\"]"],"show":["display-ad-component"]},
 "games.startribune.com":{"hide":["[class^=\"DisplayAd__container\"]"],"show":["display-ad-component"]},
 "geniussolutions.co":{"hide":["#interstitial-container"]},
@@ -194,6 +194,5 @@
 "wvnews.com":{"hide":[".automatic-ad"]},
 "xbabe.com":{"hide":[".banner",".bnnr",".bnnrs-aside",".bnnrs-bottom",".bnnrs-player"]},
 "xgaytube.tv":{"hide":[".b-advertisement",".b-main-nav__link[data-banner-id]",".b-secondary-column__rnd",".js-uvb-spot",".uvb-random"]},
-"zalora.sg":{"show":[".advertisement-block"]},
-"zuketcreation.net":{"hide":[".cente-1"]}
+"zalora.sg":{"show":[".advertisement-block"]}
 }

@@ -28,7 +28,6 @@
 "christiantoday.com":{"hide":[".cp-widget-container",".cpdeals-square"]},
 "clickhole.com":{"hide":["article.postlist__item:has(.meta__network)"],"show":["div[id^=\"dfp-ad-\"]"]},
 "coincheckup.com":{"hide":[".StickyBottom",".h-\\[90px\\]",".lg\\:h-\\[90px\\]",".top-32",".visible-xs > .ng-isolate-scope","[href=\"https://coincodex.com/go/binance/\"]"]},
-"comicxxx.eu":{"hide":["#dclm_modal_content","#dclm_modal_screen","#tracking-url","^meta[http-equiv=\"refresh\"]"]},
 "convars.com":{"hide":[".da14"]},
 "convert2mp3.club":{"hide":["#idIframe"]},
 "cracktopc.com":{"hide":["div[class^=\"code-block code-block-\"]"]},

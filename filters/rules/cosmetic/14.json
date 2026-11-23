@@ -66,7 +66,7 @@
 "hookerhillstudios.com":{"hide":["div.items-center:has(> #articlead)"]},
 "howstuffworks.com":{"hide":["#inline-video-wrap",".ad-container",".leaderboard-banner",".z-999"]},
 "iceporn.com":{"hide":["#abmessage",".drt-spot-box",".furtherance",".puFloatLine"]},
-"imagelovers.com":{"hide":["#overlay||com/ick.infonium.org^$frame,1p"]},
+"imagelovers.com":{"hide":["#overlay"]},
 "imeteo.sk":{"hide":[".page-container__ad-container"]},
 "iphonetweak.fr":{"hide":[".bigPub","ins.adsbygoogle"]},
 "italia.fm":{"hide":["#bannerbg","#leaderboardbg"]},

@@ -77,7 +77,7 @@
 "herndonconnection.com":{"hide":[".spot"]},
 "hifi-forsale.co.uk":{"show":["#centerads"]},
 "hindustantimes.com":{"hide":["#affiliate-shop-now","#divshopnowRight",".FirstAd",".adBlocker",".adBlockerPopup",".adHeight270",".adHeight313",".affilaite-widget",".blackOverlay",".bottomFixAd",".desktopAd",".epaper-ad",".h325",".headBanner",".headerAds250",".ht-ad-v1",".ht_outbrain",".ht_taboola",".i-amphtml-unresolved",".m_ads_unit",".m_headBanner",".middleTaboola",".minHeight325",".moreFrom",".new_ads_unit",".noAdLabel",".pramotedWidget",".rgtAdSection",".rgtWidget.ht-ad-holder-right",".storyAd",".top250Ad",".topAd",".widget-ad","[amp-access^=\"NOT\"]","[class*=\"adsHeight\"]","[class^=\"QuizComponent_smallAds300__\"]","[class^=\"TopStoriesAd_storyAd__\"]","[class^=\"adHeight\"]","[class^=\"adMinHeight\"]","div[id^=\"div-gpt-ad\"]"],"show":[".rgtAdSection"]},
-"hollywoodreporter.com":{"hide":[".above-header-ad","[id^=\"jwplayer\"]","^script.pmc-admiral"],"show":[".cnx-player-wrapper","[id^=\"jwplayer\"]"]},
+"hollywoodreporter.com":{"hide":[".above-header-ad",".boomerang","[id^=\"jwplayer\"]","^script.pmc-admiral"],"show":[".cnx-player-wrapper","[id^=\"jwplayer\"]"]},
 "hometheaterreview.com":{"hide":["#div_block-382-13","#headerhorizontalad","#homepagehorizontalad","#section-20297-191992","#section-246-102074",".homet-sidebars"]},
 "hotmovs.com":{"hide":["#in_va",".app-banners",".fah-btn",".fiioed",".header__controls--link",".jw-reset > .nopop",".partners-wrap",".right",".under-channel"]},
 "imagecolorpicker.com":{"hide":["[class^=\"leftAds-\"]","[class^=\"rightAds-\"]","[style=\"height:250px\"]"]},

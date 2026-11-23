@@ -16,6 +16,7 @@
 "badassdownloader.com":{"hide":["#ban-cont"]},
 "baltic-course.com":{"hide":["#banner_master_top","#bannerbottom","#bannerleft","#bannertop",".adv"]},
 "beeimg.com":{"hide":[".offer"]},
+"beloitdailynews.com":{"hide":["#sticky-right-rail-spacer"]},
 "ben54.jp":{"show":["#adModal"]},
 "beta.riftkit.net":{"hide":["div[style=\"height: 300px; width: 400px;\"]"]},
 "bikeexif.com":{"hide":[".small"]},

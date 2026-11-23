@@ -153,6 +153,7 @@
 "simscommunity.info":{"hide":[".code-block",".custom-html-widget"]},
 "skidrowcodex.net":{"hide":[".blog-content.wcontainer:has(> .premium)",".overlay",".widget_text:has(script[src$=\"/invoke.js\"])"]},
 "sltrib.com":{"hide":[".grid-ad-container-1",".grid-ad-container-2",".sltrib_medrec_sidebar_atf",".sponsored-card",".stickyTopAd","[data-component-name=\"JwPlayer:Carousel\"]"]},
+"socialxup.com":{"hide":["^responseheader(location)"]},
 "sportbusiness.com":{"hide":[".sf-taxonomy-body__advert-container"]},
 "stockanalysis.com":{"hide":[".adu"]},
 "tapahtumat.pyhajokiseutu.fi":{"show":[".ad-popup"]},

@@ -33,7 +33,6 @@
 "conservativebrief.com":{"hide":[".code-block",".stream-item-mag"]},
 "cookingforengineers.com":{"hide":[".nothing"]},
 "cracksmid.com":{"hide":["div[style=\"\"] > center > center"]},
-"cracksoftwaress.net":{"hide":["div[style=\"float: none; margin:10px 0 10px 0; text-align:center;\"]"]},
 "criollasx.com":{"hide":[".happy-inside-player",".sidebar-ads",".sticky",".under-video-block",".video-archive-ad"]},
 "crown.co.za":{"hide":[".banneritem"]},
 "cryptonomist.ch":{"hide":[".ads"]},

@@ -42,7 +42,6 @@
 "forums.minecraftforge.net":{"hide":[".promo-container"]},
 "forums.redflagdeals.com":{"hide":["#primisContainer",".ad_leaderboard_large",".sponsored-offer",".topiclist > .topic:has(span.sponsored)"]},
 "freepresskashmir.news":{"hide":[".fpkdonate"]},
-"freeprocrack.org":{"hide":["center > [class*=\"buttonPress-\"]"]},
 "gameskinny.com":{"hide":[".wp-block-gamurs-ad"]},
 "gamesofdesire.com":{"hide":["#chat","[id^=\"skin_\"]"]},
 "gbnews.com":{"hide":[".ad--billboard",".ad-wrapper",".sticky-banner-wrapper",".stiky_sky.left::before",".stiky_sky.right::before",".video-inbody",".vsly-player"],"show":[".primis-wrapper"]},

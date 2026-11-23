@@ -54,7 +54,6 @@
 "el-ahly.com":{"hide":[".adAB",".adBC",".adCD","a[href*=\"://bit.ly/\"]"]},
 "elektroda.pl":{"hide":[".f-box:has(> div > iframe[src^=\"https://static.elektroda.pl/html5/mouser/\"])",".row > .col-md-12 > div:has(.adsbygoogle)",".the-content > section:has(> div[id] > div > div > a[rel*=\"nofollow\"])",".the-discussion div:has(> a[href^=\"https://www.elektroda.pl/rtvforum/\"] > picture > source)",".topic-lists-wrap > ul > li:not(.post) a:has(source)","[class*=\"col-sm-\"] > div:has(> a[onclick*=\"sendGAEvent\"][href^=\"/rtvforum/\"])","a[href*=\"/rtvforum/n/red/\"]:has(img + [class])","a[href^=\"https://www.elektroda.pl/rtvforum/n/red/\"]:has(img[src^=\"https://obrazki.elektroda.pl/\"])","div:has(> form[action][onsubmit*=\"(\"] table[style*=\"background\"])","div[class*=\"no-padd\"] > div[class*=\"col-\"]:has(> [id] > [style] > form)","div[id]:has(> .text-center > div[id^=\"div-gpt-ad-\"] > script:only-child)","section[class]:has(> .text-center > div[id^=\"div-gpt-ad-\"] > script:only-child)"]},
 "eprop.co.za":{"hide":[".bannergroup"]},
-"ewn.co.za":{"hide":[".bg-surface-03.text-content-secondary.space-y-\\[0\\.1875rem\\].p-spacing-s.flex.flex-col.w-max.mx-auto"]},
 "exe.app":{"hide":[".banner-page > .short"]},
 "fap16.net":{"hide":[".adsplx300"]},
 "fapnado.xxx":{"hide":[".fluid_html_on_pause_container",".fluid_start_container",".hqb-topbar",".pause-ad-pullup",".plads",".text_link_holder",".zpot-horizontal",".zpot-vertical"]},

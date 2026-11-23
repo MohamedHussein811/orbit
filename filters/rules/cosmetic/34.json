@@ -98,7 +98,6 @@
 "netronline.com":{"hide":[".ad-container"]},
 "nextpit.com":{"hide":[".cpgSlot",".np-top-deals"]},
 "note.nkmk.me":{"hide":[".sticky-block"]},
-"nylonpornpictures.net":{"hide":[".preview:has(.nat-block)"]},
 "onlinelibrary.wiley.com":{"hide":[".kevel-ad-placeholder"]},
 "op.gg":{"hide":["#opgg-kit-house-image-banner",".ad-mobile-unit",".banner-container",".css-zpq3c5",".e17e77tq6",".e17e77tq8",".h-\\[287px\\]",".max-w-none:has(> .mb-2 > div[style^=\"width:\"] > div[data-opgg-beer-id])",".md\\:max-w-\\[1080px\\]:not(.h-\\[205px\\])",".min-h-\\[100px\\]",".min-h-\\[250px\\]",".min-h-\\[50px\\]",".min-h-\\[66px\\]","div[class^=\"css-\"]:has(> div:not([class], [id]) > .vm-placement:not([style]))","div[class^=\"css-\"]:has(> div:not([class], [id]) > .vm-placement[data-display-type=\"hybrid-banner\"])"]},
 "opentunnel.net":{"hide":[".mb-3.small.text-muted"]},

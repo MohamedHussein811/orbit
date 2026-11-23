@@ -1,6 +1,7 @@
 {
 "1bitspace.com":{"hide":[".modal__overlay"]},
 "7daystodie-servers.com":{"show":["#ad-banner-top",".ad-sidebar",".ad-slot:not(.adsbox):not(.adsbygoogle)"]},
+"acode.app":{"hide":[".sponsors-section"]},
 "addictinggames.com":{"show":[".ad_container",".add-bx"]},
 "admediaflex.com":{"hide":[".adslr",".floating-banner","center:has(> a[href=\"javascript:hidepromol();\"])","table[class^=\"a\"]"],"show":[".adb-top"]},
 "adverts.ie":{"hide":["#av_detail_side","#search_results_leaderboard"]},
@@ -105,7 +106,7 @@
 "pintgames.com":{"hide":[".ad-game-600",".ad-megaban-game-300",".ad-title-megaban"]},
 "pitpass.com":{"hide":["#indexad300x250l","#indexsmallads",".adcontainer300x250l"]},
 "planningportal.co.uk":{"hide":[".HeaderAdArea__HeaderAdContainer-sc-1lqw6d0-0"]},
-"playhydrax.com":{"hide":["#overlay||com/ick.infonium.org^$frame,1p",".loading-overlay ~ div[style^=\"position: relative;\"]"]},
+"playhydrax.com":{"hide":["#overlay",".loading-overlay ~ div[style^=\"position: relative;\"]"]},
 "playjunkie.com":{"hide":["[class*=\"__adspot-title-container\"]","[class*=\"__adv-block\"]"]},
 "playvids.com":{"hide":[".add_href_jsclick",".banner",".col-lg-6.col-xl-4",".invideoBlock"]},
 "poedb.tw":{"hide":["#bottombanner970","#topbanner970",".text-center:has([src*=\"webp\"]):has([style])","[href^=\"/s/tl3\"] > img","[target=\"_blank\"]:has([src*=\"webp\"])"]},

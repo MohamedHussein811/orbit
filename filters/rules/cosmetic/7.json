@@ -107,6 +107,7 @@
 "phandroid.com":{"hide":["[href^=\"https://howl.link/\"]"]},
 "pixlr.com":{"hide":["#right-space"]},
 "plutomovies.com":{"hide":["a[href][onclick^=\"window.open\"]","a[href^=\"https://go.wapdg.com/\"]"],"show":[".ad-slot:not(.adsbox):not(.adsbygoogle)"]},
+"pngtree.com":{"hide":["[data-ad-status]"]},
 "portmiamiwebcam.com":{"hide":[".horiz-banner-box-1, .info-left, .info-right"]},
 "praxistipps.chip.de":{"hide":["div[data-bc-data-trackvars]"]},
 "prohaircut.com":{"hide":[".adv"]},
