@@ -84,6 +84,7 @@ def apply_passes(work, platform, fork):
     if (work / fork.STRING_FILES[0]).exists():
         fork.brand_strings(work)
         fork.about_version_names(work)
+        fork.default_menu_item(work)
     present = [f for f in fork.CHROME_STRING_FILES if (work / f).exists()]
     saved = fork.CHROME_STRING_FILES
     fork.CHROME_STRING_FILES = present

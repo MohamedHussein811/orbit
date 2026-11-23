@@ -46,6 +46,9 @@ ABOUT_VERSION = re.compile(
     r'(<message name="IDS_ABOUT_VERSION_(?:COMPANY_NAME|COPYRIGHT)"[^>]*>)(.*?)(</message>)', re.DOTALL
 )
 YOU_AND_GOOGLE = re.compile(r"(>\s*)You and Google(\s*</message>)")
+DEFAULT_MENU_ITEM = re.compile(
+    r'(<message name="IDS_SET_BROWSER_AS_DEFAULT_MENU_ITEM"[^>]*>\s*)Set Orbit as your default browser(\s*</message>)'
+)
 ARABIC = re.compile("[؀-ۿ]")
 GET_STARTED_AR = "البدء"
 # Orbit says private, not Incognito. Grds with Incognito in user-visible messages.
@@ -383,9 +386,23 @@ def mac_icons(src):
     return [theme / "Assets.car"] + sorted(path for path in (theme / "AppIcon.icon").rglob("*") if path.is_file())
 
 
+def default_menu_item(src):
+    """The menu row that sets Orbit as the default browser reads "Make Orbit default". Translations
+    keep their text (the same request in their words) under the new message id."""
+    grd = src / "chrome/app/chromium_strings.grd"
+    if not DEFAULT_MENU_ITEM.search(grd.read_text(encoding="utf-8")):
+        sys.exit("chromium_strings.grd: IDS_SET_BROWSER_AS_DEFAULT_MENU_ITEM not found")
+    return rename_messages(
+        src,
+        "chrome/app/chromium_strings.grd",
+        lambda text: DEFAULT_MENU_ITEM.sub(r"\1Make Orbit default\2", text),
+        lambda text: text,
+    )
+
+
 def main():
     src = pathlib.Path(sys.argv[1]).resolve()
-    changed = copy_overlay(src) + orbit_version(src) + apply_patches(src) + brand_strings(src) + about_version_names(src) + rename_chrome(src)
+    changed = copy_overlay(src) + orbit_version(src) + apply_patches(src) + brand_strings(src) + about_version_names(src) + default_menu_item(src) + rename_chrome(src)
     changed += rename_incognito(src, INCOGNITO_STRING_FILES)
     if sys.platform == "darwin":
         changed += mac_icons(src)
