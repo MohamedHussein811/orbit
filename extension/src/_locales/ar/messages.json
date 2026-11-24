@@ -482,6 +482,9 @@
   "thisPage": {
     "message": "هذه الصفحة"
   },
+  "shieldsSwitchFailed": {
+    "message": "تعذّر تغيير الدروع لهذا الموقع. حاول مرة أخرى."
+  },
   "shieldsWebsitesOnly": {
     "message": "تعمل الدروع على المواقع فقط"
   },
@@ -624,13 +627,13 @@
     "message": "تُقترح المواقع من الصفحات التي تزورها كثيرًا"
   },
   "topSitesRows": {
-    "message": "الصفوف"
+    "message": "طريقة العرض"
   },
   "oneRow": {
     "message": "صف واحد"
   },
   "twoRows": {
-    "message": "صفان"
+    "message": "شبكة"
   },
   "showHiddenSites": {
     "message": "إظهار $1 من المواقع المخفية مجددًا"
@@ -931,5 +934,26 @@
   },
   "safeBrowsingOffDetail": {
     "message": "يفتح كل موقع دون فحصه في القوائم."
+  },
+  "oneRowNote": {
+    "message": "مرّر جانبًا لرؤية المزيد"
+  },
+  "twoRowsNote": {
+    "message": "كل الاختصارات في صفوف"
+  },
+  "widgetsTop": {
+    "message": "أعلى الصفحة"
+  },
+  "widgetsOrderHint": {
+    "message": "اسحب البطاقة أو استخدم أسهمها لتغيير الترتيب."
+  },
+  "shortcutsSettings": {
+    "message": "إعدادات الاختصارات"
+  },
+  "widgetOn": {
+    "message": "مفعّل"
+  },
+  "widgetOff": {
+    "message": "متوقف"
   }
 }

@@ -80,6 +80,7 @@ struct AddressBar: View {
     @Environment(Browser.self) private var browser
     let tab: Tab
     @State private var text = ""
+    @State private var showingShields = false
     @FocusState private var focused: Bool
 
     var body: some View {
@@ -127,20 +128,33 @@ struct AddressBar: View {
         .onChange(of: focused) { text = focused ? (tab.url?.absoluteString ?? "") : displayText }
     }
 
-    @ViewBuilder private var statusIcon: some View {
-        if tab.isPrivate {
-            Image(systemName: "eyeglasses")
-                .foregroundStyle(Theme.primary)
-                .accessibilityLabel("Private tab")
-        } else if browser.shieldsEnabled(for: tab.url?.host()) {
-            Image(systemName: "shield.lefthalf.filled")
-                .foregroundStyle(Theme.primary)
-                .accessibilityLabel("Shields on")
-        } else {
-            Image(systemName: "shield.slash")
-                .foregroundStyle(Theme.secondaryText)
-                .accessibilityLabel("Shields off")
+    /// The Shields button at the start of the address bar (Orbit's private mark in private tabs);
+    /// it opens the Shields sheet for the site.
+    private var statusIcon: some View {
+        Button { showingShields = true } label: {
+            if tab.isPrivate {
+                OrbitPrivateMark(color: Theme.primary)
+                    .frame(width: 18, height: 18)
+            } else if browser.shieldsEnabled(for: tab.url?.host()) {
+                Image(systemName: "shield.lefthalf.filled")
+                    .foregroundStyle(Theme.primary)
+            } else {
+                Image(systemName: "shield.slash")
+                    .foregroundStyle(Theme.secondaryText)
+            }
         }
+        .buttonStyle(.plain)
+        .accessibilityLabel(shieldsLabel)
+        .accessibilityIdentifier("shields")
+        .sheet(isPresented: $showingShields) {
+            ShieldsSheet(host: tab.url?.host())
+        }
+    }
+
+    private var shieldsLabel: String {
+        if tab.isPrivate { return String(localized: "Private tab, Shields") }
+        return browser.shieldsEnabled(for: tab.url?.host())
+            ? String(localized: "Shields on") : String(localized: "Shields off")
     }
 
     private var displayText: String {
@@ -153,6 +167,7 @@ struct BrowserToolbar: View {
     let tab: Tab
     @Binding var showingTabs: Bool
     @Binding var sheet: LibrarySheet?
+    @State private var confirmingRemove = false
 
     var body: some View {
         HStack {
@@ -163,6 +178,8 @@ struct BrowserToolbar: View {
             Button { tab.webView.goForward() } label: { Image(systemName: "chevron.forward") }
                 .disabled(!tab.canGoForward)
                 .accessibilityLabel("Forward")
+            Spacer()
+            bookmarkButton
             Spacer()
             Button { browser.newTab(isPrivate: tab.isPrivate) } label: { Image(systemName: "plus") }
                 .accessibilityLabel("New tab")
@@ -181,6 +198,28 @@ struct BrowserToolbar: View {
         .tint(tab.showsNewTab ? .white : Theme.primary)
         .padding(.horizontal, 24)
         .padding(.vertical, 10)
+    }
+
+    /// Bookmarks the page; filled when it is bookmarked, and then a tap offers to remove it.
+    private var bookmarkButton: some View {
+        let saved = browser.library.isBookmarked(tab.url)
+        return Button {
+            guard let url = tab.url else { return }
+            if saved {
+                confirmingRemove = true
+            } else {
+                browser.library.toggleBookmark(title: tab.title, url: url)
+            }
+        } label: {
+            Image(systemName: saved ? "star.fill" : "star")
+        }
+        .disabled(tab.url == nil)
+        .accessibilityLabel(saved ? Text("Edit bookmark") : Text("Bookmark this page"))
+        .confirmationDialog("Remove this bookmark?", isPresented: $confirmingRemove, titleVisibility: .visible) {
+            Button("Remove bookmark", role: .destructive) {
+                if let url = tab.url { browser.library.toggleBookmark(title: tab.title, url: url) }
+            }
+        }
     }
 
     private var menu: some View {
@@ -208,11 +247,63 @@ struct BrowserToolbar: View {
             }
             Button { sheet = .bookmarks } label: { Label("Bookmarks", systemImage: "book") }
             Button { sheet = .history } label: { Label("History", systemImage: "clock") }
-            Button { browser.newTab(isPrivate: true) } label: { Label("New private tab", systemImage: "eyeglasses") }
+            Button { browser.newTab(isPrivate: true) } label: { Label("New private tab", systemImage: "moon") }
             Button { sheet = .settings } label: { Label("Settings", systemImage: "gearshape") }
         } label: {
             Image(systemName: "ellipsis.circle")
         }
         .accessibilityLabel("Menu")
+    }
+}
+
+/// Shields for the site in the tab, opened from the address bar, like Orbit's Shields panel on
+/// its other systems. Safari's content blocking does not report what it blocked, so there are no
+/// counts here.
+struct ShieldsSheet: View {
+    @Environment(Browser.self) private var browser
+    @Environment(\.dismiss) private var dismiss
+    let host: String?
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                if let host {
+                    Section {
+                        Toggle(isOn: Binding(
+                            get: { browser.shieldsEnabled(for: host) },
+                            set: { browser.setShields($0, for: host) }
+                        )) {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Shields for this site")
+                                Text(Library.site(host))
+                                    .font(.footnote)
+                                    .foregroundStyle(Theme.secondaryText)
+                            }
+                        }
+                        .disabled(!browser.library.settings.shieldsOn)
+                        .accessibilityIdentifier("shields-site")
+                    } footer: {
+                        browser.library.settings.shieldsOn
+                            ? Text("Blocks ads, trackers and known malicious sites here. Changing it reloads the page.")
+                            : Text("Shields are off on every site.")
+                    }
+                } else {
+                    Section {
+                        Text("Open a site to turn Shields off or on for it.")
+                            .foregroundStyle(Theme.secondaryText)
+                    }
+                }
+                Section {
+                    Toggle("Shields on every site", isOn: Binding(
+                        get: { browser.library.settings.shieldsOn },
+                        set: { browser.setShieldsOn($0) }
+                    ))
+                }
+            }
+            .navigationTitle("Shields")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar { Button("Done") { dismiss() } }
+        }
+        .presentationDetents([.medium])
     }
 }

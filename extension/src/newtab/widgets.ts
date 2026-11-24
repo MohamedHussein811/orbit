@@ -40,8 +40,8 @@ function looksLikeAddress(text: string): boolean {
 }
 
 export const ENGINE_NAMES: Record<Exclude<SearchEngine, "default">, string> = {
-  duckduckgo: "DuckDuckGo",
   google: "Google",
+  duckduckgo: "DuckDuckGo",
   bing: "Bing",
   ecosia: "Ecosia",
   brave: "Brave Search",

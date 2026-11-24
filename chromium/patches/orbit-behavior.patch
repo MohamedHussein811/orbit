@@ -1,8 +1,12 @@
 diff --git a/chrome/app/chrome_main_delegate.cc b/chrome/app/chrome_main_delegate.cc
 --- a/chrome/app/chrome_main_delegate.cc
 +++ b/chrome/app/chrome_main_delegate.cc
-@@ -1220,7 +1220,6 @@
-                      "PrivacySandboxAdsAPIsM1Override,SharedStorageAPI,") +
+@@ -1217,10 +1217,9 @@
+   merge("disable-features",
+         (std::string("AimEnabled,AimServerEligibilityEnabled,NtpFooter,"
+                      "NetworkTimeServiceQuerying,IgnoreSearchProviderOverrides,"
+-                     "PrivacySandboxAdsAPIsM1Override,SharedStorageAPI,") +
++                     "PrivacySandboxAdsAPIsM1Override,SharedStorageAPI,Glic,") +
           kAiAndAdFeatures)
              .c_str());
 -  merge("disable-blink-features", kAiAndAdFeatures);
@@ -51,7 +55,29 @@ diff --git a/chrome/browser/chrome_content_browser_client.cc b/chrome/browser/ch
 diff --git a/chrome/browser/profiles/pref_service_builder_utils.cc b/chrome/browser/profiles/pref_service_builder_utils.cc
 --- a/chrome/browser/profiles/pref_service_builder_utils.cc
 +++ b/chrome/browser/profiles/pref_service_builder_utils.cc
-@@ -96,6 +96,16 @@
+@@ -80,15 +80,17 @@
+ 
+ void SetOrbitProfileDefaults(user_prefs::PrefRegistrySyncable* registry) {
+   base::ListValue engines;
+-  engines.Append(OrbitSearchEngine(
+-      "DuckDuckGo", "duckduckgo.com", "https://duckduckgo.com/?q={searchTerms}",
+-      "https://duckduckgo.com/ac/?q={searchTerms}&type=list",
+-      "https://duckduckgo.com/favicon.ico", 92));
++  // Google is the default search engine (the fallback default is the engine
++  // with Google's id) and comes first in the list.
+   engines.Append(OrbitSearchEngine(
+       "Google", "google.com", "https://www.google.com/search?q={searchTerms}",
+       "https://www.google.com/complete/search?client=chrome&q={searchTerms}",
+       "https://www.google.com/favicon.ico", 1));
+   engines.Append(OrbitSearchEngine(
++      "DuckDuckGo", "duckduckgo.com", "https://duckduckgo.com/?q={searchTerms}",
++      "https://duckduckgo.com/ac/?q={searchTerms}&type=list",
++      "https://duckduckgo.com/favicon.ico", 92));
++  engines.Append(OrbitSearchEngine(
+       "Bing", "bing.com", "https://www.bing.com/search?q={searchTerms}",
+       "https://www.bing.com/osjson.aspx?query={searchTerms}",
+       "https://www.bing.com/favicon.ico", 3));
+@@ -96,6 +98,16 @@
        "Ecosia", "ecosia.org", "https://www.ecosia.org/search?q={searchTerms}",
        "https://ac.ecosia.org/autocomplete?q={searchTerms}&type=list",
        "https://www.ecosia.org/favicon.ico", 101));
@@ -68,7 +94,7 @@ diff --git a/chrome/browser/profiles/pref_service_builder_utils.cc b/chrome/brow
    SetOrbitDefault(registry, "search_provider_overrides", base::Value(std::move(engines)));
  
    SetOrbitDefault(registry, "profile.cookie_controls_mode", base::Value(1));
-@@ -111,6 +121,8 @@
+@@ -111,6 +123,8 @@
  
    // Follow the device's light or dark setting.
    SetOrbitDefault(registry, "browser.theme.color_scheme2", base::Value(0));
@@ -95,6 +121,69 @@ diff --git a/chrome/browser/ui/safety_hub/menu_notification_service.cc b/chrome/
      // The result in the ResultMap (item.second) is being moved away from and
      // thus shouldn't be used again in this method.
      notification->UpdateResult(std::move(item.second));
+diff --git a/chrome/browser/ui/startup/default_browser_prompt/default_browser_prompt.cc b/chrome/browser/ui/startup/default_browser_prompt/default_browser_prompt.cc
+--- a/chrome/browser/ui/startup/default_browser_prompt/default_browser_prompt.cc
++++ b/chrome/browser/ui/startup/default_browser_prompt/default_browser_prompt.cc
+@@ -78,6 +78,21 @@
+                                std::string());
+ }
+ 
++void ShowDefaultBrowserMenuItemIfNotDefault() {
++  if (g_browser_process->local_state()->IsManagedPreference(
++          prefs::kDefaultBrowserSettingEnabled)) {
++    return;
++  }
++  default_browser::DefaultBrowserManager::From(g_browser_process)
++      ->GetDefaultBrowserState(
++          base::BindOnce([](shell_integration::DefaultWebClientState state) {
++            if (state == shell_integration::NOT_DEFAULT &&
++                shell_integration::CanSetAsDefaultBrowser()) {
++              DefaultBrowserPromptManager::GetInstance()->ShowAppMenuItem();
++            }
++          }));
++}
++
+ void ShowDefaultBrowserPrompt(Profile* profile,
+                               base::OnceCallback<void(bool)> done_callback) {
+   // Do not check if Chrome is the default browser if there is a policy in
+diff --git a/chrome/browser/ui/startup/default_browser_prompt/default_browser_prompt.h b/chrome/browser/ui/startup/default_browser_prompt/default_browser_prompt.h
+--- a/chrome/browser/ui/startup/default_browser_prompt/default_browser_prompt.h
++++ b/chrome/browser/ui/startup/default_browser_prompt/default_browser_prompt.h
+@@ -17,4 +17,8 @@
+ void ShowDefaultBrowserPrompt(Profile* profile,
+                               base::OnceCallback<void(bool)> done_callback);
+ 
++// Orbit: shows the menu row that makes Orbit the default browser when another
++// browser is the default, without any prompt.
++void ShowDefaultBrowserMenuItemIfNotDefault();
++
+ #endif  // CHROME_BROWSER_UI_STARTUP_DEFAULT_BROWSER_PROMPT_DEFAULT_BROWSER_PROMPT_H_
+diff --git a/chrome/browser/ui/startup/default_browser_prompt/default_browser_prompt_manager.h b/chrome/browser/ui/startup/default_browser_prompt/default_browser_prompt_manager.h
+--- a/chrome/browser/ui/startup/default_browser_prompt/default_browser_prompt_manager.h
++++ b/chrome/browser/ui/startup/default_browser_prompt/default_browser_prompt_manager.h
+@@ -31,6 +31,9 @@
+ 
+   bool ShouldShowAppMenuItem(const Profile* profile) const;
+ 
++  // Orbit: shows the menu row that makes Orbit the default browser.
++  void ShowAppMenuItem() { SetAppMenuItemVisibility(true); }
++
+   // Returns true if the prompt was shown, false if not.
+   bool MaybeShowPrompt();
+ 
+diff --git a/chrome/browser/ui/startup/infobar_utils.cc b/chrome/browser/ui/startup/infobar_utils.cc
+--- a/chrome/browser/ui/startup/infobar_utils.cc
++++ b/chrome/browser/ui/startup/infobar_utils.cc
+@@ -290,6 +290,9 @@
+ #endif
+ 
+ #if !BUILDFLAG(IS_CHROMEOS) && !BUILDFLAG(IS_ANDROID)
++  if (!is_web_app) {
++    ShowDefaultBrowserMenuItemIfNotDefault();
++  }
+   if (is_web_app ||
+       startup_command_line.HasSwitch(switches::kNoDefaultBrowserCheck) ||
+       startup_command_line.HasSwitch(switches::kNoFirstRun)) {
 diff --git a/chrome/browser/ui/startup/startup_browser_creator_impl.cc b/chrome/browser/ui/startup/startup_browser_creator_impl.cc
 --- a/chrome/browser/ui/startup/startup_browser_creator_impl.cc
 +++ b/chrome/browser/ui/startup/startup_browser_creator_impl.cc

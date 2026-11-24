@@ -51,7 +51,10 @@ final class Tab: NSObject, Identifiable {
             },
             webView.observe(\.url) { [weak self] view, _ in
                 MainActor.assumeIsolated {
-                    if let url = view.url { self?.url = url }
+                    if let url = view.url {
+                        self?.url = url
+                        self?.browser?.saveSession()
+                    }
                 }
             },
             webView.observe(\.estimatedProgress) { [weak self] view, _ in

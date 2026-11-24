@@ -486,7 +486,303 @@ function orbitScriptlets(data: ScriptletData): void {
     }
   }
 
+  // Ad blocker detectors (FuckAdBlock, BlockAdBlock and their copies): each always reports that no
+  // blocker is present.
+  function detectorDefuser(names: string[]): void {
+    function Detector(this: Owner) {}
+    const proto = Detector.prototype as Owner;
+    proto.check = noop;
+    proto.clearEvent = noop;
+    proto.emitEvent = noop;
+    proto.setOption = function (this: unknown) {
+      return this;
+    };
+    proto.on = function (this: unknown, detected: unknown, callback: unknown) {
+      if (!detected && typeof callback === "function") setTimeout(callback as Fn, 1);
+      return this;
+    };
+    proto.onDetected = function (this: unknown) {
+      return this;
+    };
+    proto.onNotDetected = function (this: unknown, callback: unknown) {
+      if (typeof callback === "function") setTimeout(callback as Fn, 1);
+      return this;
+    };
+    for (const name of names) {
+      const instance = name[0] === name[0]!.toLowerCase();
+      const value = instance ? new (Detector as unknown as new () => Owner)() : Detector;
+      try {
+        Object.defineProperty(win, name, { configurable: true, get: () => value, set: noop });
+      } catch {
+        // Fixed by the page.
+      }
+    }
+  }
+
+  function popAdsDummy(): void {
+    for (const name of ["PopAds", "popns"]) {
+      try {
+        Object.defineProperty(win, name, { configurable: true, get: () => ({}), set: noop });
+      } catch {
+        // Fixed by the page.
+      }
+    }
+  }
+
+  function noWebRtc(): void {
+    for (const name of ["RTCPeerConnection", "webkitRTCPeerConnection"]) {
+      const original = win[name];
+      if (typeof original !== "function") continue;
+      const stub = function (this: Owner) {
+        this.close = noop;
+        this.createDataChannel = () => ({ close: noop, send: noop });
+        this.createOffer = () => Promise.resolve({});
+        this.setLocalDescription = () => Promise.resolve();
+        this.addEventListener = noop;
+      };
+      stub.prototype = (original as { prototype: unknown }).prototype;
+      win[name] = stub;
+    }
+  }
+
+  const COOKIE_VALUES = new Set(["true", "false", "yes", "y", "no", "n", "ok", "on", "off", "accept", "accepted", "reject", "rejected", "allow", "allowed", "deny", "denied", "hide", "hidden", "", "0", "1", "-1"]);
+
+  function setCookie(name: string, raw: string, path: string, trusted: boolean): void {
+    if (!name || /[;=\s]/.test(name)) return;
+    let value = raw ?? "";
+    if (!trusted && !COOKIE_VALUES.has(value.toLowerCase()) && !(/^\d+$/.test(value) && Number(value) <= 32767)) return;
+    if (/[;\s]/.test(value)) value = encodeURIComponent(value);
+    const where = path === "/" || path === "" || path === undefined ? "; path=/" : path === "none" ? "" : "; path=/";
+    try {
+      document.cookie = `${name}=${value}${where}; max-age=31536000`;
+    } catch {
+      // Cookies are off for this page.
+    }
+  }
+
+  function removeCookie(needle: string): void {
+    const matches = needleTest(needle);
+    const remove = () => {
+      for (const part of document.cookie.split(";")) {
+        const name = part.split("=")[0]!.trim();
+        if (!name || !matches(name)) continue;
+        const hostParts = location.hostname.split(".");
+        for (let i = 0; i < hostParts.length - 1; i++) {
+          const domain = hostParts.slice(i).join(".");
+          document.cookie = `${name}=; max-age=0; path=/; domain=${domain}`;
+        }
+        document.cookie = `${name}=; max-age=0; path=/`;
+      }
+    };
+    try {
+      remove();
+      window.addEventListener("beforeunload", remove);
+      whenDocumentReady(remove);
+    } catch {
+      // Cookies are off for this page.
+    }
+  }
+
+  function prune(result: unknown, toRemove: string, required?: string): unknown {
+    const removals = (toRemove ?? "").split(/\s+/).filter(Boolean).map((path) => path.split("."));
+    const needs = (required ?? "").split(/\s+/).filter(Boolean).map((path) => path.split("."));
+    if (removals.length && needs.every((path) => prunePath(result, path, false))) {
+      for (const path of removals) prunePath(result, path, true);
+    }
+    return result;
+  }
+
+  function requestUrl(input: unknown): string {
+    return typeof input === "string" ? input : input instanceof Request ? input.url : String(input);
+  }
+
+  // Edits the text of fetch responses whose request matches, before the page reads them.
+  function onFetchText(props: string, edit: (text: string) => string): void {
+    const matches = requestMatcher(props ?? "");
+    wrap(win, "fetch", (target, self, args) => {
+      const url = requestUrl(args[0]);
+      const method = ((args[1] ?? {}) as { method?: string }).method ?? (args[0] instanceof Request ? args[0].method : "GET");
+      const result = Reflect.apply(target, self, args) as Promise<Response>;
+      if (!matches({ url, method })) return result;
+      return result.then(async (response) => {
+        try {
+          const text = edit(await response.clone().text());
+          return new Response(text, { status: response.status, statusText: response.statusText, headers: response.headers });
+        } catch {
+          return response;
+        }
+      });
+    });
+  }
+
+  function onXhrText(props: string, edit: (text: string) => string): void {
+    const matches = requestMatcher(props ?? "");
+    const watched = new WeakSet<XMLHttpRequest>();
+    const proto = XMLHttpRequest.prototype as unknown as Owner;
+    wrap(proto, "open", (target, self, args) => {
+      if (matches({ method: String(args[0] ?? "GET"), url: String(args[1] ?? "") })) watched.add(self as XMLHttpRequest);
+      return Reflect.apply(target, self, args);
+    });
+    for (const prop of ["response", "responseText"] as const) {
+      const descriptor = findDescriptor(XMLHttpRequest.prototype, prop);
+      if (!descriptor?.get) continue;
+      const getter = descriptor.get;
+      Object.defineProperty(XMLHttpRequest.prototype, prop, {
+        configurable: true,
+        get(this: XMLHttpRequest) {
+          const value = getter.call(this);
+          if (!watched.has(this) || this.readyState !== 4 || typeof value !== "string") return value;
+          try {
+            return edit(value);
+          } catch {
+            return value;
+          }
+        },
+      });
+    }
+  }
+
+  // Extra arguments after the fixed ones come as name, value pairs, such as "propsToMatch", "url:...".
+  function namedArg(args: string[], name: string): string {
+    const at = args.indexOf(name, 2);
+    return at === -1 ? "" : (args[at + 1] ?? "");
+  }
+
+  function jsonResponsePrune(where: "fetch" | "xhr", toRemove: string, required: string, props: string): void {
+    const edit = (text: string) => {
+      const parsed = JSON.parse(text) as unknown;
+      return JSON.stringify(prune(parsed, toRemove, required));
+    };
+    if (where === "fetch") onFetchText(props, edit);
+    else onXhrText(props, edit);
+  }
+
+  // Ad markup in XML responses, such as VAST video ads: elements matching the selector (or an
+  // "xpath(...)" expression) are removed, when the document also has what the check selector names.
+  function xmlPrune(selector: string, check: string, props: string): void {
+    if (!selector) return;
+    const xpath = /^xpath\((.+)\)$/.exec(selector)?.[1];
+    const edit = (text: string) => {
+      if (!/^\s*</.test(text)) return text;
+      const doc = new DOMParser().parseFromString(text, "text/xml");
+      if (doc.querySelector("parsererror")) return text;
+      if (check && !doc.querySelector(check)) return text;
+      const nodes: Node[] = [];
+      if (xpath) {
+        const found = doc.evaluate(xpath, doc, null, XPathResult.UNORDERED_NODE_SNAPSHOT_TYPE, null);
+        for (let i = 0; i < found.snapshotLength; i++) nodes.push(found.snapshotItem(i)!);
+      } else {
+        nodes.push(...doc.querySelectorAll(selector));
+      }
+      if (nodes.length === 0) return text;
+      for (const node of nodes) {
+        if (node.nodeType === Node.ATTRIBUTE_NODE) (node as Attr).ownerElement?.removeAttributeNode(node as Attr);
+        else node.parentNode?.removeChild(node);
+      }
+      return new XMLSerializer().serializeToString(doc);
+    };
+    onFetchText(props || "", edit);
+    onXhrText(props || "", edit);
+  }
+
+  // A JSON value written in the filter, for the trusted scriptlets of uBlock Origin's own lists.
+  function trustedValue(raw: string): { value: unknown } | null {
+    const known = constantValue(raw);
+    if (known) return known;
+    if (raw.startsWith("{") || raw.startsWith("[")) {
+      try {
+        const parsed = JSON.parse(raw) as { value?: unknown };
+        return raw.startsWith("{") && "value" in parsed ? { value: parsed.value } : { value: parsed };
+      } catch {
+        return null;
+      }
+    }
+    if (/^-?\d+(\.\d+)?$/.test(raw)) return { value: Number(raw) };
+    return { value: raw };
+  }
+
+  function trustedSet(chain: string, raw: string): void {
+    const constant = trustedValue(raw ?? "");
+    if (!constant || !chain) return;
+    trapChain(win, chain, (owner, prop) => {
+      try {
+        Object.defineProperty(owner, prop, { configurable: true, enumerable: true, get: () => constant.value, set: noop });
+      } catch {
+        // Fixed by the page.
+      }
+    });
+  }
+
+  // Replaces one argument of a page function: chain, position, value, then optional
+  // "condition", needle: only when that argument matches the needle.
+  function replaceArgument(chain: string, position: string, raw: string, condition?: string, needle?: string): void {
+    const index = Number(position);
+    const replacement = trustedValue(raw ?? "");
+    if (!chain || Number.isNaN(index) || !replacement) return;
+    const matches = condition === "condition" ? needleTest(needle) : () => true;
+    const dot = chain.lastIndexOf(".");
+    const ownerChain = dot === -1 ? "" : chain.slice(0, dot);
+    const prop = dot === -1 ? chain : chain.slice(dot + 1);
+    const apply = (owner: Owner) =>
+      wrap(owner, prop, (target, self, args) => {
+        const at = index < 0 ? args.length + index : index;
+        if (at >= 0 && at < args.length && matches(String(args[at]))) args[at] = replacement.value;
+        return Reflect.apply(target, self, args);
+      });
+    if (!ownerChain) {
+      apply(win);
+      return;
+    }
+    let owner: unknown = win;
+    for (const part of ownerChain.split(".")) owner = owner === null || owner === undefined ? undefined : (owner as Owner)[part];
+    if (owner && (typeof owner === "object" || typeof owner === "function")) apply(owner as Owner);
+    else whenDocumentReady(() => replaceArgument(chain, position, raw, condition, needle));
+  }
+
+  function refreshDefuser(): void {
+    keepRemoving('meta[http-equiv="refresh" i]', (element) => element.remove());
+  }
+
+  // Links that go through a tracking or ad redirect get their real address back, read from the
+  // element's text or one of its attributes ("[attr]"), or from a query parameter ("?param").
+  function hrefSanitizer(selector: string, source = "text"): void {
+    if (!selector) return;
+    keepRemoving(selector, (element) => {
+      const link = element as HTMLAnchorElement;
+      let target = "";
+      if (source === "text") target = (link.textContent ?? "").trim();
+      else if (/^\[.+\]$/.test(source)) target = link.getAttribute(source.slice(1, -1)) ?? "";
+      else if (source.startsWith("?")) {
+        try {
+          target = new URL(link.href).searchParams.get(source.slice(1)) ?? "";
+        } catch {
+          target = "";
+        }
+      }
+      try {
+        const url = new URL(target, location.href);
+        if (/^https?:$/.test(url.protocol) && link.href !== url.href) link.setAttribute("href", url.href);
+      } catch {
+        // Not an address.
+      }
+    });
+  }
+
   const RUN: Record<string, (args: string[]) => void> = {
+    nofab: () => detectorDefuser(["FuckAdBlock", "fuckAdBlock", "BlockAdBlock", "blockAdBlock", "SniffAdBlock", "sniffAdBlock", "AdBlock", "adBlock"]),
+    nobab: () => detectorDefuser(["BlockAdBlock", "blockAdBlock"]),
+    "popads-dummy": () => popAdsDummy(),
+    nowebrtc: () => noWebRtc(),
+    "set-cookie": (a) => setCookie(a[0]!, a[1]!, a[2]!, false),
+    "trusted-set-cookie": (a) => setCookie(a[0]!, a[1]!, a[3] ?? "/", true),
+    "remove-cookie": (a) => removeCookie(a[0]!),
+    "json-prune-fetch-response": (a) => jsonResponsePrune("fetch", a[0]!, a[1] ?? "", namedArg(a, "propsToMatch")),
+    "json-prune-xhr-response": (a) => jsonResponsePrune("xhr", a[0]!, a[1] ?? "", namedArg(a, "propsToMatch")),
+    "xml-prune": (a) => xmlPrune(a[0]!, a[1] ?? "", a[2] ?? ""),
+    "trusted-set": (a) => trustedSet(a[0]!, a[1]!),
+    "trusted-replace-argument": (a) => replaceArgument(a[0]!, a[1]!, a[2]!, a[3], a[4]),
+    "refresh-defuser": () => refreshDefuser(),
+    "href-sanitizer": (a) => hrefSanitizer(a[0]!, a[1] || "text"),
     set: (a) => setConstant(a[0]!, a[1]!),
     aopr: (a) => abortOnRead(a[0]!),
     aopw: (a) => abortOnWrite(a[0]!),

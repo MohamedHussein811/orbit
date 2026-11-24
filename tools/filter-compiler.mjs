@@ -6,7 +6,75 @@ import { domainToASCII } from "node:url";
 export const ALLOW_ID_BASE = 1_000_000;
 const DOMAIN_CHUNK = 4000;
 
-const PRIORITY = { block: 1, allow: 2, important: 3 };
+// A redirect beats a plain block of the same request, and loses to an exception (same priority,
+// where the rule engine lets allow win).
+const PRIORITY = { block: 1, redirect: 2, allow: 2, important: 3 };
+
+/**
+ * Harmless stand-ins for blocked files, from uBlock Origin's resource library (GPL-3.0, vendored in
+ * filters/rules/resources by tools/filters.mjs). A page that checks whether its ad script loaded
+ * finds the script's interface working with no ads behind it. Every name lists use, by file.
+ */
+export const REDIRECT_RESOURCES = {
+  "1x1.gif": ["1x1-transparent.gif"],
+  "2x2.png": ["2x2-transparent.png"],
+  "3x2.png": ["3x2-transparent.png"],
+  "32x32.png": ["32x32-transparent.png"],
+  "amazon_ads.js": ["amazon-adsystem.com/aax2/amzn_ads.js"],
+  "amazon_apstag.js": [],
+  "ampproject_v0.js": ["ampproject.org/v0.js"],
+  "adthrive_abd.js": [],
+  "chartbeat.js": ["static.chartbeat.com/chartbeat.js"],
+  "doubleclick_instream_ad_status.js": ["doubleclick.net/instream/ad_status.js"],
+  "empty": [],
+  "fingerprint2.js": [],
+  "fingerprint3.js": [],
+  "freestar_pubfig.js": [],
+  "google-analytics_analytics.js": ["google-analytics.com/analytics.js", "googletagmanager_gtm.js", "googletagmanager.com/gtm.js"],
+  "google-analytics_cx_api.js": ["google-analytics.com/cx/api.js"],
+  "google-analytics_ga.js": ["google-analytics.com/ga.js"],
+  "google-analytics_inpage_linkid.js": ["google-analytics.com/inpage_linkid.js"],
+  "google-ima.js": ["google-ima3"],
+  "googlesyndication_adsbygoogle.js": ["googlesyndication.com/adsbygoogle.js", "googlesyndication-adsbygoogle"],
+  "googletagservices_gpt.js": ["googletagservices.com/gpt.js", "googletagservices-gpt"],
+  "hd-main.js": [],
+  "nitropay_ads.js": [],
+  "nobab2.js": [],
+  "noeval.js": [],
+  "noeval-silent.js": ["silent-noeval.js"],
+  "nofab.js": ["fuckadblock.js-3.2.0"],
+  "noop-0.1s.mp3": ["noopmp3-0.1s", "abp-resource:blank-mp3"],
+  "noop-0.5s.mp3": [],
+  "noop-1s.mp4": ["noopmp4-1s", "abp-resource:blank-mp4"],
+  "noop.css": [],
+  "noop.html": ["noopframe"],
+  "noop.js": ["noopjs", "abp-resource:blank-js"],
+  "noop.json": ["noopjson"],
+  "noop.txt": ["nooptext"],
+  "noop-vast2.xml": ["noopvast-2.0"],
+  "noop-vast3.xml": ["noopvast-3.0"],
+  "noop-vast4.xml": ["noopvast-4.0"],
+  "noop-vmap1.xml": ["noopvmap-1.0"],
+  "outbrain-widget.js": ["widgets.outbrain.com/outbrain.js"],
+  "piano-analytics.js": [],
+  "popads.js": ["popads.net.js"],
+  "popads-dummy.js": [],
+  "prebid-ads.js": [],
+  "scorecardresearch_beacon.js": ["scorecardresearch.com/beacon.js"],
+  "sensors-analytics.js": [],
+};
+export const RESOURCE_PATH = "/rules/resources/";
+const RESOURCE_BY_NAME = new Map(Object.entries(REDIRECT_RESOURCES).flatMap(([file, aliases]) => [[file, file], ...aliases.map((alias) => [alias, file])]));
+
+/** Request types a stand-in can replace, for filters that name none. */
+function resourceTypesOf(file) {
+  if (file.endsWith(".js")) return ["script"];
+  if (/\.(gif|png)$/.test(file)) return ["image"];
+  if (/\.(mp3|mp4)$/.test(file)) return ["media"];
+  if (file.endsWith(".html")) return ["sub_frame"];
+  if (file.endsWith(".css")) return ["stylesheet"];
+  return ["xmlhttprequest", "other"];
+}
 
 const RESOURCE_TYPES = {
   script: "script",
@@ -98,6 +166,16 @@ function parseOptions(text) {
       parsed.important = true;
     } else if (name === "all") {
       parsed.types.push(...ALL_TYPES);
+    } else if (name === "redirect-rule") {
+      // uBlock Origin answers with the stand-in only when another filter blocks the request. The
+      // rule engine cannot make a redirect depend on a block, and alone it would replace files no
+      // filter blocks (every "*.svg#" icon, every image on a site), so these filters are dropped.
+      parsed.redirectRule = true;
+    } else if (name === "redirect" && !negated) {
+      // A trailing ":<number>" is uBlock Origin's redirect priority, which the rule engine has no use for.
+      const file = RESOURCE_BY_NAME.get(value.replace(/:-?\d+$/, ""));
+      if (!file) return null;
+      parsed.redirect = file;
     } else if (name === "popup") {
       // Popups have no equivalent. A filter for popups alone is dropped below, with no types left.
       parsed.hadPopup = true;
@@ -136,6 +214,8 @@ export function parseFilter(raw) {
   const [patternText, optionText] = splitOptions(allow ? line.slice(2) : line);
   const options = parseOptions(optionText);
   if (!options) return { skipped: "option" };
+  if (options.redirectRule) return { skipped: "redirect-rule" };
+  if (allow && options.redirect) return { skipped: "option" };
 
   if (patternText.startsWith("/") && patternText.endsWith("/") && patternText.length > 2) {
     const regex = patternText.slice(1, -1);
@@ -196,6 +276,7 @@ function conditionFor(parsed) {
 }
 
 function actionFor(parsed) {
+  if (parsed.options.redirect) return "redirect";
   const types = parsed.options.types;
   // An exception for a whole document allows everything in it.
   if (parsed.allow && types.length > 0 && types.every((t) => t === "main_frame")) return "allowAllRequests";
@@ -206,6 +287,9 @@ const SHARD_COUNT = 64;
 // Syntax that only ad blocker engines understand. CSS alone cannot express these.
 const PROCEDURAL = /:(-abp-|has-text|xpath|style|remove|upward|matches-|min-text|contains|if|nth-ancestor|watch-attr|others)|^\+js|^script:|\{|\}/;
 const SIMPLE_SELECTOR = /^[.#][\w-]+$|^[\w-]*\[[\w-]+([\^$*|~]?=(".*?"|[\w-]+))?\]$/;
+// Declarations for `:style()`: no rule breaks, comments, escapes or URLs that could load anything.
+const SAFE_STYLE = /^[^{}\\<>@]*$/;
+const UNSAFE_STYLE = /url\(|image-set\(|expression|\/\*/i;
 
 /** Shard of a hostname. The extension uses the same function to find a site's file. */
 export function cosmeticShard(host) {
@@ -224,9 +308,9 @@ export function cosmeticShard(host) {
 export function compileCosmetic(texts) {
   const generic = new Set();
   const sites = new Map();
-  const stats = { hide: 0, unhide: 0, genericSkipped: 0, skipped: 0 };
+  const stats = { hide: 0, unhide: 0, style: 0, genericSkipped: 0, skipped: 0 };
   const site = (host) => {
-    if (!sites.has(host)) sites.set(host, { hide: new Set(), show: new Set() });
+    if (!sites.has(host)) sites.set(host, { hide: new Set(), show: new Set(), style: new Map() });
     return sites.get(host);
   };
   for (const text of texts) {
@@ -234,7 +318,24 @@ export function compileCosmetic(texts) {
       const line = raw.trim();
       const match = /^([^#]*)#(@?)#(.+)$/.exec(line);
       if (!match || line.startsWith("!")) continue;
-      const [, domainList, exception, selector] = match;
+      const [, domainList, exception] = match;
+      let selector = match[3];
+      // `:remove()` takes the element away; hiding it looks the same. `:style()` restyles it.
+      const removed = /^(.+?):remove\(\)$/.exec(selector);
+      if (removed) selector = removed[1];
+      const styled = /^(.+?):style\((.+)\)$/.exec(selector);
+      if (styled) {
+        const [, base, declarations] = styled;
+        const hosts = domainList ? domainList.split(",").map((d) => d.trim().toLowerCase()) : [];
+        const included = hosts.filter((d) => !d.startsWith("~")).map(normalizeDomain);
+        if (exception || included.length === 0 || included.includes(null) || PROCEDURAL.test(base) || !SAFE_STYLE.test(declarations) || UNSAFE_STYLE.test(declarations) || line.length > 600) {
+          stats.skipped++;
+          continue;
+        }
+        for (const host of included) site(host).style.set(base, declarations);
+        stats.style++;
+        continue;
+      }
       if (PROCEDURAL.test(selector) || selector.length > 400) {
         stats.skipped++;
         continue;
@@ -263,13 +364,57 @@ export function compileCosmetic(texts) {
     }
   }
   const shards = Array.from({ length: SHARD_COUNT }, () => ({}));
-  for (const [host, { hide, show }] of [...sites].sort(([a], [b]) => a.localeCompare(b))) {
+  for (const [host, { hide, show, style }] of [...sites].sort(([a], [b]) => a.localeCompare(b))) {
     const entry = {};
     if (hide.size) entry.hide = [...hide].sort();
     if (show.size) entry.show = [...show].sort();
+    if (style.size) entry.style = [...style].sort(([a], [b]) => (a < b ? -1 : 1));
     shards[cosmeticShard(host)][host] = entry;
   }
   return { generic: [...generic].sort(), shards, stats };
+}
+
+/**
+ * Sites where a list turns hiding off: `@@||site^$generichide` (or ghide) keeps the generic
+ * stylesheet off the site, `$specifichide` (shide) its own hiding rules, `$elemhide` (ehide) both.
+ * Sites that test for ad blockers with decoy ad elements are listed this way.
+ */
+export function compileHidingExceptions(texts) {
+  const generic = new Set();
+  const specific = new Set();
+  const disabled = new Set();
+  for (const text of texts) {
+    for (const raw of text.split(/\r?\n/)) {
+      if (raw.trim().startsWith("@@") && /[$,]badfilter(,|$)/.test(raw)) disabled.add(badfilterKey(raw));
+    }
+  }
+  for (const text of texts) {
+    for (const raw of text.split(/\r?\n/)) {
+      const line = raw.trim();
+      if (!line.startsWith("@@") || disabled.has(line)) continue;
+      const [patternText, optionText] = splitOptions(line.slice(2));
+      if (!optionText) continue;
+      const options = optionText.split(",");
+      if (options.includes("badfilter")) continue;
+      const kinds = new Set(options.map((option) => ({ generichide: "generic", ghide: "generic", specifichide: "specific", shide: "specific", elemhide: "both", ehide: "both" })[option]).filter(Boolean));
+      if (kinds.size === 0) continue;
+      const hosts = [];
+      const host = /^\|\|([a-z0-9.-]+\.[a-z0-9-]+)\^?$/i.exec(patternText)?.[1];
+      if (host) hosts.push(host.toLowerCase());
+      const domains = options.find((option) => option.startsWith("domain="));
+      if (domains && (!patternText || patternText === "*")) {
+        for (const domain of domains.slice("domain=".length).split("|")) {
+          const normalized = domain.startsWith("~") ? null : normalizeDomain(domain);
+          if (normalized) hosts.push(normalized);
+        }
+      }
+      for (const name of hosts) {
+        if (kinds.has("generic") || kinds.has("both")) generic.add(name);
+        if (kinds.has("specific") || kinds.has("both")) specific.add(name);
+      }
+    }
+  }
+  return { generic: [...generic].sort(), specific: [...specific].sort() };
 }
 
 /**
@@ -345,24 +490,36 @@ export function compileFilters(texts, { firstId = 1, firstAllowId = ALLOW_ID_BAS
         condition.resourceTypes = ["main_frame", "sub_frame"];
         delete condition.excludedResourceTypes;
       }
-      const priority = parsed.options.important ? PRIORITY.important : parsed.allow ? PRIORITY.allow : PRIORITY.block;
+      const redirect = parsed.options.redirect;
+      if (redirect) {
+        condition.resourceTypes = (condition.resourceTypes ?? resourceTypesOf(redirect)).filter((t) => t !== "main_frame");
+        delete condition.excludedResourceTypes;
+        if (condition.resourceTypes.length === 0) {
+          stats.compiled--;
+          stats.skipped.option = (stats.skipped.option ?? 0) + 1;
+          continue;
+        }
+      }
+      const priority = redirect ? PRIORITY.redirect : parsed.options.important ? PRIORITY.important : parsed.allow ? PRIORITY.allow : PRIORITY.block;
       if (parsed.host && !parsed.options.caseSensitive) {
-        const key = JSON.stringify([type, priority, condition]);
-        if (!groups.has(key)) groups.set(key, { type, priority, condition, hosts: new Set() });
+        const key = JSON.stringify([type, priority, condition, redirect]);
+        if (!groups.has(key)) groups.set(key, { type, priority, condition, redirect, hosts: new Set() });
         groups.get(key).hosts.add(parsed.host);
       } else {
         if (parsed.regex) condition.regexFilter = parsed.regex;
         else if (parsed.pattern) condition.urlFilter = parsed.pattern;
         if (parsed.options.caseSensitive) condition.isUrlFilterCaseSensitive = true;
-        single.set(JSON.stringify([type, priority, condition]), { type, priority, condition });
+        single.set(JSON.stringify([type, priority, condition, redirect]), { type, priority, condition, redirect });
       }
     }
   }
 
   const rules = [];
-  const add = ({ type, priority, condition }) => {
-    const isAllow = type !== "block";
-    rules.push({ id: isAllow ? firstAllowId++ : firstId++, priority, action: { type }, condition });
+  // Redirects count as blocks: the page never gets the file it asked for.
+  const add = ({ type, priority, condition, redirect }) => {
+    const isAllow = type === "allow" || type === "allowAllRequests";
+    const action = redirect ? { type, redirect: { extensionPath: RESOURCE_PATH + redirect } } : { type };
+    rules.push({ id: isAllow ? firstAllowId++ : firstId++, priority, action, condition });
   };
   for (const group of groups.values()) {
     const hosts = [...group.hosts].sort();
@@ -445,6 +602,21 @@ const SCRIPTLET_NAMES = {
   "set-local-storage-item": "set-local-storage-item",
   "set-session-storage-item": "set-session-storage-item",
   "window.name-defuser": "window.name-defuser",
+  nofab: "nofab", "fuckadblock.js-3.2.0": "nofab",
+  nobab: "nobab", nobab2: "nobab",
+  "popads-dummy": "popads-dummy",
+  nowebrtc: "nowebrtc",
+  "set-cookie": "set-cookie",
+  "trusted-set-cookie": "trusted-set-cookie",
+  "remove-cookie": "remove-cookie", "cookie-remover": "remove-cookie",
+  "json-prune-fetch-response": "json-prune-fetch-response",
+  "json-prune-xhr-response": "json-prune-xhr-response",
+  "xml-prune": "xml-prune",
+  "trusted-set": "trusted-set", "trusted-set-constant": "trusted-set",
+  "trusted-replace-argument": "trusted-replace-argument",
+  "trusted-rpnt": "rpnt", "trusted-replace-node-text": "rpnt",
+  "refresh-defuser": "refresh-defuser",
+  "href-sanitizer": "href-sanitizer",
 };
 
 /** Splits scriptlet arguments the way uBlock Origin does: on commas not escaped with a backslash,

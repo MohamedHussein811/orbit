@@ -35,11 +35,101 @@ CHROME = re.compile(
     r"(?!(?: |&nbsp;)?(?:OS|Web Store|Enterprise|Apps?|apps?|Remote Desktop|Root Store|Cleanup|Authors|project)\b)"
     r'(?!<ph name="END_LINK_CHROMIUM")'
 )
-CHROME_STRING_FILES = ["chrome/app/generated_resources.grd", "components/components_strings.grd"]
+CHROME_STRING_FILES = [
+    "chrome/app/generated_resources.grd",
+    "components/components_strings.grd",
+    "extensions/strings/extensions_strings.grd",
+]
+# "Google Chrome" naming the browser itself in the system's verify-it's-you prompts.
+GOOGLE_CHROME_SELF = re.compile(r"Google(?: |&nbsp;)Chrome(?= (?:is trying|wants)\b)")
 ABOUT_VERSION = re.compile(
     r'(<message name="IDS_ABOUT_VERSION_(?:COMPANY_NAME|COPYRIGHT)"[^>]*>)(.*?)(</message>)', re.DOTALL
 )
 YOU_AND_GOOGLE = re.compile(r"(>\s*)You and Google(\s*</message>)")
+DEFAULT_MENU_ITEM = re.compile(
+    r'(<message name="IDS_SET_BROWSER_AS_DEFAULT_MENU_ITEM"[^>]*>\s*)Set Orbit as your default browser(\s*</message>)'
+)
+ARABIC = re.compile("[؀-ۿ]")
+GET_STARTED_AR = "البدء"
+# Orbit says private, not Incognito. Grds with Incognito in user-visible messages.
+INCOGNITO_STRING_FILES = [
+    "chrome/app/generated_resources.grd",
+    "components/components_strings.grd",
+    "chrome/app/chromium_strings.grd",
+    "ui/strings/ui_strings.grd",
+]
+MESSAGE_BODY = re.compile(r"(<message\b[^>]*>)(.*?)(</message>)", re.DOTALL)
+MARKUP = re.compile(r"(<ph\b.*?</ph>|<[^>]+>)", re.DOTALL)
+# Words that make "Incognito" an adjective ("Incognito window"); otherwise it names the mode
+# ("Allow in Incognito") and becomes "private browsing".
+INCOGNITO_NOUNS = (
+    r"windows?|tabs?|mode|sessions?|profile|browsing|extension|app|subframe|portal|back/forward|pdf"
+    r"|chrome|chromium|orbit|indicator|history|pages?|and"
+)
+INCOGNITO_PHRASES = [
+    (re.compile(r"You([’'])(?:ve gone|re) Incognito"), r"You\1re browsing privately"),
+    (re.compile(r"\bGoing Incognito\b"), "Browsing privately"),
+    (re.compile(r"\bbrowsing in Incognito\b(?!\s+(?:mode|windows?|tabs?)\b)"), "browsing privately"),
+    (re.compile(r"\b([Aa])n (&amp;)?(?=[Ii]ncognito\b)"), lambda m: ("A" if m.group(1) == "A" else "a") + " " + (m.group(2) or "")),
+]
+# Also with the menu mnemonic inside the word ("inco&gnito").
+INCOGNITO_WORD = re.compile(r"(&amp;)?\b([Ii]nco(?:&amp;)?gnito|INCOGNITO)\b(?=(\s+(\S+))?)")
+
+
+def private_word(text, match, first):
+    """The replacement for one Incognito in `text`, a run of message text (`first` when nothing
+    comes before it in the message): "Private" as a label, "private" before a noun, "private
+    browsing" for the mode, capitalized at the start of a sentence or in Title Case."""
+    mnemonic, word, following = match.group(1) or "", match.group(2), match.group(4)
+    inner = "&amp;" in word
+    word = word.replace("&amp;", "")
+    if word == "INCOGNITO":
+        return mnemonic + "PRIVATE"
+    before = text[: match.start()].rstrip()
+    after = text[match.end() :]
+    if (before == "" and first or before.endswith(("{", "("))) and re.match(r"\s*(\(#\))?\s*([})]|$)", after):
+        return mnemonic + "Private"
+    nxt = re.sub(r"^[^\w/]+|[^\w/]+$", "", (following or "").replace("&amp;", ""))
+    adjective = bool(nxt) and re.fullmatch(INCOGNITO_NOUNS, nxt, re.IGNORECASE) is not None
+    starts = (before == "" and first) or before.endswith((".", "!", "?", ":", "{"))
+    phrase = "private" if adjective else "private browsing"
+    proper = nxt.lower() in ("chrome", "chromium", "orbit")
+    if starts or (adjective and not proper and nxt[0].isupper() and word == "Incognito"):
+        phrase = phrase[0].upper() + phrase[1:]
+    if inner:
+        phrase = phrase[0] + "&amp;" + phrase[1:]
+    return mnemonic + phrase
+
+
+def incognito_english(text):
+    def body(m):
+        parts = MARKUP.split(m.group(2))
+        for i in range(0, len(parts), 2):
+            segment = parts[i]
+            for pattern, replacement in INCOGNITO_PHRASES:
+                segment = pattern.sub(replacement, segment)
+            segment = INCOGNITO_WORD.sub(lambda w: private_word(segment, w, i == 0), segment)
+            parts[i] = segment
+        return m.group(1) + "".join(parts) + m.group(3)
+
+    return MESSAGE_BODY.sub(body, text)
+
+
+INCOGNITO_AR = re.compile("(ال)?متخف[ٍّ]*(?:ي)?(ة)?")
+
+
+def incognito_translation(text):
+    """Arabic says خاص (private) for متخفٍ / المتخفي (incognito), with or without diacritics;
+    other languages keep their word."""
+    return INCOGNITO_AR.sub(lambda m: (m.group(1) or "") + "خاص" + (m.group(2) or ""), text)
+
+
+def rename_incognito(src, files, enabled=()):
+    sys.path.insert(0, str(src / "tools" / "grit"))
+    changed = []
+    for relative in files:
+        changed += rename_messages(src, relative, incognito_english, incognito_translation, enabled)
+    return changed
 
 
 def copy_overlay(src):
@@ -230,21 +320,27 @@ def about_version_names(src):
 
 def rename_chrome(src):
     """Renames "Chrome" used as the browser's name in shared strings, and the Settings section
-    "You and Google", which holds the Orbit profile and import."""
+    "You and Google" to "Get Started" (the profile, import, default browser and startup)."""
     sys.path.insert(0, str(src / "tools" / "grit"))
     changed = []
     for relative in CHROME_STRING_FILES:
         changed += rename_messages(
             src,
             relative,
-            lambda text: YOU_AND_GOOGLE.sub(r"\1You and Orbit\2", text),
-            lambda text: text.replace("Google", "Orbit"),
+            lambda text: YOU_AND_GOOGLE.sub(r"\1Get Started\2", text),
+            lambda text: GET_STARTED_AR if ARABIC.search(text) else text.replace("Google", "Orbit"),
         )
         changed += rename_messages(
             src,
             relative,
             lambda text: CHROME.sub("Orbit", text),
             lambda text: CHROME.sub("Orbit", text),
+        )
+        changed += rename_messages(
+            src,
+            relative,
+            lambda text: GOOGLE_CHROME_SELF.sub("Orbit", text),
+            lambda text: re.sub(r"Google(?: |&nbsp;| )Chrome", "Orbit", text),
         )
     return changed
 
@@ -290,9 +386,24 @@ def mac_icons(src):
     return [theme / "Assets.car"] + sorted(path for path in (theme / "AppIcon.icon").rglob("*") if path.is_file())
 
 
+def default_menu_item(src):
+    """The menu row that sets Orbit as the default browser reads "Make Orbit default". Translations
+    keep their text (the same request in their words) under the new message id."""
+    grd = src / "chrome/app/chromium_strings.grd"
+    if not DEFAULT_MENU_ITEM.search(grd.read_text(encoding="utf-8")):
+        sys.exit("chromium_strings.grd: IDS_SET_BROWSER_AS_DEFAULT_MENU_ITEM not found")
+    return rename_messages(
+        src,
+        "chrome/app/chromium_strings.grd",
+        lambda text: DEFAULT_MENU_ITEM.sub(r"\1Make Orbit default\2", text),
+        lambda text: text,
+    )
+
+
 def main():
     src = pathlib.Path(sys.argv[1]).resolve()
-    changed = copy_overlay(src) + orbit_version(src) + apply_patches(src) + brand_strings(src) + about_version_names(src) + rename_chrome(src)
+    changed = copy_overlay(src) + orbit_version(src) + apply_patches(src) + brand_strings(src) + about_version_names(src) + default_menu_item(src) + rename_chrome(src)
+    changed += rename_incognito(src, INCOGNITO_STRING_FILES)
     if sys.platform == "darwin":
         changed += mac_icons(src)
     hashes = {

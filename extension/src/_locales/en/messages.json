@@ -482,6 +482,9 @@
   "thisPage": {
     "message": "This page"
   },
+  "shieldsSwitchFailed": {
+    "message": "Shields could not change for this site. Try again."
+  },
   "shieldsWebsitesOnly": {
     "message": "Shields only apply to websites"
   },
@@ -624,13 +627,13 @@
     "message": "Top sites are suggested from the websites you visit often"
   },
   "topSitesRows": {
-    "message": "Rows"
+    "message": "Layout"
   },
   "oneRow": {
     "message": "One row"
   },
   "twoRows": {
-    "message": "Two rows"
+    "message": "Grid"
   },
   "showHiddenSites": {
     "message": "Show $1 hidden sites again"
@@ -931,5 +934,26 @@
   },
   "safeBrowsingOffDetail": {
     "message": "Opens every site without checking it against the lists."
+  },
+  "oneRowNote": {
+    "message": "Scroll sideways to see more"
+  },
+  "twoRowsNote": {
+    "message": "Every shortcut, in rows"
+  },
+  "widgetsTop": {
+    "message": "At the top of the page"
+  },
+  "widgetsOrderHint": {
+    "message": "Drag a card, or use its arrows, to change the order."
+  },
+  "shortcutsSettings": {
+    "message": "Shortcut settings"
+  },
+  "widgetOn": {
+    "message": "On"
+  },
+  "widgetOff": {
+    "message": "Off"
   }
 }

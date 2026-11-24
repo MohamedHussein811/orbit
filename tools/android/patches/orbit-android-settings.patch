@@ -1,0 +1,351 @@
+diff --git a/chrome/android/java/res/xml/main_preferences.xml b/chrome/android/java/res/xml/main_preferences.xml
+--- a/chrome/android/java/res/xml/main_preferences.xml
++++ b/chrome/android/java/res/xml/main_preferences.xml
+@@ -13,14 +13,14 @@
+         android:order="0" />
+     <org.chromium.components.browser_ui.settings.ChromeBasePreferenceCategory
+         android:key="account_and_google_services_section"
+-        android:order="1"
++        android:order="40"
+         android:title="@string/prefs_section_account_and_google_services"/>
+     <org.chromium.chrome.browser.sync.settings.SignInPreference
+         android:key="sign_in"
+-        android:order="2"/>
++        android:order="41"/>
+     <org.chromium.components.browser_ui.settings.ChromeBasePreference
+         android:key="google_services"
+-        android:order="4"
++        android:order="42"
+         android:layout="@layout/account_management_account_row"
+         android:title="@string/prefs_google_services"
+         android:icon="@drawable/ic_google_services_48dp_with_bg"
+@@ -33,114 +33,126 @@
+     <org.chromium.components.browser_ui.settings.ChromeBasePreference
+         android:fragment="org.chromium.chrome.browser.search_engines.settings.SearchEngineSettings"
+         android:key="search_engine"
+-        android:order="6"
++        android:order="18"
+         android:title="@string/search_engine_settings"/>
+     <org.chromium.components.browser_ui.settings.ChromeBasePreference
+         android:fragment="org.chromium.chrome.browser.toolbar.settings.AddressBarSettingsFragment"
+         android:key="address_bar"
+-        android:order="7"
++        android:order="15"
+         android:title="@string/address_bar_settings"/>
+     <org.chromium.components.browser_ui.settings.ChromeBasePreference
+         android:fragment="org.chromium.chrome.browser.privacy.settings.PrivacySettings"
+         android:key="privacy"
+-        android:order="8"
++        android:order="12"
+         android:title="@string/prefs_privacy_security"/>
+     <org.chromium.components.browser_ui.settings.ChromeBasePreference
+         android:fragment="org.chromium.chrome.browser.safety_hub.SafetyHubFragment"
+         android:key="safety_hub"
+-        android:order="9"
++        android:order="43"
+         android:title="@string/prefs_safety_check"/>
++    <org.chromium.components.browser_ui.settings.ChromeBasePreferenceCategory
++        android:key="get_started_section"
++        android:order="1"
++        android:title="@string/orbit_settings_get_started"/>
++    <org.chromium.components.browser_ui.settings.ChromeBasePreference
++        android:key="on_startup"
++        android:order="3"
++        android:title="@string/orbit_settings_on_startup"/>
++    <org.chromium.components.browser_ui.settings.ChromeBasePreference
++        android:key="extensions"
++        android:order="24"
++        android:title="@string/menu_extensions"/>
+     <org.chromium.components.browser_ui.settings.ChromeBasePreference
+         android:key="default_browser"
+-        android:order="10"
++        android:order="2"
+         android:title="@string/default_browser_title" />
+ 
+     <org.chromium.components.browser_ui.settings.ChromeBasePreference
+         android:fragment="org.chromium.chrome.browser.autofill.settings.AutofillAndPasswordsFragment"
+         android:key="autofill_and_passwords"
+-        android:order="11"
++        android:order="6"
+         android:title="@string/autofill_and_passwords_settings_title"/>
+ 
+     <org.chromium.components.browser_ui.settings.ChromeBasePreferenceCategory
+         android:key="autofill_section"
+-        android:order="12"
++        android:order="7"
+         android:title="@string/prefs_section_autofill"/>
+     <org.chromium.chrome.browser.password_manager.settings.PasswordsPreference
+         android:key="passwords"
+-        android:order="13"
++        android:order="8"
+         android:title="@string/password_manager_settings_title"/>
+     <org.chromium.components.browser_ui.settings.ChromeBasePreference
+         android:fragment="org.chromium.chrome.browser.autofill.settings.AutofillPaymentMethodsFragment"
+         android:key="autofill_payment_methods"
+-        android:order="14"
++        android:order="9"
+         android:title="@string/autofill_payment_methods"
+         app:keywords="@string/autofill_payment_methods_keywords"/>
+     <org.chromium.components.browser_ui.settings.ChromeBasePreference
+         android:fragment="org.chromium.chrome.browser.autofill.settings.AutofillProfilesFragment"
+         android:key="autofill_addresses"
+-        android:order="15"
++        android:order="10"
+         android:title="@string/autofill_addresses_settings_title"/>
+     <org.chromium.components.browser_ui.settings.ChromeBasePreference
+         android:key="autofill_options"
+-        android:order="17" />
++        android:order="11" />
+ 
+     <org.chromium.components.browser_ui.settings.ChromeBasePreferenceCategory
+         android:key="advanced_section"
+-        android:order="18"
++        android:order="20"
+         android:title="@string/prefs_section_advanced"/>
+     <org.chromium.components.browser_ui.settings.ChromeBasePreference
+         android:fragment="org.chromium.chrome.browser.tasks.tab_management.TabsSettings"
+         android:key="tabs"
+-        android:order="19"
++        android:order="16"
+         android:title="@string/tabs_settings_title"/>
+     <org.chromium.components.browser_ui.settings.ChromeBasePreference
+         android:fragment="org.chromium.chrome.browser.homepage.settings.HomepageSettings"
+         android:key="homepage"
+-        android:order="20"
++        android:order="17"
+         android:title="@string/options_homepage_title"/>
+     <org.chromium.components.browser_ui.settings.ChromeBasePreference
+         android:key="notifications"
+-        android:order="22"
++        android:order="19"
+         android:title="@string/prefs_notifications"/>
+     <org.chromium.components.browser_ui.settings.ChromeBasePreference
+         android:fragment="org.chromium.chrome.browser.appearance.settings.AppearanceSettingsFragment"
+         android:key="appearance"
+-        android:order="23"
++        android:order="14"
+         android:title="@string/appearance_settings" />
+     <org.chromium.components.browser_ui.settings.ChromeBasePreference
+         android:fragment="org.chromium.chrome.browser.glic.GlicSettings"
+         android:key="glic"
+-        android:order="25"
++        android:order="44"
+         android:title="@string/glic_setting_label"/>
+     <org.chromium.components.browser_ui.settings.ChromeBasePreference
+         android:fragment="org.chromium.components.browser_ui.accessibility.AccessibilitySettings"
+         android:key="accessibility"
+-        android:order="26"
++        android:order="23"
+         android:title="@string/prefs_accessibility"/>
+     <org.chromium.components.browser_ui.settings.ChromeBasePreference
+         android:fragment="org.chromium.components.browser_ui.site_settings.SiteSettings"
+         android:key="content_settings"
+-        android:order="27"
++        android:order="13"
+         android:title="@string/prefs_site_settings"/>
+     <org.chromium.components.browser_ui.settings.ChromeBasePreference
+         android:fragment="org.chromium.chrome.browser.language.settings.LanguageSettings"
+         android:key="languages"
+-        android:order="28"
++        android:order="21"
+         android:title="@string/language_settings"/>
+     <org.chromium.components.browser_ui.settings.ChromeBasePreference
+         android:fragment="org.chromium.chrome.browser.download.settings.DownloadSettings"
+         android:key="downloads"
+-        android:order="29"
++        android:order="22"
+         android:title="@string/menu_downloads"/>
+     <org.chromium.components.browser_ui.settings.ChromeBasePreference
+         android:fragment="org.chromium.chrome.browser.tracing.settings.DeveloperSettings"
+         android:key="developer"
+-        android:order="30"
++        android:order="25"
+         android:title="Developer options"/>
+     <org.chromium.components.browser_ui.settings.ChromeBasePreference
+         android:fragment="org.chromium.chrome.browser.about_settings.AboutChromeSettings"
+         android:key="about_chrome"
+-        android:order="31"
++        android:order="26"
+         android:title="@string/prefs_about_chrome"/>
+ 
+ </PreferenceScreen>
+diff --git a/chrome/android/java/src/org/chromium/chrome/browser/appearance/settings/AppearanceSettingsFragment.java b/chrome/android/java/src/org/chromium/chrome/browser/appearance/settings/AppearanceSettingsFragment.java
+--- a/chrome/android/java/src/org/chromium/chrome/browser/appearance/settings/AppearanceSettingsFragment.java
++++ b/chrome/android/java/src/org/chromium/chrome/browser/appearance/settings/AppearanceSettingsFragment.java
+@@ -44,6 +44,7 @@
+ import org.chromium.components.feature_engagement.EventConstants;
+ import org.chromium.components.prefs.PrefChangeRegistrar;
+ import org.chromium.components.prefs.PrefChangeRegistrar.PrefObserver;
++import org.chromium.ui.base.DeviceFormFactor;
+ 
+ /** Fragment to manage appearance settings. */
+ @NullMarked
+@@ -428,6 +429,11 @@
+ 
+     public static void shouldShowToolbarShortcutPrefAsync(
+             Context context, Profile profile, Callback<Boolean> callback) {
++        // Orbit Shields has the toolbar's optional button on phones.
++        if (!DeviceFormFactor.isNonMultiDisplayContextOnTablet(context)) {
++            callback.onResult(false);
++            return;
++        }
+         // LINT.IfChange(InitPrefToolbarShortcut)
+         new AdaptiveToolbarStatePredictor(
+                         context,
+diff --git a/chrome/android/java/src/org/chromium/chrome/browser/settings/MainSettings.java b/chrome/android/java/src/org/chromium/chrome/browser/settings/MainSettings.java
+--- a/chrome/android/java/src/org/chromium/chrome/browser/settings/MainSettings.java
++++ b/chrome/android/java/src/org/chromium/chrome/browser/settings/MainSettings.java
+@@ -14,7 +14,9 @@
+ import android.content.res.Configuration;
+ import android.os.Bundle;
+ import android.os.Handler;
++import android.net.Uri;
+ import android.os.Parcelable;
++import android.provider.Browser;
+ import android.provider.Settings;
+ import android.view.View;
+ 
+@@ -25,6 +27,7 @@
+ import org.chromium.base.CallbackController;
+ import org.chromium.base.ContextUtils;
+ import org.chromium.base.DeviceInfo;
++import org.chromium.base.IntentUtils;
+ import org.chromium.base.ResettersForTesting;
+ import org.chromium.base.supplier.MonotonicObservableSupplier;
+ import org.chromium.base.supplier.ObservableSuppliers;
+@@ -43,6 +46,7 @@
+ import org.chromium.chrome.browser.autofill.settings.options.AutofillOptionsMediator;
+ import org.chromium.chrome.browser.autofill.settings.options.AutofillOptionsReferrer;
+ import org.chromium.chrome.browser.device_lock.DeviceLockActivityLauncherImpl;
++import org.chromium.chrome.browser.document.ChromeLauncherActivity;
+ import org.chromium.chrome.browser.feature_engagement.TrackerFactory;
+ import org.chromium.chrome.browser.flags.ChromeFeatureList;
+ import org.chromium.chrome.browser.glic.GlicEnabling;
+@@ -134,6 +138,19 @@
+     public static final String PREF_APPEARANCE = "appearance";
+     public static final String PREF_DEFAULT_BROWSER = "default_browser";
+     public static final String PREF_GLIC = "glic";
++    public static final String PREF_ON_STARTUP = "on_startup";
++    public static final String PREF_EXTENSIONS = "extensions";
++    private static final String ORBIT_STARTUP_URL = "chrome://newtab/#customize=startup";
++    private static final String ORBIT_EXTENSIONS_URL = "chrome://extensions/";
++    // Chromium rows Orbit does not offer.
++    private static final String[] ORBIT_HIDDEN_PREFS = {
++        PREF_SETTINGS_PROMO_CARD,
++        PREF_ACCOUNT_AND_GOOGLE_SERVICES_SECTION,
++        PREF_SIGN_IN,
++        PREF_GOOGLE_SERVICES,
++        PREF_SAFETY_HUB,
++        PREF_GLIC,
++    };
+ 
+     // Tag for Fragment backstack entry loading the search results into the display fragment.
+     // Popping the entry means we are transitioning from result -> search state.
+@@ -485,10 +502,29 @@
+                                 return false;
+                             });
+         }
++
++        findPreference(PREF_ON_STARTUP)
++                .setOnPreferenceClickListener(
++                        preference -> openOrbitPage(getContext(), ORBIT_STARTUP_URL));
++        findPreference(PREF_EXTENSIONS)
++                .setOnPreferenceClickListener(
++                        preference -> openOrbitPage(getContext(), ORBIT_EXTENSIONS_URL));
++        for (String key : ORBIT_HIDDEN_PREFS) removePreferenceIfPresent(key);
++    }
++
++    /** Opens an Orbit page in a new tab of the browser. */
++    private static boolean openOrbitPage(Context context, String url) {
++        Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
++        intent.setClass(context, ChromeLauncherActivity.class);
++        intent.putExtra(Browser.EXTRA_APPLICATION_ID, context.getPackageName());
++        intent.putExtra(Browser.EXTRA_CREATE_NEW_TAB, true);
++        IntentUtils.addTrustedIntentExtras(intent);
++        context.startActivity(intent);
++        return true;
+     }
+ 
+     private static boolean shouldShowSafetyHubPref() {
+-        return !DeviceInfo.isAutomotive();
++        return false;
+     }
+ 
+     /**
+@@ -602,17 +638,8 @@
+             return;
+         }
+ 
+-        if (ChromeFeatureList.isEnabled(ChromeFeatureList.DEFAULT_BROWSER_PROMO_ANDROID2)) {
+-            SettingsPromoCardPreference promoCardPreference =
+-                    (SettingsPromoCardPreference) addPreferenceIfAbsent(PREF_SETTINGS_PROMO_CARD);
+-            promoCardPreference.updatePreferences();
+-        }
+-
+-        if (shouldShowSignInPref(getProfile())) {
+-            addPreferenceIfAbsent(PREF_SIGN_IN);
+-        } else {
+-            removePreferenceIfPresent(PREF_SIGN_IN);
+-        }
++        removePreferenceIfPresent(PREF_SETTINGS_PROMO_CARD);
++        removePreferenceIfPresent(PREF_SIGN_IN);
+ 
+         updateSearchEnginePreference();
+         updateAutofillPreferences();
+@@ -656,7 +683,7 @@
+     }
+ 
+     private static boolean shouldShowDefaultBrowserSetting() {
+-        return ChromeFeatureList.sDefaultBrowserPromoEntryPoint.isEnabled();
++        return true;
+     }
+ 
+     private static boolean shouldShowDeveloperSettings() {
+@@ -820,6 +847,12 @@
+             assumeNonNull(activity);
+             showDefaultBrowserSettings(activity);
+             return false;
++        } else if (key.equals(PREF_ON_STARTUP)) {
++            openOrbitPage(context, ORBIT_STARTUP_URL);
++            return false;
++        } else if (key.equals(PREF_EXTENSIONS)) {
++            openOrbitPage(context, ORBIT_EXTENSIONS_URL);
++            return false;
+         }
+         // TODO(crbug.com/469676538): Handle the rest of preferences.
+         return false;
+@@ -836,7 +869,7 @@
+     }
+ 
+     private static boolean shouldShowGlicPreference(Profile profile) {
+-        return GlicEnabling.shouldShowSettingsPage(profile);
++        return false;
+     }
+ 
+     private void updateGlicPreference() {
+@@ -1024,6 +1057,8 @@
+                 public void updateDynamicPreferences(
+                         Context context, SettingsIndexData indexData, Profile profile) {
+                     indexData.removeEntry(getUniqueId(PREF_SETTINGS_PROMO_CARD));
++                    indexData.removeEntry(getUniqueId(PREF_ACCOUNT_AND_GOOGLE_SERVICES_SECTION));
++                    indexData.removeEntry(getUniqueId(PREF_GOOGLE_SERVICES));
+                     if (!shouldShowAddressBarPref(context)) {
+                         indexData.removeEntry(getUniqueId(PREF_ADDRESS_BAR));
+                     }
+@@ -1034,15 +1069,7 @@
+                     if (!shouldShowSafetyHubPref()) {
+                         indexData.removeEntry(getUniqueId(PREF_SAFETY_HUB));
+                     }
+-                    if (!shouldShowSignInPref(profile) || !SignInPreference.isSignedIn(profile)) {
+-                        indexData.removeEntry(getUniqueId(PREF_SIGN_IN));
+-                    } else {
+-                        indexData.updateEntryForKey(
+-                                getPrefFragmentName(),
+-                                PREF_SIGN_IN,
+-                                R.string.prefs_section_account_and_google_services,
+-                                ManageSyncSettings.class.getName());
+-                    }
++                    indexData.removeEntry(getUniqueId(PREF_SIGN_IN));
+                     if (!shouldShowDeveloperSettings()) {
+                         indexData.removeEntry(getUniqueId(PREF_DEVELOPER));
+                     }

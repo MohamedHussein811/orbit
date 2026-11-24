@@ -197,17 +197,3 @@ diff --git a/chrome/browser/ui/startup/infobar_utils.cc b/chrome/browser/ui/star
    if (ObsoleteSystem::IsObsoleteNowOrSoon()) {
      PrefService* local_state = g_browser_process->local_state();
      if (!local_state ||
-diff --git a/components/search_engines/template_url_prepopulate_data.cc b/components/search_engines/template_url_prepopulate_data.cc
---- a/components/search_engines/template_url_prepopulate_data.cc
-+++ b/components/search_engines/template_url_prepopulate_data.cc
-@@ -317,8 +317,9 @@
-     PrefService& prefs,
-     const std::vector<raw_ptr<const PrepopulatedEngine>>&
-         regional_prepopulated_engines) {
-+  // Orbit's default search is DuckDuckGo. Without it in the list, the first engine is used.
-   return FindPrepopulatedEngineInternal(prefs, regional_prepopulated_engines,
--                                        google.id,
-+                                        duckduckgo.id,
-                                         /*use_first_as_fallback=*/true);
- }
- 

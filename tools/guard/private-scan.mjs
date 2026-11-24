@@ -25,6 +25,8 @@ const GENERIC = [
 ];
 const TOKEN = /token=/i;
 const TOKEN_ALLOWED = /^(filters\/|extension\/src\/sites\/)/;
+// Third-party domains in the public filter lists that happen to match an owner pattern.
+const FILTER_DOMAINS = /\bmohamed\.net\.anwalt\.de\b/gi;
 const SELF = "tools/guard/private-scan.mjs";
 
 function localPatterns() {
@@ -56,7 +58,8 @@ export function scanDiff(diff) {
     }
     if (line.startsWith("-")) continue;
     if (line.startsWith("+")) {
-      const text = line.slice(1);
+      const raw = line.slice(1);
+      const text = file.startsWith("filters/") ? raw.replace(FILTER_DOMAINS, "") : raw;
       if (file !== SELF) {
         const hit = patterns.find((p) => p.test(text)) ?? (TOKEN.test(text) && !TOKEN_ALLOWED.test(file) ? TOKEN : null);
         if (hit) findings.push({ file, line: lineNo, pattern: String(hit), text: text.trim().slice(0, 160) });

@@ -5,7 +5,7 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { compileCosmetic, compileFilters, compileHosts, compilePopups, compileScriptlets, cosmeticShard } from "./filter-compiler.mjs";
+import { compileCosmetic, compileFilters, compileHidingExceptions, compileHosts, compilePopups, compileScriptlets, cosmeticShard, REDIRECT_RESOURCES } from "./filter-compiler.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const SOURCES = path.join(ROOT, "filters", "sources.json");
@@ -150,6 +150,20 @@ function writeScriptlets({ calls, sites, except }, skip = []) {
   fs.writeFileSync(path.join(dir, "index.json"), `${JSON.stringify(index)}\n`);
 }
 
+/** Stand-ins for blocked files that redirect filters name, at a fixed commit of their source. */
+async function writeResources(source, meta) {
+  const dir = path.join(RULES_DIR, "resources");
+  fs.rmSync(dir, { recursive: true, force: true });
+  fs.mkdirSync(dir, { recursive: true });
+  for (const file of Object.keys(REDIRECT_RESOURCES)) {
+    const res = await fetch(source.base + file, { headers: { "user-agent": "orbit-filter-build" } });
+    if (!res.ok) throw new Error(`${res.status} downloading resource ${file}`);
+    fs.writeFileSync(path.join(dir, file), Buffer.from(await res.arrayBuffer()));
+  }
+  meta.resources = { name: source.name, license: source.license, attribution: source.attribution, url: source.url, files: Object.keys(REDIRECT_RESOURCES).length };
+  console.error(`downloaded ${meta.resources.files} resources`);
+}
+
 /** One rule per line, so git stores small changes between updates as small differences. */
 const ruleFile = (rules) => `[\n${rules.map((rule) => JSON.stringify(rule)).join(",\n")}\n]\n`;
 
@@ -186,6 +200,11 @@ async function update() {
   });
   meta.cosmetic = { generic: cosmetic.generic.length, sites: cosmetic.shards.reduce((total, shard) => total + Object.keys(shard).length, 0), ...cosmetic.stats };
   console.error("compiled cosmetic:", JSON.stringify(meta.cosmetic));
+  const hiding = compileHidingExceptions(cosmeticInputs);
+  fs.writeFileSync(path.join(RULES_DIR, "hiding-exceptions.json"), `${JSON.stringify(hiding)}\n`);
+  meta.hidingExceptions = { generic: hiding.generic.length, specific: hiding.specific.length };
+  console.error("compiled hiding exceptions:", JSON.stringify(meta.hidingExceptions));
+  await writeResources(sources.resources, meta);
   const popups = compilePopups(sources.popups.map((id) => texts[id]));
   fs.writeFileSync(path.join(RULES_DIR, "popups.json"), `${JSON.stringify(popups)}
 `);

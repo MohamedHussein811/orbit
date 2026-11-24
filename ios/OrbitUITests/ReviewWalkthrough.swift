@@ -9,19 +9,35 @@ final class ReviewWalkthrough: XCTestCase {
         continueAfterFailure = true
         app.launch()
 
-        let search = app.buttons["newtab-search"]
-        XCTAssertTrue(search.waitForExistence(timeout: 180))
+        let address = app.textFields["address"]
+        XCTAssertTrue(address.waitForExistence(timeout: 180))
         pause(4)
 
-        search.tap()
+        let customize = app.buttons["newtab-customize"]
+        if customize.waitForExistence(timeout: 10) {
+            customize.tap()
+            pause(2)
+            let clock = app.switches["Clock"]
+            if clock.waitForExistence(timeout: 5) { clock.tap() }
+            pause(2)
+            done()
+        }
+
+        address.tap()
         type("private web browser\n")
         pause(8)
 
-        let address = app.textFields["address"]
         if address.waitForExistence(timeout: 10) {
             address.tap()
             type("en.wikipedia.org/wiki/Web_browser\n")
             pause(10)
+        }
+
+        let shields = app.buttons["shields"]
+        if shields.waitForExistence(timeout: 5) {
+            shields.tap()
+            pause(3)
+            done()
         }
 
         menu("Turn Shields off for this site")
@@ -29,7 +45,8 @@ final class ReviewWalkthrough: XCTestCase {
         menu("Turn Shields on for this site")
         pause(4)
 
-        menu("Add bookmark")
+        let star = app.buttons["Bookmark this page"]
+        if star.waitForExistence(timeout: 5) { star.tap() }
         pause(2)
         menu("Bookmarks")
         pause(4)
@@ -37,8 +54,8 @@ final class ReviewWalkthrough: XCTestCase {
 
         menu("New private tab")
         pause(4)
-        if search.waitForExistence(timeout: 10) {
-            search.tap()
+        if address.waitForExistence(timeout: 10) {
+            address.tap()
             type("example.com\n")
             pause(6)
         }

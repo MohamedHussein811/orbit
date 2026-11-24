@@ -1,0 +1,262 @@
+diff --git a/chrome/android/chrome_java_sources.gni b/chrome/android/chrome_java_sources.gni
+--- a/chrome/android/chrome_java_sources.gni
++++ b/chrome/android/chrome_java_sources.gni
+@@ -151,6 +151,7 @@
+   "java/src/org/chromium/chrome/browser/app/xsurface_provider/ProcessScopeDependencyProviderFactoryImpl.java",
+   "java/src/org/chromium/chrome/browser/appearance/settings/AppearanceSettingsFragment.java",
+   "java/src/org/chromium/chrome/browser/appearance/settings/BookmarkBarSettingsFragment.java",
++  "java/src/org/chromium/chrome/browser/appearance/settings/OrbitMenuSettingsFragment.java",
+   "java/src/org/chromium/chrome/browser/appearance/settings/RadioButtonGroupBookmarkBarPreference.java",
+   "java/src/org/chromium/chrome/browser/appearance/settings/TabPositionCardContainer.java",
+   "java/src/org/chromium/chrome/browser/appearance/settings/TabPositionCardPreference.java",
+diff --git a/chrome/android/java/res/xml/appearance_preferences.xml b/chrome/android/java/res/xml/appearance_preferences.xml
+--- a/chrome/android/java/res/xml/appearance_preferences.xml
++++ b/chrome/android/java/res/xml/appearance_preferences.xml
+@@ -46,4 +46,11 @@
+         android:order="4"
+         android:title="@string/tab_position_settings_title" />
+ 
++    <org.chromium.components.browser_ui.settings.ChromeBasePreference
++        android:fragment="org.chromium.chrome.browser.appearance.settings.OrbitMenuSettingsFragment"
++        android:key="orbit_menu"
++        android:order="5"
++        android:title="@string/orbit_settings_customize_menu"
++        android:summary="@string/orbit_settings_customize_menu_summary" />
++
+ </PreferenceScreen>
+diff --git a/chrome/android/java/src/org/chromium/chrome/browser/appearance/settings/OrbitMenuSettingsFragment.java b/chrome/android/java/src/org/chromium/chrome/browser/appearance/settings/OrbitMenuSettingsFragment.java
+--- a/chrome/android/java/src/org/chromium/chrome/browser/appearance/settings/OrbitMenuSettingsFragment.java
++++ b/chrome/android/java/src/org/chromium/chrome/browser/appearance/settings/OrbitMenuSettingsFragment.java
+@@ -0,0 +1,113 @@
++// Copyright 2026 NovaTech and The Chromium Authors
++// Use of this source code is governed by a BSD-style license that can be
++// found in the LICENSE file.
++
++package org.chromium.chrome.browser.appearance.settings;
++
++import android.content.Context;
++import android.os.Bundle;
++
++import androidx.preference.PreferenceScreen;
++
++import org.chromium.base.supplier.MonotonicObservableSupplier;
++import org.chromium.base.supplier.ObservableSuppliers;
++import org.chromium.base.supplier.SettableMonotonicObservableSupplier;
++import org.chromium.build.annotations.NullMarked;
++import org.chromium.build.annotations.Nullable;
++import org.chromium.chrome.R;
++import org.chromium.chrome.browser.settings.ChromeBaseSettingsFragment;
++import org.chromium.chrome.browser.settings.search.ChromeBaseSearchIndexProvider;
++import org.chromium.components.browser_ui.settings.ChromeSwitchPreference;
++import org.chromium.components.prefs.PrefService;
++import org.chromium.components.user_prefs.UserPrefs;
++
++/** Settings > Appearance > Customize menu: a switch for each row of the app menu. */
++@NullMarked
++public class OrbitMenuSettingsFragment extends ChromeBaseSettingsFragment {
++    /** The rows' boolean prefs are this prefix plus the row name, as on desktop. */
++    public static final String PREF_PREFIX = "orbit.menu.";
++
++    private static final String[] ROWS = {
++        "new_tab",
++        "new_window",
++        "new_private_window",
++        "passwords",
++        "history",
++        "downloads",
++        "bookmarks",
++        "tab_groups",
++        "extensions",
++        "delete_data",
++        "zoom",
++        "print",
++        "translate",
++        "find_edit",
++        "save_share",
++        "more_tools",
++        "help",
++        "make_default",
++    };
++
++    private static final int[] TITLES = {
++        R.string.menu_new_tab,
++        R.string.menu_new_window,
++        R.string.menu_new_incognito_tab,
++        R.string.menu_passwords_and_autofill,
++        R.string.menu_history,
++        R.string.menu_downloads,
++        R.string.menu_bookmarks,
++        R.string.menu_add_tab_to_group,
++        R.string.menu_extensions,
++        R.string.menu_quick_delete,
++        R.string.page_zoom_menu_title,
++        R.string.menu_print,
++        R.string.menu_translate,
++        R.string.menu_find_in_page,
++        R.string.menu_save_and_share,
++        R.string.menu_more_tools,
++        R.string.menu_help_center,
++        R.string.make_chrome_default,
++    };
++
++    private final SettableMonotonicObservableSupplier<String> mPageTitle =
++            ObservableSuppliers.createMonotonic();
++
++    @Override
++    public void onCreatePreferences(@Nullable Bundle savedInstanceState, @Nullable String rootKey) {
++        mPageTitle.set(getString(R.string.orbit_settings_customize_menu));
++        Context context = getPreferenceManager().getContext();
++        PreferenceScreen screen = getPreferenceManager().createPreferenceScreen(context);
++        setPreferenceScreen(screen);
++
++        PrefService prefs = UserPrefs.get(getProfile());
++        for (int i = 0; i < ROWS.length; i++) {
++            String pref = PREF_PREFIX + ROWS[i];
++            ChromeSwitchPreference row = new ChromeSwitchPreference(context);
++            row.setKey(pref);
++            row.setPersistent(false);
++            row.setTitle(getString(TITLES[i]).replace("…", "").trim());
++            row.setChecked(prefs.getBoolean(pref));
++            row.setOnPreferenceChangeListener(
++                    (preference, value) -> {
++                        prefs.setBoolean(pref, (Boolean) value);
++                        return true;
++                    });
++            screen.addPreference(row);
++        }
++    }
++
++    @Override
++    public MonotonicObservableSupplier<String> getPageTitle() {
++        return mPageTitle;
++    }
++
++    @Override
++    public @AnimationType int getAnimationType() {
++        return AnimationType.PROPERTY;
++    }
++
++    public static final ChromeBaseSearchIndexProvider SEARCH_INDEX_DATA_PROVIDER =
++            new ChromeBaseSearchIndexProvider(
++                    OrbitMenuSettingsFragment.class.getName(),
++                    ChromeBaseSearchIndexProvider.INDEX_OPT_OUT);
++}
+diff --git a/chrome/android/java/src/org/chromium/chrome/browser/settings/search/SearchIndexProviderRegistry.java b/chrome/android/java/src/org/chromium/chrome/browser/settings/search/SearchIndexProviderRegistry.java
+--- a/chrome/android/java/src/org/chromium/chrome/browser/settings/search/SearchIndexProviderRegistry.java
++++ b/chrome/android/java/src/org/chromium/chrome/browser/settings/search/SearchIndexProviderRegistry.java
+@@ -9,6 +9,7 @@
+ import org.chromium.chrome.browser.about_settings.LegalInformationSettings;
+ import org.chromium.chrome.browser.appearance.settings.AppearanceSettingsFragment;
+ import org.chromium.chrome.browser.appearance.settings.BookmarkBarSettingsFragment;
++import org.chromium.chrome.browser.appearance.settings.OrbitMenuSettingsFragment;
+ import org.chromium.chrome.browser.appearance.settings.TabPositionSettingsFragment;
+ import org.chromium.chrome.browser.autofill.settings.AndroidPaymentAppsFragment;
+ import org.chromium.chrome.browser.autofill.settings.AutofillAndPasswordsFragment;
+@@ -116,6 +117,7 @@
+                     AndroidPaymentAppsFragment.SEARCH_INDEX_DATA_PROVIDER,
+                     AppearanceSettingsFragment.SEARCH_INDEX_DATA_PROVIDER,
+                     BookmarkBarSettingsFragment.SEARCH_INDEX_DATA_PROVIDER,
++                    OrbitMenuSettingsFragment.SEARCH_INDEX_DATA_PROVIDER,
+                     TabPositionSettingsFragment.SEARCH_INDEX_DATA_PROVIDER,
+                     AutofillAndPasswordsFragment.SEARCH_INDEX_DATA_PROVIDER,
+                     AutofillBuyNowPayLaterFragment.SEARCH_INDEX_DATA_PROVIDER,
+diff --git a/chrome/android/java/src/org/chromium/chrome/browser/tabbed_mode/TabbedAppMenuPropertiesDelegate.java b/chrome/android/java/src/org/chromium/chrome/browser/tabbed_mode/TabbedAppMenuPropertiesDelegate.java
+--- a/chrome/android/java/src/org/chromium/chrome/browser/tabbed_mode/TabbedAppMenuPropertiesDelegate.java
++++ b/chrome/android/java/src/org/chromium/chrome/browser/tabbed_mode/TabbedAppMenuPropertiesDelegate.java
+@@ -34,6 +34,7 @@
+ import org.chromium.chrome.browser.RecentlyClosedEntriesManager;
+ import org.chromium.chrome.browser.app.appmenu.AppMenuItemUtils;
+ import org.chromium.chrome.browser.app.appmenu.AppMenuPropertiesDelegateImpl;
++import org.chromium.chrome.browser.appearance.settings.OrbitMenuSettingsFragment;
+ import org.chromium.chrome.browser.bookmarks.BookmarkImageFetcher;
+ import org.chromium.chrome.browser.bookmarks.BookmarkModel;
+ import org.chromium.chrome.browser.device.DeviceConditions;
+@@ -73,17 +74,19 @@
+ import org.chromium.chrome.browser.ui.appmenu.AppMenuDelegate;
+ import org.chromium.chrome.browser.ui.appmenu.AppMenuHandler;
+ import org.chromium.chrome.browser.ui.appmenu.AppMenuItemProperties;
+-import org.chromium.chrome.browser.ui.default_browser_promo.DefaultBrowserPromoUtils;
++import org.chromium.chrome.browser.ui.default_browser_promo.DefaultBrowserStateProvider;
+ import org.chromium.chrome.browser.ui.favicon.FaviconHelper;
+ import org.chromium.chrome.browser.ui.favicon.FaviconUtils;
+ import org.chromium.chrome.browser.ui.lens.LensOverlayTabHelper;
+ import org.chromium.chrome.browser.ui.messages.snackbar.SnackbarManager;
+ import org.chromium.chrome.browser.ui.side_ui.SideUiCoordinator.SideUiId;
+ import org.chromium.chrome.browser.ui.side_ui.SideUiStateProvider;
++import org.chromium.chrome.browser.util.DefaultBrowserInfo.DefaultBrowserState;
+ import org.chromium.components.browser_ui.accessibility.PageZoomManager;
+ import org.chromium.components.browser_ui.widget.RoundedIconGenerator;
+ import org.chromium.components.embedder_support.util.UrlConstants;
+ import org.chromium.components.embedder_support.util.UrlUtilities;
++import org.chromium.components.prefs.PrefService;
+ import org.chromium.components.tab_group_sync.TabGroupSyncService;
+ import org.chromium.components.user_prefs.UserPrefs;
+ import org.chromium.net.ConnectionType;
+@@ -300,9 +303,56 @@
+         } else if (menuGroup == MenuGroup.TABLET_EMPTY_MODE_MENU) {
+             populateTabletEmptyModeMenu(modelList);
+         }
++        removeRowsHiddenInSettings(modelList);
+         return modelList;
+     }
+ 
++    /** The Customize menu row (Settings > Appearance) that hides a menu item, if any. */
++    private static @Nullable String orbitMenuRow(int menuItemId) {
++        if (menuItemId == R.id.new_tab_menu_id) return "new_tab";
++        if (menuItemId == R.id.new_window_menu_id) return "new_window";
++        if (menuItemId == R.id.new_incognito_tab_menu_id || menuItemId == R.id.new_incognito_window_menu_id) return "new_private_window";
++        if (menuItemId == R.id.passwords_and_autofill_parent_menu_id || menuItemId == R.id.google_password_manager_menu_id) return "passwords";
++        if (menuItemId == R.id.history_parent_menu_id || menuItemId == R.id.open_history_menu_id || menuItemId == R.id.recent_tabs_menu_id) return "history";
++        if (menuItemId == R.id.downloads_menu_id) return "downloads";
++        if (menuItemId == R.id.all_bookmarks_menu_id) return "bookmarks";
++        if (menuItemId == R.id.add_to_group_menu_id) return "tab_groups";
++        if (menuItemId == R.id.extensions_menu_menu_id || menuItemId == R.id.extensions_parent_menu_id) return "extensions";
++        if (menuItemId == R.id.quick_delete_menu_id) return "delete_data";
++        if (menuItemId == R.id.page_zoom_id) return "zoom";
++        if (menuItemId == R.id.print_id) return "print";
++        if (menuItemId == R.id.translate_id) return "translate";
++        if (menuItemId == R.id.find_in_page_id) return "find_edit";
++        if (menuItemId == R.id.save_and_share_parent_menu_id || menuItemId == R.id.share_menu_id || menuItemId == R.id.download_page_id) return "save_share";
++        if (menuItemId == R.id.more_tools_menu_id) return "more_tools";
++        if (menuItemId == R.id.help_parent_menu_id || menuItemId == R.id.help_id) return "help";
++        if (menuItemId == R.id.default_browser_promo_menu_id) return "make_default";
++        return null;
++    }
++
++    /** Removes the rows switched off in Customize menu, then any divider left first, last or doubled. */
++    private void removeRowsHiddenInSettings(MVCListAdapter.ModelList modelList) {
++        Profile profile = getProfileFromTabModel();
++        if (profile == null) return;
++        PrefService prefs = UserPrefs.get(profile);
++        for (int i = modelList.size() - 1; i >= 0; i--) {
++            PropertyModel model = modelList.get(i).model;
++            if (!model.getAllProperties().contains(AppMenuItemProperties.MENU_ITEM_ID)) continue;
++            String row = orbitMenuRow(model.get(AppMenuItemProperties.MENU_ITEM_ID));
++            if (row != null && !prefs.getBoolean(OrbitMenuSettingsFragment.PREF_PREFIX + row)) {
++                modelList.removeAt(i);
++            }
++        }
++        for (int i = modelList.size() - 1; i >= 0; i--) {
++            if (modelList.get(i).type != AppMenuHandler.AppMenuItemType.DIVIDER) continue;
++            if (i == 0
++                    || i == modelList.size() - 1
++                    || modelList.get(i - 1).type == AppMenuHandler.AppMenuItemType.DIVIDER) {
++                modelList.removeAt(i);
++            }
++        }
++    }
++
+     private void populatePageModeMenu(MVCListAdapter.ModelList modelList) {
+         Tab currentTab = mActivityTabProvider.get();
+ 
+@@ -1544,8 +1594,8 @@
+     }
+ 
+     private boolean shouldShowDefaultBrowserPromo() {
+-        return DefaultBrowserPromoUtils.getInstance().shouldShowAppMenuItemEntryPoint()
+-                && ChromeFeatureList.sDefaultBrowserPromoEntryPointShowAppMenu.getValue();
++        return new DefaultBrowserStateProvider().getCurrentDefaultBrowserState()
++                != DefaultBrowserState.CHROME_DEFAULT;
+     }
+ 
+     private ListItem buildDefaultBrowserPromoItem() {

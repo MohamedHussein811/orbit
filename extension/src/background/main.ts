@@ -6,9 +6,11 @@
 import { addCount, emptyCounts, emptyStats, pruneStats, sanitizeStats, type Category, type Counts } from "../shared/stats.ts";
 import { sanitizePrivacy } from "../shared/privacy.ts";
 import { addBlockedHost, allowRule, blockedList, categoryOfMatch, emptyBlockedHosts, cosmeticCss, cosmeticShard, hostSuffixes, normalizeHosts, siteOf, type BlockedHosts, type Message, type SiteCosmetic, type TabState } from "../shared/shields.ts";
-import { applyContentScripts, applyThreats, applyWebRtc, readPrivacy, runStartupCleanup } from "./privacy.ts";
+import { applyContentScripts, applyThreats, applyWebRtc, readHidingExceptions, readPrivacy, runStartupCleanup } from "./privacy.ts";
 import { checkForUpdate, scheduleUpdateCheck, UPDATE_ALARM } from "./updates.ts";
 import { seedDefaultShortcuts } from "../shared/default-shortcuts.ts";
+import { browserStartup } from "../shared/search.ts";
+import { planStartup, type OpenTab } from "../shared/startup.ts";
 
 const FLUSH_DELAY_MS = 500;
 const DYNAMIC_ALLOW_RULE = 1;
@@ -30,9 +32,21 @@ function serialized<T>(work: () => Promise<T>): Promise<T> {
 // The page each tab shows now. A page that is closing or being left still sends requests (such as
 // analytics beacons), and those blocks count in the totals but not for the tab's next page.
 const tabDocuments = new Map<number, string>();
+const NAVIGATING = "navigating";
 
-chrome.webNavigation.onCommitted.addListener(({ tabId, frameId, documentId }) => {
-  if (frameId === 0 && documentId) tabDocuments.set(tabId, documentId);
+// Every new page in a tab, a reload included, starts from zero blocked and gets its Shields button
+// and site hiding again: the browser resets a tab's button state on each navigation.
+chrome.webNavigation.onBeforeNavigate.addListener(({ tabId, frameId }) => {
+  if (frameId !== 0 || tabId < 0) return;
+  tabDocuments.set(tabId, NAVIGATING);
+  void clearTab(tabId).then(() => showBadge(tabId, emptyCounts()));
+});
+
+chrome.webNavigation.onCommitted.addListener(({ tabId, frameId, documentId, url }) => {
+  if (frameId !== 0 || tabId < 0) return;
+  if (documentId) tabDocuments.set(tabId, documentId);
+  void syncAction(tabId, url);
+  void hideOnSite(tabId, url);
 });
 
 function countsForTab(request: chrome.declarativeNetRequest.RequestDetails): boolean {
@@ -119,19 +133,16 @@ function clearTab(tabId: number): Promise<void> {
 }
 
 // Shields works on web pages only, so on the new tab page and other browser pages its button
-// rests, greyed out.
+// rests, greyed out. The button is on by default, so a tab whose state the browser has reset still
+// opens the Shields panel.
 function syncAction(tabId: number, url: string | undefined): Promise<void> {
   return (siteOf(url) ? chrome.action.enable(tabId) : chrome.action.disable(tabId)).catch(() => {});
 }
 
-void chrome.action.disable().catch(() => {});
+void chrome.action.enable().catch(() => {});
 
 chrome.tabs.onUpdated.addListener((tabId, change) => {
   if (change.url) void syncAction(tabId, change.url);
-  if (change.status === "loading" && change.url) {
-    void clearTab(tabId).then(() => showBadge(tabId, emptyCounts()));
-    void hideOnSite(tabId, change.url);
-  }
 });
 
 // Hiding leftover ad space on sites that have their own hiding rules
@@ -151,7 +162,8 @@ async function hideOnSite(tabId: number, url: string): Promise<void> {
   const host = siteOf(url);
   if (!host) return;
   const off = [...(await hostsOff()), ...(await privateHostsOff())];
-  if (hostSuffixes(host).some((suffix) => off.includes(suffix))) return;
+  const { specific } = await readHidingExceptions();
+  if (hostSuffixes(host).some((suffix) => off.includes(suffix) || specific.includes(suffix))) return;
   const entries: SiteCosmetic[] = [];
   for (const suffix of hostSuffixes(host)) {
     const entry = (await readShard(cosmeticShard(suffix)))[suffix];
@@ -274,6 +286,12 @@ async function applySessionRule(id: number, hosts: string[]): Promise<void> {
   });
 }
 
+/** Sites with Shields off in any window. Content scripts cannot tell windows apart, so a site turned
+ * off in a private window runs without them everywhere until the last private window closes. */
+async function allHostsOff(): Promise<string[]> {
+  return normalizeHosts([...(await hostsOff()), ...(await privateHostsOff())]);
+}
+
 /** A choice made in a private window lasts only for this session and never reaches the profile. */
 async function setShields(host: string, enabled: boolean, incognito: boolean): Promise<void> {
   const change = (hosts: string[]) => normalizeHosts(enabled ? hosts.filter((h) => h !== host) : [...hosts, host]);
@@ -285,9 +303,31 @@ async function setShields(host: string, enabled: boolean, incognito: boolean): P
     const sitesOff = change(await hostsOff());
     await chrome.storage.local.set({ sitesOff });
     await applyPersistentRules(sitesOff);
-    await applyContentScripts(await readPrivacy(), sitesOff);
   }
+  await applyContentScripts(await readPrivacy(), await allHostsOff());
 }
+
+/** The switch in the Shields panel: applies the choice, then reloads the page from here, so closing
+ * the panel early cannot leave the page in its old state. */
+async function switchShields(tabId: number | undefined, host: string, enabled: boolean, incognito: boolean): Promise<void> {
+  await setShields(host, enabled, incognito);
+  if (tabId === undefined) return;
+  await clearTab(tabId);
+  await showBadge(tabId, emptyCounts());
+  await chrome.tabs.reload(tabId).catch(() => {});
+}
+
+chrome.windows.onRemoved.addListener(() => {
+  void (async () => {
+    const windows = await chrome.windows.getAll();
+    if (windows.some((window) => window.incognito)) return;
+    const { privateSitesOff } = await chrome.storage.session.get("privateSitesOff");
+    if (!normalizeHosts(privateSitesOff).length) return;
+    await chrome.storage.session.remove("privateSitesOff");
+    await applySessionRule(SESSION_PRIVATE_RULE, []);
+    await applyContentScripts(await readPrivacy(), await hostsOff());
+  })();
+});
 
 async function continueToSite(host: string): Promise<void> {
   const { continuedSites } = await chrome.storage.session.get("continuedSites");
@@ -317,12 +357,12 @@ async function handle(message: Message): Promise<unknown> {
       const state: TabState = {
         counts: (web && tabCounts[message.tabId]) || emptyCounts(),
         blocked: { ads: blockedList(hosts.ads), trackers: blockedList(hosts.trackers), threats: blockedList(hosts.threats) },
-        sitesOff: [...regular, ...privateHosts],
+        sitesOff: tab?.incognito ? [...regular, ...privateHosts] : regular,
       };
       return state;
     }
     case "set-shields":
-      await setShields(message.host, message.enabled, message.incognito);
+      await switchShields(message.tabId, message.host, message.enabled, message.incognito);
       return { ok: true };
     case "continue-to-site":
       await continueToSite(message.host);
@@ -333,7 +373,7 @@ async function handle(message: Message): Promise<unknown> {
       if (!privacy.checkUpdates) await chrome.storage.local.remove("update");
       await applyWebRtc(privacy);
       await applyThreats(privacy);
-      await applyContentScripts(privacy, await hostsOff());
+      await applyContentScripts(privacy, await allHostsOff());
       return { ok: true };
     }
     case "reset-stats":
@@ -347,10 +387,9 @@ async function handle(message: Message): Promise<unknown> {
 
 async function applyAll(): Promise<void> {
   const privacy = await readPrivacy();
-  const sitesOff = await hostsOff();
   await applyWebRtc(privacy);
   await applyThreats(privacy);
-  await applyContentScripts(privacy, sitesOff);
+  await applyContentScripts(privacy, await allHostsOff());
 }
 
 /** What Orbit for Android shows for a new tab until this extension's page is registered
@@ -388,6 +427,7 @@ async function takeOverNewTabs(welcome: boolean): Promise<void> {
 }
 
 chrome.runtime.onInstalled.addListener((details) => {
+  void traceStartup(`installed:${details.reason}`);
   void chrome.action.setBadgeBackgroundColor({ color: "#3b4ad0" });
   void chrome.action.setBadgeTextColor({ color: "#ffffff" });
   if (details.reason === "install" || details.reason === "update") {
@@ -399,6 +439,78 @@ chrome.runtime.onInstalled.addListener((details) => {
       if (!welcomeShown) void chrome.storage.local.set({ welcomeShown: true });
     });
   }
+});
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+/** Tabs once the browser has finished restoring them: the same count twice in a row. */
+async function settledTabs(): Promise<chrome.tabs.Tab[]> {
+  let tabs = await chrome.tabs.query({});
+  for (let i = 0; i < 12; i++) {
+    await sleep(250);
+    const next = await chrome.tabs.query({});
+    if (next.length === tabs.length && next.length > 0) return next;
+    tabs = next;
+  }
+  return tabs;
+}
+
+/** Orbit for Android restores its tabs at every start and leaves Settings > On startup to this:
+ * the chosen pages open once each, or a new tab page comes to front. */
+async function openStartupPages(): Promise<void> {
+  const startup = await browserStartup();
+  void traceStartup(`mode:${startup ? `${startup.mode} ${startup.urls.length} urls` : "none"}`);
+  if (!startup || startup.mode === "restore") return;
+  const tabs: OpenTab[] = (await settledTabs()).flatMap((tab) => (tab.id === undefined ? [] : [{ id: tab.id, url: tab.url || tab.pendingUrl || "", incognito: tab.incognito }]));
+  const steps = planStartup(startup, tabs, chrome.runtime.getURL("newtab/"));
+  void traceStartup(`plan:${tabs.length} tabs, ${steps.length} steps`);
+  for (const step of steps) {
+    const done = step.open
+      ? chrome.tabs.create({ url: step.open, active: step.active }).then((tab) => `opened ${tab.id}`)
+      : step.activate !== undefined
+        ? chrome.tabs.update(step.activate, { active: true }).then(() => `activated ${step.activate}`)
+        : Promise.resolve("nothing");
+    void traceStartup(await done.catch((error: unknown) => `failed: ${String(error)}`));
+  }
+}
+
+/** The last browser starts as this worker saw them (events, windows open, pages opened), kept for
+ * the Android check. */
+let traceWrites: Promise<void> = Promise.resolve();
+function traceStartup(event: string): Promise<void> {
+  const at = Date.now();
+  traceWrites = traceWrites.then(async () => {
+    const { startupTrace } = await chrome.storage.local.get("startupTrace");
+    const windows = (await chrome.windows.getAll()).length;
+    const entries = Array.isArray(startupTrace) ? startupTrace : [];
+    await chrome.storage.local.set({ startupTrace: [...entries, { at, event, windows }].slice(-30) });
+  }).catch(() => undefined);
+  return traceWrites;
+}
+
+/** Opens the startup pages once per browser session. */
+async function startupPagesOnce(source: string): Promise<void> {
+  const { startupPagesDone } = await chrome.storage.session.get("startupPagesDone");
+  if (startupPagesDone) return;
+  await chrome.storage.session.set({ startupPagesDone: true });
+  void traceStartup(`pages:${source}`);
+  await startupPagesWhenShown();
+}
+
+/** Android can start the browser without a window (for a download or a notification); the pages
+ * then open with the first window. */
+async function startupPagesWhenShown(): Promise<void> {
+  if ((await chrome.windows.getAll()).length > 0) return openStartupPages();
+  await chrome.storage.session.set({ startupPending: true });
+}
+
+chrome.windows.onCreated.addListener(() => {
+  void chrome.storage.session.get("startupPending").then(async ({ startupPending }) => {
+    if (!startupPending) return;
+    await chrome.storage.session.remove("startupPending");
+    void traceStartup("pages:first-window");
+    await openStartupPages();
+  });
 });
 
 // The browser re-registers an extension loaded from a folder at each launch, and may report that as
@@ -414,7 +526,13 @@ async function startOncePerSession(): Promise<void> {
   await runStartupCleanup(await readPrivacy());
 }
 
-chrome.runtime.onStartup.addListener(() => {});
+// Only a browser start, never an update or reload of this extension, opens the startup pages.
+chrome.runtime.onStartup.addListener(() => {
+  void traceStartup("onStartup");
+  void chrome.runtime.getPlatformInfo().then(({ os }) => {
+    if (os === "android") void startupPagesOnce("onStartup");
+  });
+});
 void startOncePerSession();
 
 chrome.alarms.onAlarm.addListener((alarm) => {

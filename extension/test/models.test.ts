@@ -42,6 +42,9 @@ test("corrupted stats become clean stats", () => {
 test("corrupted layouts become usable layouts", () => {
   assert.deepEqual(sanitizeLayout(null), defaultLayout());
   assert.deepEqual(sanitizeLayout({ widgets: "x" }), defaultLayout());
+  assert.deepEqual(sanitizeLayout(null, true), defaultLayout(true));
+  assert.deepEqual(defaultLayout(true).widgets.filter((widget) => widget.visible).map((widget) => widget.id), ["bookmarks", "stats"]);
+  assert.equal(defaultLayout().widgets.every((widget) => widget.visible), true);
   const partial = sanitizeLayout({ widgets: [{ id: "notes", visible: false, size: "large" }, { id: "nope" }, { id: "notes" }, { id: "weather", size: "large" }] });
   assert.deepEqual(partial.widgets.map((w) => w.id), ["notes", "weather", "search", "bookmarks", "stats"]);
   assert.equal(partial.widgets[0]!.visible, false);
@@ -82,7 +85,9 @@ test("settings fall back to safe defaults", () => {
   assert.equal(settings.background, "gallery");
   assert.equal(settings.galleryChoice, DEFAULT_ITEM.page);
   assert.equal(settings.videoPaused, false);
-  assert.equal(settings.showClock, true);
+  assert.equal(settings.showClock, false);
+  assert.equal(settings.showDate, false);
+  assert.equal(sanitizeSettings({ showClock: true }).showClock, true);
   assert.equal(settings.statsPeriod, "7d");
   assert.equal(settings.temperatureUnit, "celsius");
   assert.equal(settings.bookmarksFolder, null);
@@ -264,7 +269,7 @@ test("new tab settings keep valid choices and drop bad ones", () => {
   assert.equal(bad.background, "gallery");
   assert.equal(bad.color, "midnight");
   assert.equal(bad.clockFormat, "auto");
-  assert.equal(bad.searchEngine, "duckduckgo");
+  assert.equal(bad.searchEngine, "google");
   assert.equal(bad.topSitesMode, "favorites");
   assert.equal(bad.shortcutRows, 1);
   assert.deepEqual(bad.hiddenSites, []);

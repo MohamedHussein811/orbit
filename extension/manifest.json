@@ -44,7 +44,8 @@
   "side_panel": { "default_path": "notes/notes.html" },
   "chrome_url_overrides": { "newtab": "newtab/newtab.html" },
   "web_accessible_resources": [
-    { "resources": ["blocked/blocked.html"], "matches": ["<all_urls>"] }
+    { "resources": ["blocked/blocked.html"], "matches": ["<all_urls>"] },
+    { "resources": ["rules/resources/*"], "matches": ["<all_urls>"], "use_dynamic_url": true }
   ],
   "declarative_net_request": {
     "rule_resources": [

@@ -56,6 +56,8 @@ function starPath() {
 }
 
 const MARK = "M23.37 8.95 A11.775 11.775 0 1 1 15.05 0.63 A1.73 1.73 0 0 1 14.15 3.96 A8.325 8.325 0 1 0 20.04 9.85 A1.73 1.73 0 0 1 23.37 8.95 Z";
+// Orbit's private mark adds a crescent moon inside the ring (tools/android/brand.py draws the same).
+const MOON = "M17.22 13.34 A5.4 5.4 0 1 1 10.64 6.76 A4.65 4.65 0 1 0 17.22 13.34 Z";
 
 /** Reload: an open ring with its gap at the top right, like Orbit's mark, and an arrowhead. */
 function reloadShapes() {
@@ -218,6 +220,17 @@ export const ICONS = [
       ["chrome/app/vector_icons/browser_logo_old.icon", 16],
     ],
     shapes: [fill(MARK), dot(19.11, 4.89, 2.25)],
+  },
+  {
+    name: "private",
+    canvas: 24,
+    targets: [
+      ["chrome/app/vector_icons/incognito.icon", 16],
+      ["chrome/app/vector_icons/incognito_refresh_menu_old.icon", 16],
+      "chrome/app/vector_icons/incognito_circle_filled.icon",
+      ["chrome/app/vector_icons/incognito_old.icon", 25],
+    ],
+    shapes: [fill(scalePath(MARK, 0.75, 12, 12)), dot(17.33, 6.67, 1.69), fill(scalePath(MOON, 0.75, 12, 12))],
   },
   {
     name: "tab-close",

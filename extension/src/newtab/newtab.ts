@@ -8,6 +8,7 @@ import {
   COLORS,
   ENGINE_KEYWORDS,
   engineForKeyword,
+  defaultSettings,
   resolveTheme,
   sanitizeSettings,
   SEARCH_ENGINE_IDS,
@@ -103,10 +104,13 @@ let startup: StartupSettings | null = null;
 let startupNotice = "";
 let colorsOpen = false;
 let section: Section = "background";
+let layoutPage: "cards" | "shortcuts" = "cards";
+let phone = false;
 
 const root = document.documentElement;
 const top = document.getElementById("top")!;
 const searchSlot = document.getElementById("search")!;
+const center = document.querySelector<HTMLElement>(".center")!;
 const dock = document.getElementById("dock")!;
 const credit = document.getElementById("credit")!;
 const motion = document.getElementById("motion") as HTMLButtonElement;
@@ -367,6 +371,14 @@ function drawBoard(): void {
     }
   }
   dock.hidden = ![...dock.children].some((child) => !(child as HTMLElement).hidden);
+  top.hidden = !isVisible("bookmarks");
+  searchSlot.hidden = !isVisible("search");
+  syncCenter();
+}
+
+/** The middle block (clock, date, search) leaves no gap when everything in it is off. */
+function syncCenter(): void {
+  center.hidden = timeElement.hidden && searchSlot.hidden;
 }
 
 async function setLayout(next: Layout): Promise<void> {
@@ -374,6 +386,15 @@ async function setLayout(next: Layout): Promise<void> {
   await chrome.storage.local.set({ layout });
   drawBoard();
   if (customize.open) drawCustomize();
+}
+
+/** Widgets, clock and date as on a new install. */
+async function restoreLayout(): Promise<void> {
+  const defaults = defaultSettings();
+  await saveSettings({ showClock: defaults.showClock, showDate: defaults.showDate });
+  applyClock();
+  tick();
+  await setLayout(defaultLayout(phone));
 }
 
 async function setBoardSetting(patch: Partial<Settings>): Promise<void> {
@@ -698,41 +719,136 @@ function searchSection(): HTMLElement[] {
   ];
 }
 
-/** Shortcuts and the widgets docked at the bottom of the page. */
+/** A small drawing of a widget for its card in Customize. */
+function widgetPreview(id: WidgetId): HTMLElement {
+  const lines = (count: number) => Array.from({ length: count }, () => h("span", { class: "preview-line" }));
+  const parts: Record<WidgetId, () => Array<HTMLElement | SVGSVGElement>> = {
+    bookmarks: () => [h("span", { class: "preview-row" }, ...Array.from({ length: 4 }, () => h("span", { class: "preview-site" })))],
+    stats: () => ["12", "5", "0"].map((count) => h("span", { class: "preview-stat" }, h("b", {}, count), h("span", { class: "preview-line" }))),
+    weather: () => [icon("partly"), h("b", {}, "24°")],
+    notes: () => [icon("note"), h("span", { class: "preview-lines" }, ...lines(3))],
+    search: () => [],
+  };
+  return h("span", { class: `widget-preview preview-${id}`, "aria-hidden": "true" }, ...parts[id]());
+}
+
+/** The card of one widget: its drawing, name and state, and the switch that shows it. */
+function widgetCard(id: WidgetId, detail: string, extra: { open?: () => void; moves?: HTMLElement[] } = {}): HTMLElement {
+  const name = t(WIDGET_NAMES[id]);
+  const visible = switchInput(`${id}-visible`, isVisible(id), (checked) => void setLayout(updateWidget(layout, id, { visible: checked })));
+  visible.setAttribute("aria-label", name);
+  const body = [widgetPreview(id), h("span", { class: "widget-card-text" }, h("span", {}, name), h("small", {}, detail))];
+  if (extra.open) {
+    return h(
+      "div",
+      { class: "widget-card", "data-id": id },
+      h("button", { type: "button", class: "widget-card-open", "aria-label": t("shortcutsSettings"), "data-focus-key": `${id}-open`, onclick: extra.open }, ...body, h("span", { class: "widget-card-go" }, icon("forward"))),
+      visible,
+    );
+  }
+  return h("li", { class: "widget-card", "data-id": id, draggable: "true" }, h("span", { class: "widget-card-grip" }, icon("grip")), ...body, h("span", { class: "widget-card-moves" }, ...(extra.moves ?? [])), visible);
+}
+
+/** Dragging a docked widget's card onto another moves it to that place. */
+function installCardDrag(list: HTMLElement): void {
+  let dragged: WidgetId | null = null;
+  const cardAt = (event: Event) => (event.target as Element | null)?.closest<HTMLElement>(".widget-card[draggable]") ?? null;
+  list.addEventListener("dragstart", (event) => {
+    const card = cardAt(event);
+    if (!card || !event.dataTransfer) return;
+    dragged = card.dataset.id as WidgetId;
+    event.dataTransfer.effectAllowed = "move";
+    event.dataTransfer.setData("text/plain", dragged);
+    card.classList.add("dragging");
+  });
+  list.addEventListener("dragover", (event) => {
+    const card = cardAt(event);
+    if (!dragged || !card) return;
+    event.preventDefault();
+    for (const other of list.querySelectorAll(".drop-target")) other.classList.toggle("drop-target", other === card);
+    card.classList.toggle("drop-target", card.dataset.id !== dragged);
+  });
+  list.addEventListener("dragend", () => {
+    dragged = null;
+    for (const card of list.querySelectorAll(".dragging, .drop-target")) card.classList.remove("dragging", "drop-target");
+  });
+  list.addEventListener("drop", (event) => {
+    const card = cardAt(event);
+    if (!dragged || !card) return;
+    event.preventDefault();
+    const target = layout.widgets.findIndex((widget) => widget.id === card.dataset.id);
+    const moving = dragged;
+    dragged = null;
+    if (target >= 0 && card.dataset.id !== moving) void setLayout(moveWidget(layout, moving, target));
+  });
+}
+
+/** Widgets as cards: shortcuts (with their own page), then the widgets docked at the bottom. */
 function layoutSection(): HTMLElement[] {
-  const hidden = settings.hiddenSites.length;
+  if (layoutPage === "shortcuts") return shortcutsPage();
+  const state = (id: WidgetId) => t(isVisible(id) ? "widgetOn" : "widgetOff");
+  const rowsName = t(settings.shortcutRows === 2 ? "twoRows" : "oneRow");
+  const shortcutsDetail = isVisible("bookmarks") ? `${t(TOP_SITES_NAMES[settings.topSitesMode][0])} · ${rowsName}` : state("bookmarks");
   const list = h(
     "ul",
-    { class: "widget-list" },
+    { class: "widget-cards" },
     ...layout.widgets
       .filter((widget) => DOCK.has(widget.id))
       .map((widget) => {
         const name = t(WIDGET_NAMES[widget.id]);
-        const visible = switchInput(`${widget.id}-visible`, widget.visible, (checked) => void setLayout(updateWidget(layout, widget.id, { visible: checked })));
         const before = dockNeighbor(widget.id, -1);
         const after = dockNeighbor(widget.id, 1);
-        return h(
-          "li",
-          {},
-          h("label", {}, visible, h("span", {}, name)),
-          iconButton("up", t("moveUp", name), () => void setLayout(moveWidget(layout, widget.id, before)), { disabled: before < 0, "data-focus-key": `${widget.id}-up` }),
-          iconButton("down", t("moveDown", name), () => void setLayout(moveWidget(layout, widget.id, after)), { disabled: after < 0, "data-focus-key": `${widget.id}-down` }),
-        );
+        return widgetCard(widget.id, state(widget.id), {
+          moves: [
+            iconButton("up", t("moveUp", name), () => void setLayout(moveWidget(layout, widget.id, before)), { disabled: before < 0, "data-focus-key": `${widget.id}-up` }),
+            iconButton("down", t("moveDown", name), () => void setLayout(moveWidget(layout, widget.id, after)), { disabled: after < 0, "data-focus-key": `${widget.id}-down` }),
+          ],
+        });
       }),
   );
+  installCardDrag(list);
+  return [
+    h("h3", {}, t("widgetsTop")),
+    h("div", { class: "widget-cards" }, widgetCard("bookmarks", shortcutsDetail, { open: () => openLayoutPage("shortcuts") })),
+    h("h3", {}, t("widgetsDocked")),
+    list,
+    h("p", { class: "notice" }, t("widgetsOrderHint")),
+    h("button", { type: "button", class: "link", "data-focus-key": "restore", onclick: () => void restoreLayout() }, t("restoreLayout")),
+  ];
+}
+
+/** The shortcuts card's page: which sites, and how they are laid out. */
+function shortcutsPage(): HTMLElement[] {
+  const hidden = settings.hiddenSites.length;
   const parts: HTMLElement[] = [
+    h("button", { type: "button", class: "link back-link", "data-focus-key": "layout-back", onclick: () => openLayoutPage("cards") }, icon("back"), h("span", {}, t("widgets"))),
     h("h3", {}, t("widgetShortcuts")),
     h("div", { class: "group" }, toggleRow(t("showTopSites"), switchInput("top-visible", isVisible("bookmarks"), (checked) => void setLayout(updateWidget(layout, "bookmarks", { visible: checked }))))),
     h("h3", {}, t("topSitesShow")),
     choiceGroup("top-mode", t("topSitesShow"), TOP_SITES_MODES.map((value) => ({ value, title: t(TOP_SITES_NAMES[value][0]), note: t(TOP_SITES_NAMES[value][1]), preview: sitesPreview(1, value === "favorites" ? "star" : "clock") })), settings.topSitesMode, (topSitesMode) => void setBoardSetting({ topSitesMode })),
     h("h3", {}, t("topSitesRows")),
-    choiceGroup("top-rows", t("topSitesRows"), [{ value: "1", title: t("oneRow"), preview: sitesPreview(1) }, { value: "2", title: t("twoRows"), preview: sitesPreview(2) }], String(settings.shortcutRows) as "1" | "2", (rows) => void setBoardSetting({ shortcutRows: rows === "2" ? 2 : 1 })),
+    choiceGroup(
+      "top-rows",
+      t("topSitesRows"),
+      [
+        { value: "1", title: t("oneRow"), note: t("oneRowNote"), preview: sitesPreview(1) },
+        { value: "2", title: t("twoRows"), note: t("twoRowsNote"), preview: sitesPreview(2) },
+      ],
+      String(settings.shortcutRows) as "1" | "2",
+      (rows) => void setBoardSetting({ shortcutRows: rows === "2" ? 2 : 1 }),
+    ),
   ];
   if (hidden > 0 && settings.topSitesMode === "frequent") {
     parts.push(h("button", { type: "button", class: "button quiet", "data-focus-key": "unhide", onclick: () => void setBoardSetting({ hiddenSites: [] }) }, t("showHiddenSites", hidden)));
   }
-  parts.push(h("h3", {}, t("widgetsDocked")), list, h("button", { type: "button", class: "link", "data-focus-key": "restore", onclick: () => void setLayout(defaultLayout()) }, t("restoreLayout")));
   return parts;
+}
+
+function openLayoutPage(page: "cards" | "shortcuts"): void {
+  layoutPage = page;
+  drawCustomize();
+  customize.querySelector<HTMLElement>(".customize-panel")!.scrollTop = 0;
+  customize.querySelector<HTMLElement>(`[data-focus-key="${page === "shortcuts" ? "layout-back" : "bookmarks-open"}"]`)?.focus();
 }
 
 const STARTUP_MODES: readonly StartupMode[] = ["newTab", "restore", "pages"];
@@ -747,8 +863,9 @@ async function saveStartup(next: StartupSettings): Promise<void> {
 
 /** What opens when Orbit starts, the same choice as Settings > On startup. */
 function startupSection(): HTMLElement[] {
-  const settingsLink = h("button", { type: "button", class: "link", "data-focus-key": "startup-settings", onclick: () => void chrome.tabs.update({ url: "chrome://settings/onStartup" }) }, t("startupMore"));
-  if (!startup) return [h("p", { class: "notice lead" }, t("startupUnavailable")), settingsLink];
+  // Android has no Settings page to send people to: this section is its On startup setting.
+  const settingsLink = phone ? null : h("button", { type: "button", class: "link", "data-focus-key": "startup-settings", onclick: () => void chrome.tabs.update({ url: "chrome://settings/onStartup" }) }, t("startupMore"));
+  if (!startup) return [h("p", { class: "notice lead" }, t("startupUnavailable")), ...(settingsLink ? [settingsLink] : [])];
   const current = startup;
   const parts: HTMLElement[] = [
     h("h3", {}, t("startupHeading")),
@@ -802,7 +919,8 @@ function startupSection(): HTMLElement[] {
       );
     }
   }
-  parts.push(h("p", { class: "notice alert", role: "status" }, startupNotice), settingsLink);
+  parts.push(h("p", { class: "notice alert", role: "status" }, startupNotice));
+  if (settingsLink) parts.push(settingsLink);
   return parts;
 }
 
@@ -849,6 +967,7 @@ function drawCustomize(): void {
           onclick: () => {
             const changed = id !== section;
             section = id;
+            layoutPage = "cards";
             drawCustomize();
             if (changed) customize.querySelector<HTMLElement>(".customize-panel")!.scrollTop = 0;
           },
@@ -863,6 +982,7 @@ function drawCustomize(): void {
     if (!step) return;
     event.preventDefault();
     section = SECTIONS[(SECTIONS.indexOf(section) + step + SECTIONS.length) % SECTIONS.length]!;
+    layoutPage = "cards";
     drawCustomize();
     customize.querySelector<HTMLElement>(`#tab-${section}`)?.focus();
   });
@@ -884,6 +1004,7 @@ async function openCustomize(): Promise<void> {
   if (!customMedia) setCustomMedia(await loadCustomMedia());
   await loadGallery();
   colorsOpen = false;
+  layoutPage = "cards";
   engineNotice = "";
   startupNotice = "";
   startup = await browserStartup();
@@ -924,6 +1045,7 @@ const timeElement = document.getElementById("time") as HTMLTimeElement;
 
 function applyClock(): void {
   timeElement.hidden = !settings.showClock && !settings.showDate;
+  syncCenter();
 }
 
 let tickTimer: ReturnType<typeof setTimeout> | undefined;
@@ -952,7 +1074,8 @@ async function main(): Promise<void> {
   localizePage();
   const stored = await chrome.storage.local.get(["settings", "layout"]);
   settings = sanitizeSettings(stored.settings);
-  layout = sanitizeLayout(stored.layout);
+  phone = (await chrome.runtime.getPlatformInfo()).os === "android";
+  layout = sanitizeLayout(stored.layout, phone);
   applyTheme();
   applyClock();
   tick();
@@ -979,6 +1102,13 @@ async function main(): Promise<void> {
     drawCustomize();
   });
   openButton.addEventListener("click", () => void openCustomize());
+  // Settings links here with #customize=<section>, such as Android Settings > On startup.
+  const wanted = /^#customize(?:=(\w+))?$/.exec(location.hash);
+  if (wanted) {
+    if ((SECTIONS as readonly string[]).includes(wanted[1] ?? "")) section = wanted[1] as Section;
+    history.replaceState(null, "", location.pathname + location.search);
+    void openCustomize();
+  }
   customize.addEventListener("click", (event) => {
     if (event.target === customize) customize.close();
   });

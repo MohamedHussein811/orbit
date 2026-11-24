@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { ALLOW_ID_BASE, compileCosmetic, compileFilters, compileHosts, compilePopups, compileScriptlets, cosmeticShard, isPortableRegex, parseFilter, scriptletArgs } from "../../tools/filter-compiler.mjs";
+import { ALLOW_ID_BASE, compileCosmetic, compileFilters, compileHidingExceptions, compileHosts, compilePopups, compileScriptlets, cosmeticShard, isPortableRegex, parseFilter, scriptletArgs } from "../../tools/filter-compiler.mjs";
 import { preprocess } from "../../tools/filters.mjs";
 
 const one = (line) => {
@@ -82,7 +82,7 @@ test("$document on a block rule blocks the page", () => {
 });
 
 test("filters with no exact equivalent are skipped, not approximated", () => {
-  for (const line of ["||x.example^$csp=script-src 'none'", "||x.example^$redirect=noop.js", "||x.example^$removeparam=utm", "||x.example^$popup", "/(?=x)regex[0-9]+/", "/a{2000}/", "||x.example^$domain=a.*"]) {
+  for (const line of ["||x.example^$csp=script-src 'none'", "||x.example^$redirect=unknown-resource.js", "@@||x.example^$redirect=noop.js", "||x.example^$removeparam=utm", "||x.example^$popup", "/(?=x)regex[0-9]+/", "/a{2000}/", "||x.example^$domain=a.*"]) {
     const { rules, stats } = compileFilters([line]);
     assert.deepEqual(rules, [], line);
     assert.equal(stats.compiled, 0, line);
@@ -146,7 +146,7 @@ test("exceptions and excluded sites show the element again", () => {
 });
 
 test("syntax CSS cannot express is skipped", () => {
-  const { generic, shards, stats } = compileCosmetic(["##.a:has-text(x)\nb.example##+js(nowebrtc)\nc.example##.d:style(color:red)\ne.example##.f{}\n"]);
+  const { generic, shards, stats } = compileCosmetic(["##.a:has-text(x)\nb.example##+js(nowebrtc)\nc.example##.d:upward(2)\ne.example##.f{}\n"]);
   assert.deepEqual(generic, []);
   assert.deepEqual(shards.flatMap((s) => Object.keys(s)), []);
   assert.equal(stats.skipped, 4);
@@ -226,4 +226,58 @@ test("site scriptlets compile by host and entity, with exceptions", () => {
 test("preprocessing keeps blocks that hold for Orbit and lookahead-free Safari network rules", () => {
   const text = ["a", "!#if env_firefox", "b", "!#else", "c", "!#endif", "!#if env_mobile", "d", "!#endif", "!#if !env_mobile", "e", "!#endif", "!#if env_safari", "/x[0-9]/$script", "!#endif", "!#if env_safari", "example.com##.ad", "!#endif"].join("\n");
   assert.deepEqual(preprocess(text).split("\n"), ["a", "c", "e", "/x[0-9]/$script"]);
+});
+
+test("redirect filters load a harmless stand-in instead of the blocked file", () => {
+  const rule = one("||ads.example/ad.js$script,redirect=noopjs");
+  assert.deepEqual(rule.action, { type: "redirect", redirect: { extensionPath: "/rules/resources/noop.js" } });
+  assert.deepEqual(rule.condition.resourceTypes, ["script"]);
+  assert.ok(rule.id < ALLOW_ID_BASE);
+  assert.ok(rule.priority > one("||ads.example/ad.js$script").priority);
+  assert.equal(rule.priority, one("@@||ads.example/ad.js$script").priority);
+});
+
+test("redirect names resolve through their aliases, priorities are dropped, types follow the stand-in", () => {
+  assert.equal(one("||imasdk.googleapis.com/js/sdkloader/ima3.js$redirect=google-ima3:5").action.redirect.extensionPath, "/rules/resources/google-ima.js");
+  const image = one("||ads.example/pixel$redirect=1x1.gif,domain=a.example");
+  assert.deepEqual(image.condition.resourceTypes, ["image"]);
+  assert.deepEqual(image.condition.initiatorDomains, ["a.example"]);
+  assert.deepEqual(one("||ads.example^$xhr,redirect=nooptext").condition.resourceTypes, ["xmlhttprequest"]);
+  assert.deepEqual(compileFilters(["||ads.example^$document,redirect=noopjs"]).rules, []);
+});
+
+test("redirect-rule filters, which only change how an already blocked request is answered, are dropped", () => {
+  const { rules, stats } = compileFilters(["*.svg#$image,redirect-rule=1x1.gif\n||news.example/resources/*$image,1p,redirect-rule=1x1.gif\n*$xhr,3p,method=head,redirect-rule=nooptext:-1"]);
+  assert.deepEqual(rules, []);
+  assert.equal(stats.skipped["redirect-rule"], 3);
+});
+
+test("generichide and elemhide exceptions name the sites that keep hiding off", () => {
+  const list = [
+    "@@||decoy.example^$ghide",
+    "@@||b.example^$generichide",
+    "@@||b.example^$generichide,badfilter",
+    "@@||c.example^$elemhide",
+    "@@||d.example^$specifichide",
+    "@@*$ghide,domain=e.example|~f.example",
+    "@@||g.example^$script",
+  ].join("\n");
+  const { generic, specific } = compileHidingExceptions([list]);
+  assert.deepEqual(generic, ["c.example", "decoy.example", "e.example"]);
+  assert.deepEqual(specific, ["c.example", "d.example"]);
+});
+
+test(":style() restyles on its sites, :remove() hides, unsafe styles are refused", () => {
+  const list = [
+    "a.example##.overlay:style(position: static !important; z-index: 1)",
+    "a.example##.wall:remove()",
+    "a.example##.x:style(background: url(https://t.example/p))",
+    "##.y:style(color: red)",
+  ].join("\n");
+  const { shards, stats } = compileCosmetic([list]);
+  const entry = shards[cosmeticShard("a.example")]["a.example"];
+  assert.deepEqual(entry.style, [[".overlay", "position: static !important; z-index: 1"]]);
+  assert.deepEqual(entry.hide, [".wall"]);
+  assert.equal(stats.style, 1);
+  assert.equal(stats.skipped, 2);
 });

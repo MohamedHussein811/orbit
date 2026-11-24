@@ -1,5 +1,6 @@
 // Checks a built Orbit browser through the DevTools protocol: privacy defaults, Settings data, the
-// built-in extension and its new tab page. Uses a new profile in a temporary folder.
+// built-in extension and its new tab page, and Chrome or Google names left on internal pages.
+// Uses a new profile in a temporary folder.
 //   node tools/chromium/check-browser.mjs <browser> <extension id> [extra browser flags...]
 import { spawn } from "node:child_process";
 import fs from "node:fs";
@@ -7,6 +8,7 @@ import http from "node:http";
 import os from "node:os";
 import path from "node:path";
 import { Cdp } from "./lib/cdp.mjs";
+import { crawlLeftovers, printLeftovers } from "./lib/leftovers.mjs";
 
 const [browser, extensionId, ...extraFlags] = process.argv.slice(2);
 if (!browser || !extensionId) {
@@ -67,7 +69,7 @@ try {
   expect("translation", value(prefs.translate?.enabled), false);
   expect("sign-in", value(prefs.signin?.allowed), false);
   expect("third-party cookies", value(prefs.profile?.cookie_controls_mode), 1);
-  expect("first search engine", value(prefs.search_provider_overrides)?.[0]?.keyword, "duckduckgo.com");
+  expect("first search engine", value(prefs.search_provider_overrides)?.[0]?.keyword, "google.com");
   expect("continues where the person left off", value(prefs.session?.restore_on_startup), 1);
 
   await page.goto("chrome://settings");
@@ -83,8 +85,8 @@ try {
   const engines = await page.eval(
     `import("chrome://resources/js/cr.js").then((cr) => cr.sendWithPromise("getSearchEnginesList")).then((list) => list.defaults.map((e) => ({ name: e.name, isDefault: e.default })))`,
   );
-  expect("search engines offered", engines.map((e) => e.name), ["DuckDuckGo", "Google", "Bing", "Ecosia", "Brave Search", "Startpage"]);
-  expect("default search engine", engines.find((e) => e.isDefault)?.name, "DuckDuckGo");
+  expect("search engines offered", engines.map((e) => e.name), ["Google", "DuckDuckGo", "Bing", "Ecosia", "Brave Search", "Startpage"]);
+  expect("default search engine", engines.find((e) => e.isDefault)?.name, "Google");
 
   expect("default color scheme follows the device", value(prefs.browser?.theme?.color_scheme2), 0);
 
@@ -151,7 +153,7 @@ try {
   }
   expect("Shields scriptlets registered", scriptlets >= 30, true);
   const searchDefault = await tab.eval("new Promise((resolve) => chrome.search.getDefault(resolve))");
-  expect("new tab reads the default search engine", searchDefault, "duckduckgo.com");
+  expect("new tab reads the default search engine", searchDefault, "google.com");
   await tab.eval("new Promise((resolve) => chrome.search.setDefault('startpage.com', resolve))");
   expect("new tab sets the default search engine", await tab.eval("new Promise((resolve) => chrome.search.getDefault(resolve))"), "startpage.com");
   const startup = await tab.eval("new Promise((resolve) => chrome.search.getStartup(resolve))");
@@ -182,6 +184,13 @@ try {
   );
   expect("no extensions from other programs", listed, []);
   expect("blocks extensions registered for other browsers", value(prefs.extensions?.block_external_extensions), true);
+
+  // Reported, not failed, until the known leftovers are fixed or listed in docs/KNOWN_LIMITS.md.
+  try {
+    printLeftovers(await crawlLeftovers(cdp));
+  } catch (error) {
+    console.log(`note leftover crawl stopped: ${error.message}`);
+  }
 } catch (error) {
   console.log(`FAIL ${error.message}`);
   failures.push(error.message);

@@ -24,6 +24,183 @@ diff --git a/chrome/android/java/src/org/chromium/chrome/browser/identity_disc/I
      }
  
      private ButtonSpec buttonSpecWithDrawableAndDescription(
+diff --git a/chrome/android/java/src/org/chromium/chrome/browser/toolbar/ToolbarManager.java b/chrome/android/java/src/org/chromium/chrome/browser/toolbar/ToolbarManager.java
+--- a/chrome/android/java/src/org/chromium/chrome/browser/toolbar/ToolbarManager.java
++++ b/chrome/android/java/src/org/chromium/chrome/browser/toolbar/ToolbarManager.java
+@@ -223,6 +223,7 @@
+ import org.chromium.chrome.browser.ui.actions.ActionId;
+ import org.chromium.chrome.browser.ui.actions.ActionProperties;
+ import org.chromium.chrome.browser.ui.actions.ActionRegistry;
++import org.chromium.chrome.browser.ui.actions.ResourceTextResolver;
+ import org.chromium.chrome.browser.ui.actions.appmenu.MenuButtonState;
+ import org.chromium.chrome.browser.ui.actions.glic.GlicActionCoordinator;
+ import org.chromium.chrome.browser.ui.actions.tabswitcher.TabSwitcherActionProvider;
+@@ -481,6 +482,7 @@
+     private final OneshotSupplier<Boolean> mPromoShownOneshotSupplier;
+     private final GlicButtonDelegate mToggleGlicCallback;
+     private @Nullable GlicActionCoordinator mGlicActionCoordinator;
++    private @Nullable Callback<View> mBookmarkActionCallback;
+ 
+     private final TabStripTopControlLayer mTabStripTopControlLayer;
+     private final @Nullable DesktopWindowStateManager mDesktopWindowStateManager;
+@@ -2728,17 +2730,17 @@
+                                         tabModelSelector.isIncognitoSelected()));
+                     });
+ 
+-            mGlicActionCoordinator =
+-                    new GlicActionCoordinator(
+-                            mActivity,
+-                            mActionRegistry,
+-                            mToggleGlicCallback,
+-                            mActivityTabProvider.asObservable(),
+-                            mChromeAndroidTaskSupplier,
+-                            mBrowserControlsSizer,
+-                            mTabModelSelectorSupplier,
+-                            mSnackbarManager,
+-                            mUserEducationHelper);
++            mBookmarkActionCallback =
++                    v -> {
++                        if (bookmarkClickHandler != null && mActivityTabProvider.get() != null) {
++                            bookmarkClickHandler.onClick(v);
++                        }
++                    };
++            PropertyModel bookmarkModel = mActionRegistry.get(ActionId.GLIC).get();
++            if (bookmarkModel != null) {
++                bookmarkModel.set(ActionProperties.USER_EDUCATION_HELPER, mUserEducationHelper);
++            }
++            updateBookmarkButtonStatus();
+         }
+ 
+         Profile profile = tabModelSelector.getModel(false).getProfile();
+@@ -3637,6 +3639,33 @@
+         boolean editingAllowed =
+                 currentTab == null || bridge == null || bridge.isEditBookmarksEnabled();
+         mToolbar.updateBookmarkButton(isBookmarked, editingAllowed);
++        updateBottomBarBookmarkAction(currentTab != null, isBookmarked, editingAllowed);
++    }
++
++    private void updateBottomBarBookmarkAction(
++            boolean hasTab, boolean isBookmarked, boolean editingAllowed) {
++        if (mActionRegistry == null) return;
++        PropertyModel model = mActionRegistry.get(ActionId.GLIC).get();
++        if (model == null) return;
++        model.set(
++                ActionProperties.ICON_ID,
++                isBookmarked ? R.drawable.ic_star_filled_24dp : R.drawable.ic_star_24dp);
++        model.set(
++                ActionProperties.ICON_TINT,
++                isBookmarked
++                        ? mActivity.getColorStateList(
++                                mLocationBarModel.isIncognitoBranded()
++                                        ? R.color.default_icon_color_blue_light
++                                        : R.color.default_icon_color_accent1_tint_list)
++                        : null);
++        ResourceTextResolver label =
++                new ResourceTextResolver(
++                        isBookmarked ? R.string.edit_bookmark : R.string.accessibility_menu_bookmark);
++        model.set(ActionProperties.CONTENT_DESCRIPTION_RESOLVER, label);
++        model.set(ActionProperties.TOOLTIP_TEXT_RESOLVER, label);
++        model.set(
++                ActionProperties.ON_PRESS_CALLBACK,
++                hasTab && editingAllowed ? mBookmarkActionCallback : null);
+     }
+ 
+     private void updateReloadState(boolean tabCrashed) {
+diff --git a/chrome/android/java/src/org/chromium/chrome/browser/ui/AdaptiveToolbarUiCoordinator.java b/chrome/android/java/src/org/chromium/chrome/browser/ui/AdaptiveToolbarUiCoordinator.java
+--- a/chrome/android/java/src/org/chromium/chrome/browser/ui/AdaptiveToolbarUiCoordinator.java
++++ b/chrome/android/java/src/org/chromium/chrome/browser/ui/AdaptiveToolbarUiCoordinator.java
+@@ -16,6 +16,7 @@
+ import org.chromium.base.supplier.MonotonicObservableSupplier;
+ import org.chromium.base.supplier.NonNullObservableSupplier;
+ import org.chromium.base.supplier.NullableObservableSupplier;
++import org.chromium.base.supplier.OneshotSupplier;
+ import org.chromium.build.annotations.Initializer;
+ import org.chromium.build.annotations.NullMarked;
+ import org.chromium.build.annotations.Nullable;
+@@ -53,7 +54,9 @@
+ import org.chromium.chrome.browser.toolbar.adaptive.AdaptiveToolbarButtonController;
+ import org.chromium.chrome.browser.toolbar.adaptive.AdaptiveToolbarButtonVariant;
+ import org.chromium.chrome.browser.toolbar.adaptive.TranslateToolbarButtonController;
++import org.chromium.chrome.browser.toolbar.extensions.OrbitShieldsButton;
+ import org.chromium.chrome.browser.toolbar.optional_button.ButtonDataProvider;
++import org.chromium.chrome.browser.ui.browser_window.ChromeAndroidTask;
+ import org.chromium.chrome.browser.ui.messages.snackbar.SnackbarManager;
+ import org.chromium.components.browser_ui.bottomsheet.BottomSheetController;
+ import org.chromium.components.browser_ui.device_lock.DeviceLockActivityLauncher;
+@@ -62,6 +65,7 @@
+ import org.chromium.components.feature_engagement.Tracker;
+ import org.chromium.components.signin.SigninFeatureMap;
+ import org.chromium.ui.base.ActivityResultTracker;
++import org.chromium.ui.base.DeviceFormFactor;
+ import org.chromium.ui.base.WindowAndroid;
+ import org.chromium.ui.modaldialog.ModalDialogManager;
+ 
+@@ -82,6 +86,7 @@
+     private final NonNullObservableSupplier<ModalDialogManager> mModalDialogManagerSupplier;
+ 
+     private List<ButtonDataProvider> mButtonDataProviders;
++    private @Nullable List<ButtonDataProvider> mToolbarButtonDataProviders;
+     private CurrentTabPriceTrackingStateSupplier mCurrentTabPriceTrackingStateSupplier;
+     private ContextualPageActionController mContextualPageActionController;
+     private AdaptiveToolbarButtonController mAdaptiveToolbarButtonController;
+@@ -317,7 +322,34 @@
+      * which one will be shown first.
+      */
+     public List<ButtonDataProvider> getButtonDataProviders() {
+-        return mButtonDataProviders;
++        return mToolbarButtonDataProviders != null
++                ? mToolbarButtonDataProviders
++                : mButtonDataProviders;
++    }
++
++    /**
++     * On phones, where the toolbar has no extensions container, the optional button slot shows
++     * Orbit Shields instead of the adaptive button (Share, voice search and the like). Call after
++     * {@link #initialize} and before the toolbar takes the list.
++     */
++    public void addOrbitShieldsButton(
++            OneshotSupplier<ChromeAndroidTask> taskSupplier, WindowAndroid windowAndroid) {
++        if (DeviceFormFactor.isNonMultiDisplayContextOnTablet(mActivity)) return;
++        OrbitShieldsButton shields =
++                OrbitShieldsButton.maybeCreate(
++                        mActivity,
++                        windowAndroid,
++                        taskSupplier,
++                        mTabModelSelectorSupplier,
++                        mActivityTabProvider.asObservable());
++        if (shields == null) return;
++        List<ButtonDataProvider> all = new ArrayList<>();
++        all.add(shields);
++        all.addAll(mButtonDataProviders);
++        mButtonDataProviders = all;
++        List<ButtonDataProvider> shown = new ArrayList<>(all);
++        shown.remove(mAdaptiveToolbarButtonController);
++        mToolbarButtonDataProviders = shown;
+     }
+ 
+     /** Returns {@link ContextualPageActionController} used for adaptive toolbar button. */
+diff --git a/chrome/android/java/src/org/chromium/chrome/browser/ui/RootUiCoordinator.java b/chrome/android/java/src/org/chromium/chrome/browser/ui/RootUiCoordinator.java
+--- a/chrome/android/java/src/org/chromium/chrome/browser/ui/RootUiCoordinator.java
++++ b/chrome/android/java/src/org/chromium/chrome/browser/ui/RootUiCoordinator.java
+@@ -166,6 +166,7 @@
+ import org.chromium.chrome.browser.tab.Tab;
+ import org.chromium.chrome.browser.tab.TabLaunchType;
+ import org.chromium.chrome.browser.tab.TabObscuringHandler;
++import org.chromium.chrome.browser.tabbed_mode.TabbedRootUiCoordinator;
+ import org.chromium.chrome.browser.tab.TabObscuringHandlerSupplier;
+ import org.chromium.chrome.browser.tab.TabObserver;
+ import org.chromium.chrome.browser.tab.TabSelectionType;
+@@ -2179,6 +2180,10 @@
+                     mScrimManagerSupplier.asNonNull(),
+                     mReaderModeIphControllerSupplier,
+                     mToolbarContainer);
++            if (this instanceof TabbedRootUiCoordinator) {
++                mAdaptiveToolbarUiCoordinator.addOrbitShieldsButton(
++                        mChromeAndroidTaskSupplier, mWindowAndroid);
++            }
+ 
+             var omniboxActionDelegate =
+                     new OmniboxActionDelegateImpl(
 diff --git a/chrome/browser/flags/android/chrome_feature_list.cc b/chrome/browser/flags/android/chrome_feature_list.cc
 --- a/chrome/browser/flags/android/chrome_feature_list.cc
 +++ b/chrome/browser/flags/android/chrome_feature_list.cc
@@ -48,6 +225,463 @@ diff --git a/chrome/browser/flags/android/java/src/org/chromium/chrome/browser/f
      public static final CachedFlag sAndroidDesktopWebUiHistory =
              newCachedFlag(
                      ANDROID_DESKTOP_WEB_UI_HISTORY,
+diff --git a/chrome/browser/ui/android/actions/java/src/org/chromium/chrome/browser/ui/actions/ActionUtils.java b/chrome/browser/ui/android/actions/java/src/org/chromium/chrome/browser/ui/actions/ActionUtils.java
+--- a/chrome/browser/ui/android/actions/java/src/org/chromium/chrome/browser/ui/actions/ActionUtils.java
++++ b/chrome/browser/ui/android/actions/java/src/org/chromium/chrome/browser/ui/actions/ActionUtils.java
+@@ -75,18 +75,14 @@
+                 R.string.accessibility_toolbar_btn_home,
+                 R.string.accessibility_toolbar_btn_home);
+ 
+-        // Register glic button.
+-        int glicIconResId =
+-                BottomBarConfigUtils.alwaysUseFilledIcon()
+-                        ? R.drawable.ic_spark_filled_24dp
+-                        : R.drawable.ic_spark_outlined_24dp;
++        // The extra slot: Orbit's bookmark star.
+         registerAction(
+                 registry,
+                 ActionId.GLIC,
+                 GlicActionProperties.ALL_KEYS,
+-                glicIconResId,
+-                R.string.glic_button_entrypoint_ask_gemini_label,
+-                R.string.glic_button_entrypoint_ask_gemini_label);
++                R.drawable.ic_star_24dp,
++                R.string.accessibility_menu_bookmark,
++                R.string.accessibility_menu_bookmark);
+ 
+         // Register new tab button.
+         registerAction(
+diff --git a/chrome/browser/ui/android/bottombar/java/src/org/chromium/chrome/browser/ui/bottombar/BottomBarCoordinator.java b/chrome/browser/ui/android/bottombar/java/src/org/chromium/chrome/browser/ui/bottombar/BottomBarCoordinator.java
+--- a/chrome/browser/ui/android/bottombar/java/src/org/chromium/chrome/browser/ui/bottombar/BottomBarCoordinator.java
++++ b/chrome/browser/ui/android/bottombar/java/src/org/chromium/chrome/browser/ui/bottombar/BottomBarCoordinator.java
+@@ -129,7 +129,7 @@
+                 new ActionConfig(
+                         ActionId.GLIC,
+                         extraContainer,
+-                        GlicActionButtonBinder::bind,
++                        ActionButtonBinder::bind,
+                         BottomBarProperties.IS_EXTRA_BUTTON_VISIBLE,
+                         /* initiallyVisible= */ false));
+ 
+@@ -192,14 +192,8 @@
+ 
+     @Override
+     public boolean maybeShowPromoDialog(Profile profile) {
+-        if (!BottomBarConfigUtils.isBottomBarEnabled(mView.getContext())) {
+-            return false;
+-        }
+-        Tab tab = mTabSupplier.get();
+-        if (tab == null || tab.isOffTheRecord()) {
+-            return false;
+-        }
+-        return mPromoDialogCoordinator.maybeShowPromoDialog(profile);
++        // The bottom bar's only promo introduces Gemini.
++        return false;
+     }
+ 
+     @Override
+diff --git a/chrome/browser/ui/android/bottombar/java/src/org/chromium/chrome/browser/ui/bottombar/BottomBarMediator.java b/chrome/browser/ui/android/bottombar/java/src/org/chromium/chrome/browser/ui/bottombar/BottomBarMediator.java
+--- a/chrome/browser/ui/android/bottombar/java/src/org/chromium/chrome/browser/ui/bottombar/BottomBarMediator.java
++++ b/chrome/browser/ui/android/bottombar/java/src/org/chromium/chrome/browser/ui/bottombar/BottomBarMediator.java
+@@ -253,6 +253,12 @@
+ 
+     private void updateExtraActionVisibility() {
+         if (mDestroyed) return;
++        // The extra slot holds Orbit's bookmark star whenever there is a profile.
++        setButtonVisibility(ActionId.GLIC, mProfileSupplier.get() != null);
++    }
++
++    private void updateGeminiActionVisibility() {
++        if (mDestroyed) return;
+         Profile profile = mProfileSupplier.get();
+         if (profile == null) {
+             mResolvedCandidateExtraAction = null;
+diff --git a/chrome/browser/ui/android/toolbar/BUILD.gn b/chrome/browser/ui/android/toolbar/BUILD.gn
+--- a/chrome/browser/ui/android/toolbar/BUILD.gn
++++ b/chrome/browser/ui/android/toolbar/BUILD.gn
+@@ -171,6 +171,7 @@
+     "java/src/org/chromium/chrome/browser/toolbar/download_button/DownloadButtonView.java",
+     "java/src/org/chromium/chrome/browser/toolbar/download_button/DownloadButtonViewBinder.java",
+     "java/src/org/chromium/chrome/browser/toolbar/extensions/ExtensionsToolbarCoordinator.java",
++    "java/src/org/chromium/chrome/browser/toolbar/extensions/OrbitShieldsButton.java",
+     "java/src/org/chromium/chrome/browser/toolbar/forward_button/ForwardButtonCoordinator.java",
+     "java/src/org/chromium/chrome/browser/toolbar/home_button/HomeButton.java",
+     "java/src/org/chromium/chrome/browser/toolbar/home_button/HomeButtonCoordinator.java",
+diff --git a/chrome/browser/ui/android/toolbar/java/src/org/chromium/chrome/browser/toolbar/extensions/BUILD.gn b/chrome/browser/ui/android/toolbar/java/src/org/chromium/chrome/browser/toolbar/extensions/BUILD.gn
+--- a/chrome/browser/ui/android/toolbar/java/src/org/chromium/chrome/browser/toolbar/extensions/BUILD.gn
++++ b/chrome/browser/ui/android/toolbar/java/src/org/chromium/chrome/browser/toolbar/extensions/BUILD.gn
+@@ -41,6 +41,7 @@
+     "ExtensionsToolbarCoordinatorImpl.java",
+     "ExtensionsToolbarDragTouchHandler.java",
+     "ExtensionsToolbarProperties.java",
++    "OrbitShieldsButtonImpl.java",
+     "SitePermissionsPageProperties.java",
+     "SitePermissionsPageViewBinder.java",
+   ]
+diff --git a/chrome/browser/ui/android/toolbar/java/src/org/chromium/chrome/browser/toolbar/extensions/OrbitShieldsButton.java b/chrome/browser/ui/android/toolbar/java/src/org/chromium/chrome/browser/toolbar/extensions/OrbitShieldsButton.java
+--- a/chrome/browser/ui/android/toolbar/java/src/org/chromium/chrome/browser/toolbar/extensions/OrbitShieldsButton.java
++++ b/chrome/browser/ui/android/toolbar/java/src/org/chromium/chrome/browser/toolbar/extensions/OrbitShieldsButton.java
+@@ -0,0 +1,51 @@
++// Copyright 2026 NovaTech. All rights reserved.
++
++package org.chromium.chrome.browser.toolbar.extensions;
++
++import android.app.Activity;
++
++import org.chromium.base.ServiceLoaderUtil;
++import org.chromium.base.supplier.NullableObservableSupplier;
++import org.chromium.base.supplier.OneshotSupplier;
++import org.chromium.build.annotations.Initializer;
++import org.chromium.build.annotations.NullMarked;
++import org.chromium.build.annotations.Nullable;
++import org.chromium.chrome.browser.tab.Tab;
++import org.chromium.chrome.browser.tabmodel.TabModelSelector;
++import org.chromium.chrome.browser.toolbar.optional_button.ButtonDataProvider;
++import org.chromium.chrome.browser.ui.browser_window.ChromeAndroidTask;
++import org.chromium.ui.base.WindowAndroid;
++
++import java.util.function.Supplier;
++
++/**
++ * Orbit Shields in the optional button slot of the phone toolbar.
++ *
++ * <p>Always compiled, like {@link ExtensionsToolbarCoordinator}; the implementation exists only
++ * when extensions are compiled.
++ */
++@NullMarked
++public interface OrbitShieldsButton extends ButtonDataProvider {
++    /** Returns the button, or null when extensions are not compiled. */
++    static @Nullable OrbitShieldsButton maybeCreate(
++            Activity activity,
++            WindowAndroid windowAndroid,
++            OneshotSupplier<ChromeAndroidTask> taskSupplier,
++            Supplier<@Nullable TabModelSelector> tabModelSelectorSupplier,
++            NullableObservableSupplier<Tab> currentTabSupplier) {
++        OrbitShieldsButton button = ServiceLoaderUtil.maybeCreate(OrbitShieldsButton.class);
++        if (button == null) return null;
++        button.initialize(
++                activity, windowAndroid, taskSupplier, tabModelSelectorSupplier, currentTabSupplier);
++        return button;
++    }
++
++    /** Called once by {@link #maybeCreate}. */
++    @Initializer
++    void initialize(
++            Activity activity,
++            WindowAndroid windowAndroid,
++            OneshotSupplier<ChromeAndroidTask> taskSupplier,
++            Supplier<@Nullable TabModelSelector> tabModelSelectorSupplier,
++            NullableObservableSupplier<Tab> currentTabSupplier);
++}
+diff --git a/chrome/browser/ui/android/toolbar/java/src/org/chromium/chrome/browser/toolbar/extensions/OrbitShieldsButtonImpl.java b/chrome/browser/ui/android/toolbar/java/src/org/chromium/chrome/browser/toolbar/extensions/OrbitShieldsButtonImpl.java
+--- a/chrome/browser/ui/android/toolbar/java/src/org/chromium/chrome/browser/toolbar/extensions/OrbitShieldsButtonImpl.java
++++ b/chrome/browser/ui/android/toolbar/java/src/org/chromium/chrome/browser/toolbar/extensions/OrbitShieldsButtonImpl.java
+@@ -0,0 +1,305 @@
++// Copyright 2026 NovaTech. All rights reserved.
++
++package org.chromium.chrome.browser.toolbar.extensions;
++
++import android.app.Activity;
++import android.graphics.Bitmap;
++import android.graphics.drawable.BitmapDrawable;
++import android.view.View;
++
++import org.chromium.base.Callback;
++import org.chromium.base.ObserverList;
++import org.chromium.base.supplier.NullableObservableSupplier;
++import org.chromium.base.supplier.OneshotSupplier;
++import org.chromium.build.annotations.Initializer;
++import org.chromium.build.annotations.NullMarked;
++import org.chromium.build.annotations.Nullable;
++import org.chromium.build.annotations.ServiceImpl;
++import org.chromium.chrome.browser.profiles.Profile;
++import org.chromium.chrome.browser.tab.Tab;
++import org.chromium.chrome.browser.tabmodel.TabModelSelector;
++import org.chromium.chrome.browser.toolbar.optional_button.ButtonData;
++import org.chromium.chrome.browser.toolbar.optional_button.ButtonDataImpl;
++import org.chromium.chrome.browser.ui.browser_window.ChromeAndroidTask;
++import org.chromium.chrome.browser.ui.browser_window.ChromeAndroidTaskFeature;
++import org.chromium.chrome.browser.ui.browser_window.ChromeAndroidTaskFeatureKey;
++import org.chromium.chrome.browser.ui.extensions.ExtensionAction;
++import org.chromium.chrome.browser.ui.extensions.ExtensionActionPopupContents;
++import org.chromium.chrome.browser.ui.extensions.ExtensionUi;
++import org.chromium.chrome.browser.ui.extensions.ExtensionsToolbarBridge;
++import org.chromium.chrome.browser.ui.toolbar.InvocationSource;
++import org.chromium.content_public.browser.WebContents;
++import org.chromium.ui.base.ActivityWindowAndroid;
++import org.chromium.ui.base.WindowAndroid;
++
++import java.util.Arrays;
++import java.util.function.Supplier;
++
++/**
++ * Shows Orbit's extension action (icon with the blocked count) in the optional button slot and
++ * opens its popup anchored to the button, as tablets do from their extensions container.
++ */
++@NullMarked
++@ServiceImpl(OrbitShieldsButton.class)
++public class OrbitShieldsButtonImpl implements OrbitShieldsButton, ChromeAndroidTaskFeature {
++    private static final String ACTION_ID = "kceipbaiojomdibnboffoieecidpfdck";
++
++    private final ObserverList<ButtonDataObserver> mObservers = new ObserverList<>();
++    private final Callback<@Nullable Tab> mTabObserver = tab -> onCurrentTabChanged();
++
++    private final ExtensionsToolbarBridge.Observer mBridgeObserver =
++            new ExtensionsToolbarBridge.Observer() {
++                @Override
++                public void onActionsInitialized() {
++                    refresh();
++                }
++
++                @Override
++                public void onActionAdded(String actionId) {
++                    if (ACTION_ID.equals(actionId)) refresh();
++                }
++
++                @Override
++                public void onActionRemoved(String actionId) {
++                    if (ACTION_ID.equals(actionId)) refresh();
++                }
++
++                @Override
++                public void onActionUpdated(String actionId) {
++                    if (ACTION_ID.equals(actionId)) refresh();
++                }
++
++                @Override
++                public void onActiveWebContentsChanged(@Nullable WebContents webContents) {
++                    refresh();
++                }
++            };
++
++    private final ExtensionsToolbarBridge.ActionListDelegate mActionListDelegate =
++            new ExtensionsToolbarBridge.ActionListDelegate() {
++                @Override
++                public void triggerPopup(
++                        String actionId,
++                        ExtensionActionPopupContents popupContents,
++                        boolean inspectWithDevTools) {
++                    showPopup(actionId, popupContents, inspectWithDevTools);
++                }
++
++                @Override
++                public void showContextMenu(String actionId) {}
++
++                @Override
++                public boolean hasPoppedOutAction() {
++                    return false;
++                }
++
++                @Override
++                public void hideActivePopup() {
++                    closePopup();
++                }
++
++                @Override
++                public boolean hasActivePopup() {
++                    return mPopup != null;
++                }
++            };
++
++    private Activity mActivity;
++    private WindowAndroid mWindowAndroid;
++    private Supplier<@Nullable TabModelSelector> mTabModelSelectorSupplier;
++    private NullableObservableSupplier<Tab> mCurrentTabSupplier;
++    private @Nullable ChromeAndroidTask mTask;
++    private @Nullable ExtensionsToolbarBridge mBridge;
++    private @Nullable ExtensionActionPopup mPopup;
++    private @Nullable View mAnchorView;
++    private @Nullable Bitmap mIcon;
++    private @Nullable BitmapDrawable mDrawable;
++    private @Nullable ButtonData mButtonData;
++    private boolean mNativeInitialized;
++    private boolean mDestroyed;
++
++    @Override
++    @Initializer
++    public void initialize(
++            Activity activity,
++            WindowAndroid windowAndroid,
++            OneshotSupplier<ChromeAndroidTask> taskSupplier,
++            Supplier<@Nullable TabModelSelector> tabModelSelectorSupplier,
++            NullableObservableSupplier<Tab> currentTabSupplier) {
++        mActivity = activity;
++        mWindowAndroid = windowAndroid;
++        mTabModelSelectorSupplier = tabModelSelectorSupplier;
++        mCurrentTabSupplier = currentTabSupplier;
++        currentTabSupplier.addSyncObserver(mTabObserver);
++        taskSupplier.onAvailable(
++                task -> {
++                    mTask = task;
++                    maybeCreateBridge();
++                });
++    }
++
++    @Override
++    public void onFinishNativeInitialization() {
++        mNativeInitialized = true;
++        maybeCreateBridge();
++    }
++
++    @Override
++    public void addObserver(ButtonDataObserver obs) {
++        mObservers.addObserver(obs);
++    }
++
++    @Override
++    public void removeObserver(ButtonDataObserver obs) {
++        mObservers.removeObserver(obs);
++    }
++
++    @Override
++    public @Nullable ButtonData get(@Nullable Tab tab) {
++        return mButtonData;
++    }
++
++    @Override
++    public void destroy() {
++        if (mDestroyed) return;
++        destroyBridge();
++        mCurrentTabSupplier.removeObserver(mTabObserver);
++        mDestroyed = true;
++        mObservers.clear();
++    }
++
++    @Override
++    public void onAddedToTask(InitInfo initInfo) {}
++
++    @Override
++    public void onFeatureRemoved() {
++        destroyBridge();
++    }
++
++    private void onCurrentTabChanged() {
++        if (mBridge == null) maybeCreateBridge();
++        refresh();
++    }
++
++    private void maybeCreateBridge() {
++        ChromeAndroidTask task = mTask;
++        if (mDestroyed || mBridge != null || !mNativeInitialized || task == null) return;
++        if (task.isDestroyed()) return;
++        TabModelSelector selector = mTabModelSelectorSupplier.get();
++        if (selector == null) return;
++        Profile profile = selector.getCurrentModel().getProfile();
++        if (profile == null || !ExtensionUi.isEnabled(profile)) return;
++        ActivityWindowAndroid activityWindow =
++                mWindowAndroid instanceof ActivityWindowAndroid window ? window : null;
++        ChromeAndroidTaskFeature added =
++                task.addFeature(
++                        new ChromeAndroidTaskFeatureKey(
++                                OrbitShieldsButtonImpl.class, profile, activityWindow),
++                        () -> this);
++        if (added != this) return;
++        ExtensionsToolbarBridge bridge = new ExtensionsToolbarBridge(task, profile);
++        bridge.setActionListDelegate(mActionListDelegate);
++        bridge.setMenuDelegate(() -> {});
++        bridge.addObserver(mBridgeObserver);
++        mBridge = bridge;
++        refresh();
++    }
++
++    private void destroyBridge() {
++        closePopup();
++        ExtensionsToolbarBridge bridge = mBridge;
++        if (bridge == null) return;
++        mBridge = null;
++        bridge.removeObserver(mBridgeObserver);
++        bridge.setActionListDelegate(null);
++        bridge.setMenuDelegate(null);
++        bridge.destroy();
++        refresh();
++    }
++
++    private void refresh() {
++        if (mDestroyed) return;
++        ButtonData data = computeButtonData();
++        if (data == null && mButtonData == null) return;
++        mButtonData = data;
++        boolean canShow = data != null && data.canShow();
++        for (ButtonDataObserver observer : mObservers) {
++            observer.buttonDataChanged(canShow);
++        }
++    }
++
++    private @Nullable ButtonData computeButtonData() {
++        ExtensionsToolbarBridge bridge = mBridge;
++        Tab tab = mCurrentTabSupplier.get();
++        if (bridge == null || tab == null) return null;
++        // The native toolbar dereferences the action without a check, and Orbit's action exists
++        // only once the built-in extension is installed and the actions are initialized.
++        if (!hasOrbitAction(bridge)) return null;
++        WebContents webContents = tab.getWebContents();
++        ExtensionAction action = bridge.getAction(ACTION_ID, webContents);
++        if (action == null) return null;
++        Bitmap icon =
++                ExtensionActionIconUtil.getIcon(
++                        mActivity, mWindowAndroid, bridge, ACTION_ID, webContents);
++        if (icon == null) return null;
++        BitmapDrawable drawable = mDrawable;
++        if (drawable == null || mIcon == null || !mIcon.sameAs(icon)) {
++            mIcon = icon;
++            drawable = new BitmapDrawable(mActivity.getResources(), icon);
++            mDrawable = drawable;
++        }
++        ButtonData.ButtonSpec spec =
++                new ButtonData.ButtonSpec.Builder(
++                                drawable, action.getAccessibleName(), /* supportsTinting= */ false)
++                        .setOnClickListener(this::onClick)
++                        .build();
++        return new ButtonDataImpl(/* canShow= */ true, /* isEnabled= */ true, spec);
++    }
++
++    private static boolean hasOrbitAction(ExtensionsToolbarBridge bridge) {
++        return Arrays.asList(bridge.getAllActionIds()).contains(ACTION_ID);
++    }
++
++    private void onClick(View view) {
++        ExtensionsToolbarBridge bridge = mBridge;
++        if (bridge == null || !hasOrbitAction(bridge)) return;
++        if (mPopup != null) {
++            closePopup();
++            return;
++        }
++        mAnchorView = view;
++        bridge.executeUserAction(ACTION_ID, InvocationSource.TOOLBAR_BUTTON);
++    }
++
++    private void showPopup(
++            String actionId, ExtensionActionPopupContents contents, boolean inspectWithDevTools) {
++        closePopup();
++        View anchor = mAnchorView;
++        TabModelSelector selector = mTabModelSelectorSupplier.get();
++        if (mDestroyed || anchor == null || selector == null || !anchor.isAttachedToWindow()) {
++            contents.destroy();
++            return;
++        }
++        ExtensionActionPopup popup =
++                new ExtensionActionPopup(
++                        mActivity,
++                        mWindowAndroid,
++                        anchor,
++                        actionId,
++                        contents,
++                        /* contextMenuPopulatorFactory= */ null,
++                        /* selectionDropdownMenuDelegate= */ null,
++                        selector,
++                        inspectWithDevTools);
++        mPopup = popup;
++        popup.addOnDismissListener(this::closePopup);
++        popup.loadInitialPage();
++    }
++
++    private void closePopup() {
++        ExtensionActionPopup popup = mPopup;
++        if (popup == null) return;
++        mPopup = null;
++        popup.destroy();
++    }
++}
 diff --git a/chrome/browser/ui/android/toolbar/java/src/org/chromium/chrome/browser/toolbar/signin_button/SigninButtonCoordinator.java b/chrome/browser/ui/android/toolbar/java/src/org/chromium/chrome/browser/toolbar/signin_button/SigninButtonCoordinator.java
 --- a/chrome/browser/ui/android/toolbar/java/src/org/chromium/chrome/browser/toolbar/signin_button/SigninButtonCoordinator.java
 +++ b/chrome/browser/ui/android/toolbar/java/src/org/chromium/chrome/browser/toolbar/signin_button/SigninButtonCoordinator.java
@@ -68,3 +702,16 @@ diff --git a/chrome/browser/ui/android/toolbar/java/src/org/chromium/chrome/brow
  
          // Only update signin button if it does not match the intended state.
          if (showSigninButton != isShown()) {
+diff --git a/chrome/common/chrome_features.cc b/chrome/common/chrome_features.cc
+--- a/chrome/common/chrome_features.cc
++++ b/chrome/common/chrome_features.cc
+@@ -530,8 +530,7 @@
+ // kill-switch for Glic and can be used in the future to handle unsupported
+ // Chrome versions.
+ BASE_FEATURE(kGlic,
+-#if BUILDFLAG(IS_MAC) || BUILDFLAG(IS_WIN) || BUILDFLAG(IS_CHROMEOS) || \
+-    BUILDFLAG(IS_ANDROID)
++#if BUILDFLAG(IS_MAC) || BUILDFLAG(IS_WIN) || BUILDFLAG(IS_CHROMEOS)
+              base::FEATURE_ENABLED_BY_DEFAULT
+ #else
+              base::FEATURE_DISABLED_BY_DEFAULT

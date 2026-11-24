@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 struct TabsView: View {
     @Environment(Browser.self) private var browser
@@ -65,8 +66,11 @@ private struct TabCard: View {
         Button(action: open) {
             VStack(alignment: .leading, spacing: 6) {
                 HStack {
-                    Image(systemName: tab.isPrivate ? "eyeglasses" : "globe")
-                        .foregroundStyle(Theme.primary)
+                    if tab.isPrivate {
+                        OrbitPrivateMark(color: Theme.primary).frame(width: 18, height: 18)
+                    } else {
+                        Image(systemName: "globe").foregroundStyle(Theme.primary)
+                    }
                     Spacer()
                     Button(action: close) { Image(systemName: "xmark") }
                         .foregroundStyle(Theme.secondaryText)
@@ -183,6 +187,8 @@ private struct PageRow: View {
     }
 }
 
+/// Orbit's Settings, in the names and order of Orbit's Settings on its other systems: Get Started,
+/// Privacy and security, Search engine, About Orbit.
 struct SettingsView: View {
     @Environment(Browser.self) private var browser
     @Environment(\.dismiss) private var dismiss
@@ -190,13 +196,18 @@ struct SettingsView: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section("Search") {
-                    Picker("Search engine", selection: Binding(
-                        get: { browser.library.settings.engine },
-                        set: { browser.library.setEngine($0) }
-                    )) {
-                        ForEach(SearchEngine.allCases) { Text($0.name).tag($0) }
+                Section("Get Started") {
+                    Button("Default browser") {
+                        if let url = URL(string: UIApplication.openSettingsURLString) {
+                            UIApplication.shared.open(url)
+                        }
                     }
+                    NavigationLink {
+                        StartupSettingsView()
+                    } label: {
+                        LabeledContent("On startup", value: StartupSettingsView.name(of: browser.library.settings.startup))
+                    }
+                    .accessibilityIdentifier("settings-startup")
                 }
                 Section {
                     Toggle("Shields", isOn: Binding(
@@ -221,16 +232,22 @@ struct SettingsView: View {
                             }
                         }
                     }
-                } header: {
-                    Text("Shields")
-                } footer: {
-                    Text("Blocks ads, trackers and known malicious sites with the same lists as Orbit on the desktop. Sites listed here have Shields off.")
-                }
-                Section("Privacy") {
                     Text("Orbit has no accounts, no sync and no telemetry. Everything stays on this device.")
                         .foregroundStyle(Theme.secondaryText)
+                } header: {
+                    Text("Privacy and security")
+                } footer: {
+                    Text("Shields block ads, trackers and known malicious sites with the same lists as Orbit on the desktop. Sites listed here have Shields off.")
                 }
-                Section {
+                Section("Search engine") {
+                    Picker("Search engine", selection: Binding(
+                        get: { browser.library.settings.engine },
+                        set: { browser.library.setEngine($0) }
+                    )) {
+                        ForEach(SearchEngine.allCases) { Text($0.name).tag($0) }
+                    }
+                }
+                Section("About Orbit") {
                     LabeledContent("Version", value: Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "")
                     LabeledContent("Made by", value: "NovaTech")
                 }
@@ -238,5 +255,66 @@ struct SettingsView: View {
             .navigationTitle("Settings")
             .toolbar { Button("Done") { dismiss() } }
         }
+    }
+}
+
+/// Settings > Get Started > On startup: a new tab page, the tabs open last time (not private
+/// ones), or a list of pages.
+struct StartupSettingsView: View {
+    @Environment(Browser.self) private var browser
+    @State private var newPage = ""
+
+    static func name(of mode: StartupMode) -> String {
+        switch mode {
+        case .newTab: return String(localized: "Open the new tab page")
+        case .restore: return String(localized: "Continue where you left off")
+        case .pages: return String(localized: "Open specific pages")
+        }
+    }
+
+    var body: some View {
+        let library = browser.library
+        Form {
+            Section {
+                Picker("On startup", selection: Binding(
+                    get: { library.settings.startup },
+                    set: { mode in library.update { $0.startup = mode } }
+                )) {
+                    ForEach(StartupMode.allCases) { mode in
+                        Text(Self.name(of: mode)).tag(mode)
+                    }
+                }
+                .pickerStyle(.inline)
+                .labelsHidden()
+            }
+            if library.settings.startup == .pages {
+                Section("Pages") {
+                    ForEach(library.settings.startupPages, id: \.self) { url in
+                        Text(url.absoluteString).lineLimit(1)
+                    }
+                    .onDelete { offsets in
+                        library.update { $0.startupPages.remove(atOffsets: offsets) }
+                    }
+                    HStack {
+                        TextField("Add a page", text: $newPage)
+                            .keyboardType(.URL)
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled()
+                            .onSubmit(addPage)
+                        Button("Add", action: addPage)
+                            .disabled(newPage.trimmingCharacters(in: .whitespaces).isEmpty)
+                    }
+                }
+            }
+        }
+        .navigationTitle("On startup")
+    }
+
+    private func addPage() {
+        guard let url = AddressInput.url(for: newPage, engine: browser.library.settings.engine) else { return }
+        browser.library.update { settings in
+            if !settings.startupPages.contains(url) { settings.startupPages.append(url) }
+        }
+        newPage = ""
     }
 }

@@ -27,15 +27,16 @@ export const ALLOWED_SIZES: Record<WidgetId, readonly WidgetSize[]> = {
   notes: ["small", "medium", "large"],
 };
 
-export function defaultLayout(): Layout {
+/** Phones start with shortcuts and Protection only; the address bar already searches. */
+export function defaultLayout(phone = false): Layout {
   return {
     version: 1,
     widgets: [
-      { id: "search", visible: true, size: "large" },
+      { id: "search", visible: !phone, size: "large" },
       { id: "bookmarks", visible: true, size: "large" },
       { id: "stats", visible: true, size: "medium" },
-      { id: "weather", visible: true, size: "small" },
-      { id: "notes", visible: true, size: "medium" },
+      { id: "weather", visible: !phone, size: "small" },
+      { id: "notes", visible: !phone, size: "medium" },
     ],
   };
 }
@@ -44,8 +45,8 @@ function isWidgetId(value: unknown): value is WidgetId {
   return typeof value === "string" && (WIDGET_IDS as readonly string[]).includes(value);
 }
 
-export function sanitizeLayout(raw: unknown): Layout {
-  const defaults = defaultLayout();
+export function sanitizeLayout(raw: unknown, phone = false): Layout {
+  const defaults = defaultLayout(phone);
   const defaultsById = new Map(defaults.widgets.map((widget) => [widget.id, widget]));
   const source = (raw as Partial<Layout> | null | undefined)?.widgets;
   if (!Array.isArray(source)) return defaults;
