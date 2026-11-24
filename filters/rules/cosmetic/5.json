@@ -154,7 +154,6 @@
 "schools.snap.app":{"hide":["div.ant-modal-root:has(img[alt=\"Advertisement\"])"],"style":[["body","overflow: auto !important;"]]},
 "scientificamerican.com":{"hide":[".banner",".footer-banner"]},
 "serialsofts.com":{"hide":["div[class^=\"code-block code-block-\"]"]},
-"seriu.jp":{"hide":["body > .site-footer + div[id][class*=\" \"]"]},
 "sexmummy.com":{"hide":["#topbar","img[width=\"468\"]"]},
 "siliconrepublic.com":{"hide":[".show-for-medium-up"]},
 "singaporeexpats.com":{"hide":[".skyscrapers"]},

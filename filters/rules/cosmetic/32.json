@@ -11,7 +11,7 @@
 "anandtech.com":{"hide":[".jw-reset",".jwplayer"]},
 "antrimnow.co.uk":{"hide":[".banner",".helper__DesktopAdContainer-sc-12ggaoi-1"]},
 "anysex.com":{"hide":["#content > .main > .content_right","#content > .naf_dd","#fluid_theatre > .center","#main_video_fluid_html_on_pause",".desc.type2",".headA",".native_middle","[class^=\"content\"] > .no_pop"]},
-"aol.com":{"hide":["#m-games-overlay-main-right-rail-ads",".m-gam__container",".m-healthgrades"]},
+"aol.com":{"hide":["#m-games-overlay-main-right-rail-ads",".m-gam__container",".m-healthgrades",".swiper-slide:has(.dl__slide--ad)"]},
 "apkgk.com":{"hide":[".adv-block2"]},
 "austurfrett.is":{"show":[".middlead"]},
 "auto-data.net":{"hide":[".ad_incar",".adin"]},
